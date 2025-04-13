@@ -5,16 +5,14 @@ Gmail Agent
 This is the main agent for Gmail functionality, built with Google's Agent Development Kit (ADK).
 """
 
-# 123
-
 from google.adk.agents import Agent
 from harpy_agent.tools.gmail_tools import (
     get_gmail_messages,
-    search_gmail,
+    search_by_from,
+    search_by_subject,
     categorized_search_gmail,
     analyze_email_content,
-    extract_email_metadata,
-    gmail_auth
+    extract_email_metadata
 )
 
 gmail_agent = Agent(
@@ -28,12 +26,20 @@ gmail_agent = Agent(
         "I can search emails by categories (people, projects, tasks, attachments, meetings) and specific tags. "
         "I can extract structured metadata from emails to identify client, project name, task description, "
         "assignee, deadline, and deliverable information."
+        "\n\nCommands you can use:"
+        "\n- To get recent emails: Use get_gmail_messages"
+        "\n- To search for emails from someone: Use search_by_from with the sender's email"
+        "\n- To search for emails with a specific subject: Use search_by_subject with the subject text"
+        "\n- To search by category: Use categorized_search_gmail with a category name"
+        "\n- To analyze an email: Use analyze_email_content with the email ID"
+        "\n- To extract metadata: Use extract_email_metadata with the email ID"
     ),
     tools=[
-        get_gmail_messages, 
-        search_gmail, 
-        categorized_search_gmail, 
-        analyze_email_content, 
+        get_gmail_messages,
+        search_by_from,
+        search_by_subject,
+        categorized_search_gmail,
+        analyze_email_content,
         extract_email_metadata
     ],
 )

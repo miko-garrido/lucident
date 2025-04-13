@@ -192,15 +192,15 @@ def gmail_auth(account_id="default"):
         print("6. Check if your firewall is blocking localhost connections")
         return False
 
-def get_gmail_service(account_id="default"):
+def get_gmail_service():
     """Authenticates with Gmail API and returns a service object.
-    
-    Args:
-        account_id (str): ID of the Gmail account to use. Defaults to "default".
         
     Returns:
         dict: Contains status, error message (if any), and service object (if successful).
     """
+    # Use default account
+    account_id = "default"
+    
     # Check if token file exists for this account
     token_file = f'token_{account_id}.json' if account_id != "default" else 'token.json'
     
@@ -248,18 +248,18 @@ def get_gmail_service(account_id="default"):
         }
 
 # Gmail functionality
-def get_gmail_messages(account_id="default", max_results=10):
+def get_gmail_messages() -> dict:
     """Retrieves recent messages from Gmail.
-    
-    Args:
-        account_id (str): ID of the Gmail account to use. Defaults to "default".
-        max_results (int): Maximum number of emails to retrieve. Defaults to 10.
         
     Returns:
-        dict: status and result containing email information or error message.
+        Result containing recent emails
     """
+    # Set default values
+    account_id = "default"
+    max_results = 10
+        
     # Get Gmail service for the specified account
-    service_result = get_gmail_service(account_id)
+    service_result = get_gmail_service()
     
     # Check if authentication was successful
     if service_result["status"] == "error":
@@ -312,19 +312,31 @@ def get_gmail_messages(account_id="default", max_results=10):
             "error_message": f"Error retrieving Gmail messages for account {account_id}: {str(e)}"
         }
 
-def search_gmail(query, account_id="default", max_results=10):
+# Helper to fix the parameter issue by providing an explicit parameter schema function
+def search_gmail_with_query(query):
     """Searches Gmail for specific emails matching a query.
     
     Args:
         query (str): Search query (e.g. "from:example@gmail.com", "subject:meeting")
-        account_id (str): ID of the Gmail account to use. Defaults to "default".
-        max_results (int): Maximum number of emails to retrieve. Defaults to 10.
         
     Returns:
         dict: status and result containing email information or error message.
     """
+    # Set defaults
+    account_id = "default"
+    max_results = 10
+    
+    # Call the implementation
+    return _search_gmail_impl(query, account_id, max_results)
+    
+# Rename original function to implementation
+def _search_gmail_impl(query, account_id, max_results):
+    """Internal implementation of Gmail search.
+    
+    This is used by both the search_gmail and search_gmail_with_query functions.
+    """
     # Get Gmail service for the specified account
-    service_result = get_gmail_service(account_id)
+    service_result = get_gmail_service()
     
     # Check if authentication was successful
     if service_result["status"] == "error":
@@ -392,17 +404,22 @@ def search_gmail(query, account_id="default", max_results=10):
             "error_message": f"Error searching Gmail for account {account_id}: {str(e)}"
         }
 
-def categorized_search_gmail(category, tag=None, max_results=10):
-    """Searches Gmail for specific emails based on predefined categories and tags.
+# Replace the original search_gmail with the new clean version
+search_gmail = search_gmail_with_query
+
+def categorized_search_gmail(category: str) -> dict:
+    """Searches Gmail for specific emails based on predefined categories.
     
     Args:
-        category (str): Category to search for. Valid values: 'people', 'projects', 'tasks', 'attachments', 'meetings'
-        tag (str, optional): Specific tag within the category. Defaults to None.
-        max_results (int, optional): Maximum number of emails to retrieve. Defaults to 10.
+        category: Category to search for. Valid values: 'people', 'projects', 'tasks', 'attachments', 'meetings'
         
     Returns:
-        dict: status and result containing email information or error message.
+        Result containing matching emails
     """
+    # Set default values
+    tag = None
+    max_results = 10
+        
     # Define search queries based on categories and tags
     search_queries = {
         "people": {
@@ -440,13 +457,6 @@ def categorized_search_gmail(category, tag=None, max_results=10):
     # Get category queries
     category_queries = search_queries[category.lower()]
     
-    # If tag is provided, check if it's valid
-    if tag and tag.lower() not in category_queries:
-        return {
-            "status": "error",
-            "error_message": f"Invalid tag '{tag}' for category '{category}'. Valid tags are: {', '.join(category_queries.keys())}"
-        }
-    
     # Build the search query
     if tag:
         query = category_queries[tag.lower()]
@@ -454,8 +464,8 @@ def categorized_search_gmail(category, tag=None, max_results=10):
         # If no specific tag, combine all queries for the category
         query = " OR ".join([f"({q})" for q in category_queries.values()])
     
-    # Use the existing search_gmail function
-    results = search_gmail(query, max_results=max_results)
+    # Use the implementation directly
+    results = _search_gmail_impl(query, "default", 10)
     
     # Add categorization info to the results
     if results["status"] == "success" and "emails" in results:
@@ -469,18 +479,20 @@ def categorized_search_gmail(category, tag=None, max_results=10):
     
     return results
 
-def analyze_email_content(email_id, account_id="default"):
-    """Analyzes an email and suggests categories and tags based on content.
+def analyze_email_content(email_id: str) -> dict:
+    """Analyzes the content of a specific email to extract relevant information.
     
     Args:
-        email_id (str): The ID of the email to analyze
-        account_id (str, optional): ID of the Gmail account to use. Defaults to "default".
+        email_id: ID of the email to analyze
         
     Returns:
-        dict: Status and suggested categories and tags
+        Result containing email analysis
     """
+    # Set default values
+    account_id = "default"
+        
     # Get Gmail service for the specified account
-    service_result = get_gmail_service(account_id)
+    service_result = get_gmail_service()
     
     # Check if authentication was successful
     if service_result["status"] == "error":
@@ -489,7 +501,6 @@ def analyze_email_content(email_id, account_id="default"):
     # Extract the service object
     service = service_result["service"]
     
-    # First, retrieve the full email content
     try:
         # Get the email
         msg = service.users().messages().get(userId='me', id=email_id, format='full').execute()
@@ -579,18 +590,20 @@ def analyze_email_content(email_id, account_id="default"):
             "error_message": f"Error analyzing email for account {account_id}: {str(e)}"
         }
 
-def extract_email_metadata(email_id, account_id="default"):
-    """Extracts structured metadata from an email based on categorization schema.
+def extract_email_metadata(email_id: str) -> dict:
+    """Extracts structured metadata from an email.
     
     Args:
-        email_id (str): The ID of the email to analyze
-        account_id (str, optional): ID of the Gmail account to use. Defaults to "default".
+        email_id: ID of the email to extract metadata from
         
     Returns:
-        dict: Status and structured metadata in a standardized format
+        Result containing email metadata
     """
+    # Set default values
+    account_id = "default"
+        
     # Get Gmail service for the specified account
-    service_result = get_gmail_service(account_id)
+    service_result = get_gmail_service()
     
     # Check if authentication was successful
     if service_result["status"] == "error":
@@ -737,6 +750,32 @@ def extract_email_metadata(email_id, account_id="default"):
             "status": "error",
             "error_message": f"Error extracting email metadata for account {account_id}: {str(e)}"
         }
+
+# Simplest possible function with explicit parameter and type annotation
+def search_by_from(sender: str) -> dict:
+    """Search for emails from a specific sender.
+    
+    Args:
+        sender: Email address to search for
+        
+    Returns:
+        Result containing matching emails
+    """
+    query = f"from:{sender}"
+    return _search_gmail_impl(query, "default", 10)
+    
+# Simplest possible function with explicit parameter and type annotation
+def search_by_subject(subject_text: str) -> dict:
+    """Search for emails with specific text in the subject.
+    
+    Args:
+        subject_text: Text to search for in subject
+        
+    Returns:
+        Result containing matching emails
+    """
+    query = f"subject:{subject_text}"
+    return _search_gmail_impl(query, "default", 10)
 
 # Main function to run from command line
 if __name__ == "__main__":
