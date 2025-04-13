@@ -28,10 +28,14 @@ root_agent = Agent(
     name="harpy_agent",
     model="gemini-2.0-flash-exp",
     description=(
-        "Agent to answer questions about the time and weather in a city."
+        "Harpy is an AI-powered project management assistant that provides a unified interface "
+        "for managing projects across ClickUp, Gmail, and Slack, intelligently understanding "
+        "and responding to user queries about project status, tasks, and communications."
     ),
     instruction=(
-        "I can answer your questions about the time and weather in a city."
+        "I can help with your project management needs by providing information and insights "
+        "across ClickUp, Gmail, and Slack. Ask me about project status, tasks, timelines, "
+        "or communications, and I'll provide unified responses drawing from all connected platforms."
     ),
     tools=[gmail_agent, slack_agent, clickup_agent],
 )
