@@ -4,6 +4,9 @@ from google.genai import types # For creating message Content/Parts
 from dotenv import load_dotenv  
 from config import Config
 from tools.slack_tools import *
+import os
+import logging
+from typing import Dict, Any, Optional
 
 load_dotenv()
 
@@ -12,12 +15,16 @@ APP_NAME = Config.APP_NAME
 USER_ID = Config.USER_ID
 SESSION_ID = Config.SESSION_ID
 
-slack_agent = Agent(
-        # Can use the same or a different model
-        model=LiteLlm(model=MODEL_NAME), # Sticking with GPT for this example
-        name="slack_agent",
-        instruction="You are the Slack Agent. You find messages in Slack."
-                    "Do not perform any other actions.",
-        description="Finds messages in Slack.", # Crucial for delegation
-        tools=[get_channel_messages],
-    )
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Create the root agent
+root_agent = Agent(
+    name="slack_gpt4_agent",
+    model="gemini-2.0-flash-exp",
+    description="Agent to process Slack messages using GPT-4 and MCP server.",
+    instruction="I can process Slack messages and respond using GPT-4.",
+)
+
+# Export the agent instance
+__all__ = ['root_agent'] 
