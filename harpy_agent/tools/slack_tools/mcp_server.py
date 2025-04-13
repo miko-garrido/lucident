@@ -10,12 +10,10 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 import ssl
 from typing import Dict, Any
+from ...agent import root_agent
 
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-# Import root_agent from the parent directory
-from harpy_agent.agent import root_agent
 
 # Load environment variables
 load_dotenv()

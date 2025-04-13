@@ -1,0 +1,7 @@
+This is a Slack agent that can help with retrieving messages from channels and other Slack-related tasks.
+The agent has access to the following capabilities:
+- Retrieving messages from channels
+- Listing users
+- Listing channels
+- Sending messages
+- Processing queries with GPT-4 
