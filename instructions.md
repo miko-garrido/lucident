@@ -1,6 +1,9 @@
 # Harpy Project Plan - Simplified Implementation
 
 ## System Overview
+
+USE GOOGLE ADK!
+
 Harpy is an AI cross-platform project management assistant that intelligently understands user queries and uses its access to ClickUp, Gmail, and Slack to answer questions. It is built fully on Google's Agent Development Kit (ADK). For this initial implementation, Slack and Gmail are placeholders and will be expanded.
 
 ## Technical Requirements
