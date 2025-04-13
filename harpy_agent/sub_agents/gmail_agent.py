@@ -8,7 +8,7 @@ This is the main agent for Gmail functionality, built with Google's Agent Develo
 # 123
 
 from google.adk.agents import Agent
-from gmail_tools import (
+from harpy_agent.tools.gmail_tools import (
     get_weather,
     get_current_time,
     get_gmail_messages,
@@ -49,8 +49,14 @@ def main():
     return agent
 
 if __name__ == "__main__":
-    # Create the agent
-    root_agent = main()
+    # First authenticate
+    auth_success = gmail_auth()
+    if auth_success:
+        # Initialize the agent
+        agent = main()
+        print("Agent initialized successfully")
+    else:
+        print("Authentication failed")
     
     # Print a success message
     print("\nGmail Agent successfully initialized!")
