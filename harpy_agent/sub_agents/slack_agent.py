@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Create the root agent
-root_agent = Agent(
+slack_agent = Agent(
     name="slack_gpt4_agent",
     model="gemini-2.0-flash-exp",
     description="Agent to process Slack messages using GPT-4 and MCP server.",
@@ -27,4 +27,4 @@ root_agent = Agent(
 )
 
 # Export the agent instance
-__all__ = ['root_agent'] 
+__all__ = ['slack_agent'] 

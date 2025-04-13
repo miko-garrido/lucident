@@ -3,7 +3,7 @@ from google.adk.models.lite_llm import LiteLlm # For multi-model support
 from google.genai import types # For creating message Content/Parts
 from dotenv import load_dotenv  
 from config import Config
-from tools.clickup_tools import *
+from ..tools.clickup_tools import *
 
 load_dotenv()
 

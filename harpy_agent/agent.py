@@ -8,9 +8,9 @@
 # from google.genai import types # For creating message Content/Parts
 from dotenv import load_dotenv  
 from config import Config
-from sub_agents.gmail_agent import gmail_agent
-from sub_agents.slack_agent import slack_agent
-from sub_agents.clickup_agent import clickup_agent
+from .sub_agents.gmail_agent import gmail_agent
+from .sub_agents.slack_agent import slack_agent
+from .sub_agents.clickup_agent import clickup_agent
 
 AGENT_MODEL = Config.MODEL_NAME
 APP_NAME = Config.APP_NAME
@@ -37,5 +37,5 @@ root_agent = Agent(
         "across ClickUp, Gmail, and Slack. Ask me about project status, tasks, timelines, "
         "or communications, and I'll provide unified responses drawing from all connected platforms."
     ),
-    tools=[gmail_agent, slack_agent, clickup_agent],
+    sub_agents=[gmail_agent, slack_agent, clickup_agent],
 )

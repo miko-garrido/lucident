@@ -196,7 +196,7 @@ def get_gmail_service(account_id="default"):
     """Authenticates with Gmail API and returns a service object.
     
     Args:
-        account_id (str, optional): ID of the Gmail account to use. Defaults to "default".
+        account_id (str): ID of the Gmail account to use. Defaults to "default".
         
     Returns:
         dict: Contains status, error message (if any), and service object (if successful).
@@ -252,8 +252,8 @@ def get_gmail_messages(account_id="default", max_results=10):
     """Retrieves recent messages from Gmail.
     
     Args:
-        account_id (str, optional): ID of the Gmail account to use. Defaults to "default".
-        max_results (int, optional): Maximum number of emails to retrieve. Defaults to 10.
+        account_id (str): ID of the Gmail account to use. Defaults to "default".
+        max_results (int): Maximum number of emails to retrieve. Defaults to 10.
         
     Returns:
         dict: status and result containing email information or error message.
@@ -317,8 +317,8 @@ def search_gmail(query, account_id="default", max_results=10):
     
     Args:
         query (str): Search query (e.g. "from:example@gmail.com", "subject:meeting")
-        account_id (str, optional): ID of the Gmail account to use. Defaults to "default".
-        max_results (int, optional): Maximum number of emails to retrieve. Defaults to 10.
+        account_id (str): ID of the Gmail account to use. Defaults to "default".
+        max_results (int): Maximum number of emails to retrieve. Defaults to 10.
         
     Returns:
         dict: status and result containing email information or error message.
@@ -737,57 +737,6 @@ def extract_email_metadata(email_id, account_id="default"):
             "status": "error",
             "error_message": f"Error extracting email metadata for account {account_id}: {str(e)}"
         }
-
-# Utility functions
-def get_weather(city):
-    """Retrieves the current weather report for a specified city.
-
-    Args:
-        city (str): The name of the city for which to retrieve the weather report.
-
-    Returns:
-        dict: status and result or error msg.
-    """
-    if city.lower() == "new york":
-        return {
-            "status": "success",
-            "report": (
-                "The weather in New York is sunny with a temperature of 25 degrees"
-                " Celsius (41 degrees Fahrenheit)."
-            ),
-        }
-    else:
-        return {
-            "status": "error",
-            "error_message": f"Weather information for '{city}' is not available.",
-        }
-
-def get_current_time(city):
-    """Returns the current time in a specified city.
-
-    Args:
-        city (str): The name of the city for which to retrieve the current time.
-
-    Returns:
-        dict: status and result or error msg.
-    """
-
-    if city.lower() == "new york":
-        tz_identifier = "America/New_York"
-    else:
-        return {
-            "status": "error",
-            "error_message": (
-                f"Sorry, I don't have timezone information for {city}."
-            ),
-        }
-
-    tz = ZoneInfo(tz_identifier)
-    now = datetime.datetime.now(tz)
-    report = (
-        f'The current time in {city} is {now.strftime("%Y-%m-%d %H:%M:%S %Z%z")}'
-    )
-    return {"status": "success", "report": report}
 
 # Main function to run from command line
 if __name__ == "__main__":
