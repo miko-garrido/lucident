@@ -4,4 +4,8 @@ pydantic>=2.0.0
 requests>=2.31.0
 slack-sdk>=3.26.0
 google-auth-oauthlib>=1.2.0
-google-api-python-client>=2.108.0 
+google-api-python-client>=2.108.0
+pytz
+forex-python
+python-dateutil
+numexpr 
