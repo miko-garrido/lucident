@@ -777,6 +777,138 @@ def search_by_subject(subject_text: str) -> dict:
     query = f"subject:{subject_text}"
     return _search_gmail_impl(query, "default", 10)
 
+def check_upcoming_deadlines() -> dict:
+    """Searches Gmail for emails containing deadline-related keywords and promises.
+    Returns structured information about upcoming deadlines and promises.
+    
+    Returns:
+        dict: Contains status, deadlines found, and any error messages
+    """
+    # Define deadline-related search patterns
+    formal_deadlines = [
+        "deadline", "due", "due on", "submit by", "submission date",
+        "expected by", "target date", "expected delivery date",
+        "need this by", "deliver by"
+    ]
+    
+    promise_phrases = [
+        "i'll update you on", "i will update you on",
+        "i'll submit this on", "i will submit this on",
+        "i'll send it by", "i will send it by",
+        "i'll deliver this by", "i will deliver this by",
+        "you'll get it by", "you will get it by",
+        "should be ready by", "expected to be done by",
+        "hoping to send this by", "i'll get this to you by",
+        "this should be done by", "planning to send this by",
+        "deliver this on"
+    ]
+    
+    # Combine into one search query
+    search_terms = " OR ".join([f'"{term}"' for term in formal_deadlines + promise_phrases])
+    
+    # Get Gmail service
+    service_result = get_gmail_service()
+    if service_result["status"] == "error":
+        return service_result
+    
+    service = service_result["service"]
+    
+    try:
+        # Search for emails with deadline-related content
+        results = service.users().messages().list(
+            userId='me',
+            q=search_terms,
+            maxResults=20  # Increase if needed
+        ).execute()
+        
+        messages = results.get('messages', [])
+        if not messages:
+            return {
+                "status": "success",
+                "report": "No upcoming deadlines found.",
+                "deadlines": []
+            }
+        
+        # Process each email
+        deadlines = []
+        for message in messages:
+            msg = service.users().messages().get(
+                userId='me',
+                id=message['id'],
+                format='full'
+            ).execute()
+            
+            # Extract email details
+            headers = msg['payload']['headers']
+            subject = next((h['value'] for h in headers if h['name'].lower() == 'subject'), 'No subject')
+            sender = next((h['value'] for h in headers if h['name'].lower() == 'from'), 'Unknown sender')
+            date = next((h['value'] for h in headers if h['name'].lower() == 'date'), 'Unknown date')
+            
+            # Extract body
+            body = ""
+            if 'parts' in msg['payload']:
+                for part in msg['payload']['parts']:
+                    if part['mimeType'] == 'text/plain':
+                        body_data = part['body'].get('data', '')
+                        if body_data:
+                            body = base64.urlsafe_b64decode(body_data).decode('utf-8')
+                            break
+            elif 'body' in msg['payload'] and 'data' in msg['payload']['body']:
+                body_data = msg['payload']['body']['data']
+                body = base64.urlsafe_b64decode(body_data).decode('utf-8')
+            
+            # Find deadline-related content in the email
+            content = f"{subject} {body}".lower()
+            found_deadlines = []
+            
+            # Look for formal deadlines
+            for term in formal_deadlines:
+                idx = content.find(term)
+                if idx != -1:
+                    # Get context around the deadline (up to 100 chars)
+                    start = max(0, idx - 50)
+                    end = min(len(content), idx + 50)
+                    context = content[start:end].strip()
+                    found_deadlines.append({
+                        "type": "formal",
+                        "keyword": term,
+                        "context": context
+                    })
+            
+            # Look for promises
+            for term in promise_phrases:
+                idx = content.find(term)
+                if idx != -1:
+                    start = max(0, idx - 50)
+                    end = min(len(content), idx + 50)
+                    context = content[start:end].strip()
+                    found_deadlines.append({
+                        "type": "promise",
+                        "keyword": term,
+                        "context": context
+                    })
+            
+            if found_deadlines:
+                deadlines.append({
+                    "email_id": message['id'],
+                    "subject": subject,
+                    "from": sender,
+                    "date": date,
+                    "deadlines_found": found_deadlines
+                })
+        
+        return {
+            "status": "success",
+            "report": f"Found {len(deadlines)} emails with deadline-related content",
+            "deadlines": deadlines
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "error_message": f"Error checking deadlines: {str(e)}"
+        }
+
 # Main function to run from command line
 if __name__ == "__main__":
     import sys
