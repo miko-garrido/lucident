@@ -19,5 +19,5 @@ clickup_agent = Agent(
         instruction="You are the ClickUp Agent. You find tasks in ClickUp."
                     "Do not perform any other actions.",
         description="Finds tasks in ClickUp.", # Crucial for delegation
-        tools=[get_tasks],
+        tools=[get_clickup_tasks],
     )
