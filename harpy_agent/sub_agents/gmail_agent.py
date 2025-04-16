@@ -4,6 +4,8 @@ Gmail Agent
 
 This is the main agent for Gmail functionality, built with Google's Agent Development Kit (ADK).
 """
+from config import Config
+AGENT_MODEL = Config.MODEL_NAME
 
 from google.adk.agents import Agent
 from harpy_agent.tools.gmail_tools import (
@@ -17,7 +19,7 @@ from harpy_agent.tools.gmail_tools import (
 
 gmail_agent = Agent(
     name="gmail_agent",
-    model="gemini-1.5-flash",
+    model=AGENT_MODEL,
     description=(
         "Agent to answer questions about email. Can also search and categorize emails."
     ),
