@@ -10,6 +10,7 @@ from config import Config
 from .sub_agents.gmail_agent import gmail_agent
 from .sub_agents.slack_agent import slack_agent
 from .sub_agents.clickup_agent import clickup_agent
+from .sub_agents.basic_agent import basic_agent
 
 AGENT_MODEL = Config.MODEL_NAME
 APP_NAME = Config.APP_NAME
@@ -17,7 +18,6 @@ USER_ID = Config.USER_ID
 SESSION_ID = Config.SESSION_ID
 
 load_dotenv()
-
 
 root_agent = Agent(
     name="harpy_agent",
@@ -32,5 +32,5 @@ root_agent = Agent(
         "across ClickUp, Gmail, and Slack. Ask me about project status, tasks, timelines, "
         "or communications, and I'll provide unified responses drawing from all connected platforms."
     ),
-    sub_agents=[gmail_agent, slack_agent, clickup_agent],
+    sub_agents=[gmail_agent, slack_agent, clickup_agent, basic_agent],
 )

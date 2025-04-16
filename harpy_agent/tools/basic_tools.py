@@ -1,13 +1,20 @@
 import datetime
 import pytz
 import numexpr
-from forex_python.converter import CurrencyRates, RatesNotAvailableError
-from decimal import Decimal, InvalidOperation
+from decimal import InvalidOperation
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 
-def get_current_time(time_zone: str = 'UTC') -> str:
-    """Gets the current time in the specified timezone (default UTC). Uses IANA timezone names (e.g., 'America/New_York')."""
+def get_current_time(time_zone: str = "UTC") -> str:
+    """
+    Gets the current time in the specified timezone. Defaults to UTC if not provided.
+
+    Args:
+        time_zone (str, optional): The IANA timezone name (e.g., 'America/New_York', 'UTC'). Defaults to "UTC".
+
+    Returns:
+        str: A string representing the current time in the format 'YYYY-MM-DD HH:MM:SS ZZZZ±HHMM', or an error message.
+    """
     try:
         tz = pytz.timezone(time_zone)
         now = datetime.datetime.now(tz)
@@ -18,37 +25,34 @@ def get_current_time(time_zone: str = 'UTC') -> str:
         return f"Error getting time: {e}"
 
 def calculate(expression: str) -> str:
-    """Calculates the result of a mathematical expression using numexpr for safety."""    
+    """
+    Calculates the result of a mathematical expression.
+
+    Uses the 'numexpr' library for safe evaluation of mathematical expressions.
+
+    Args:
+        expression (str): The mathematical expression to evaluate (e.g., "2 * (3 + 5)").
+
+    Returns:
+        str: A string containing the result of the calculation, or an error message.
+    """    
     try:
         result = numexpr.evaluate(expression)
         return f"Result: {result.item() if hasattr(result, 'item') else result}"
     except Exception as e:
         return f"Error calculating expression: {e}"
 
-def convert_currency(amount_str: str, from_currency: str, to_currency: str) -> str:
-    """Converts an amount from one currency to another using current exchange rates."""
-    try:
-        # Instantiate CurrencyRates within the function for modularity
-        c = CurrencyRates()
-        amount = Decimal(amount_str)
-        from_currency = from_currency.upper()
-        to_currency = to_currency.upper()
-        
-        converted_amount = c.convert(from_currency, to_currency, amount)
-        # Format to 2 decimal places, common for currency
-        formatted_amount = f"{converted_amount:.2f}"
-        return f"{amount_str} {from_currency} is approximately {formatted_amount} {to_currency}"
-    except InvalidOperation:
-         return f"Error: Invalid amount '{amount_str}'. Please provide a valid number."
-    except RatesNotAvailableError:
-        return f"Error: Currency rates not available for {from_currency} or {to_currency}. Check currency codes."
-    except Exception as e:
-        return f"Error converting currency: {e}"
-
 def calculate_date(start_date_str: str, operation: str, duration_str: str) -> str:
-    """Calculates a future or past date based on a start date and duration.
-       Duration examples: '3 days', '2 weeks', '1 month 5 days', '-1 year'
-       Operation: 'add' or 'subtract'.
+    """
+    Calculates a future or past date based on a start date and duration.
+
+    Args:
+        start_date_str (str): The starting date in a recognizable format (e.g., "2023-10-27", "10/27/2023").
+        operation (str): The operation to perform: 'add' or 'subtract'.
+        duration_str (str): The duration to add or subtract. Uses units like 'days', 'weeks', 'months', 'years' (e.g., '3 weeks', '1 month 5 days', '-2 years').
+
+    Returns:
+        str: A string describing the calculated date (e.g., "2023-10-27 plus 3 weeks is 2023-11-17"), or an error message.
     """
     try:
         # Parse the start date

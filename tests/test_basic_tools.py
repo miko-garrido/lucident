@@ -41,32 +41,6 @@ def test_calculate_division_by_zero():
     # Update assertion to check for the actual error message
     assert "Error calculating expression: division by zero" in result
 
-# --- Test convert_currency ---
-
-# Mock CurrencyRates to avoid actual network calls and dependency on current rates
-@patch('harpy_agent.tools.basic_tools.CurrencyRates')
-def test_convert_currency_valid(MockCurrencyRates):
-    mock_instance = MockCurrencyRates.return_value
-    mock_instance.convert.return_value = 118.50 # Mocked conversion rate
-    
-    result = basic_tools.convert_currency("100", "USD", "JPY")
-    assert result == "100 USD is approximately 118.50 JPY"
-    mock_instance.convert.assert_called_once_with('USD', 'JPY', 100.0) 
-
-@patch('harpy_agent.tools.basic_tools.CurrencyRates')
-def test_convert_currency_invalid_amount(MockCurrencyRates):
-    result = basic_tools.convert_currency("abc", "USD", "JPY")
-    assert "Error: Invalid amount 'abc'" in result
-
-@patch('harpy_agent.tools.basic_tools.CurrencyRates')
-def test_convert_currency_rates_not_available(MockCurrencyRates):
-    mock_instance = MockCurrencyRates.return_value
-    from forex_python.converter import RatesNotAvailableError
-    mock_instance.convert.side_effect = RatesNotAvailableError("Rates not available")
-    
-    result = basic_tools.convert_currency("100", "XYZ", "ABC")
-    assert "Error: Currency rates not available for XYZ or ABC" in result
-
 # --- Test calculate_date ---
 
 def test_calculate_date_add_days():
