@@ -8,4 +8,6 @@ google-api-python-client>=2.108.0
 pytz
 forex-python
 python-dateutil
-numexpr 
+numexpr
+
+#test
