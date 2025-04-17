@@ -13,6 +13,9 @@ class ClickUpAPI:
         self.api_key = os.getenv("CLICKUP_API_KEY")
         if not self.api_key:
             raise ValueError("CLICKUP_API_KEY not found in environment variables")
+        
+        # Add the workspace ID here
+        self.workspace_id = "3723297"  # TODO: Consider making this configurable
             
         self.base_url = "https://api.clickup.com/api/v2"
         self.headers = {
@@ -241,22 +244,22 @@ def get_clickup_user_tasks(username: str, days: int = 7) -> List[Dict[str, Any]]
     print(f"Found {len(all_tasks)} tasks total for user {username} (ID: {user_id}) updated in the last {days} days.")
     return all_tasks
 
-def get_clickup_time_entries(team_id: str, task_id: Optional[str] = None, user_id: Optional[str] = None,
+def get_clickup_time_entries(task_id: Optional[str] = None, user_id: Optional[str] = None,
                            start_date: Optional[int] = None, end_date: Optional[int] = None) -> List[Dict[str, Any]]:
     """
-    Retrieves ClickUp time entries, with options to filter by task, user, and date range.
+    Retrieves ClickUp time entries for the default workspace, with options to filter by task, user, and date range.
 
     Args:
-        team_id (str): The ID of the ClickUp team/workspace (required).
         task_id (Optional[str]): Filter time entries for this specific task ID.
         user_id (Optional[str]): Filter time entries for this specific user ID.
-        start_date (Optional[int]): Filter entries starting from this Unix timestamp.
-        end_date (Optional[int]): Filter entries ending at this Unix timestamp.
+        start_date (Optional[int]): Filter entries starting from this Unix timestamp (ms).
+        end_date (Optional[int]): Filter entries ending at this Unix timestamp (ms).
 
     Returns:
         List[Dict[str, Any]]: A list of time entry dictionaries matching the filters. Returns an empty list if no entries are found or an error occurs.
     """
     api = ClickUpAPI()
+    team_id = api.workspace_id # Use the workspace ID from the API instance
     params = {}
     if task_id: params["task_id"] = task_id # Note: API docs suggest task_id isn't a direct filter here? Verify endpoint.
                                            # /team/{team_id}/time_entries seems the main one. Let's filter client-side if needed.
@@ -766,42 +769,38 @@ def get_clickup_teams() -> List[Dict[str, Any]]:
         print(f"Error decoding JSON response when fetching teams.")
         return []
 
-def get_clickup_team_members(team_id: str) -> List[Dict[str, Any]]:
+def get_clickup_team_members() -> List[Dict[str, Any]]:
     """
-    Retrieves members of a specific ClickUp team (workspace).
-    Note: The /team endpoint already returns members. This might be redundant
-    unless a specific team's member list is needed without fetching all teams.
-    Let's use the /team endpoint and filter.
-
-    Args:
-        team_id (str): The ID of the ClickUp team/workspace.
+    Retrieves members of the default ClickUp team (workspace) set in ClickUpAPI.
 
     Returns:
-        List[Dict[str, Any]]: A list of dictionaries, each representing a member of the team. Returns an empty list if the team is not found or an error occurs.
+        List[Dict[str, Any]]: A list of dictionaries, each representing a member of the default team. Returns an empty list if the team is not found or an error occurs.
     """
+    api = ClickUpAPI()
+    team_id = api.workspace_id # Use the workspace ID from the API instance
     try:
         all_teams = get_clickup_teams()
         for team in all_teams:
             if team.get("id") == team_id:
                 return team.get("members", [])
-        print(f"Team with ID {team_id} not found among accessible teams.")
+        print(f"Default team with ID {team_id} not found among accessible teams.")
         return []
     except Exception as e: # Catch errors from get_clickup_teams
-        print(f"Error retrieving teams to find members for team {team_id}: {e}")
+        print(f"Error retrieving teams to find members for default team {team_id}: {e}")
         return []
 
-def get_clickup_spaces(team_id: str, archived: bool = False) -> List[Dict[str, Any]]:
+def get_clickup_spaces(archived: bool = False) -> List[Dict[str, Any]]:
     """
-    Retrieves all spaces within a specific ClickUp team (workspace).
+    Retrieves all spaces within the default ClickUp team (workspace) set in ClickUpAPI.
 
     Args:
-        team_id (str): The ID of the ClickUp team/workspace.
         archived (bool): Whether to include archived spaces.
 
     Returns:
-        List[Dict[str, Any]]: A list of dictionaries, each representing a space within the team. Returns an empty list if the team is not found or an error occurs.
+        List[Dict[str, Any]]: A list of dictionaries, each representing a space within the default team. Returns an empty list if the team is not found or an error occurs.
     """
     api = ClickUpAPI()
+    team_id = api.workspace_id # Use the workspace ID from the API instance
     params = {"archived": str(archived).lower()}
     # Endpoint: GET /team/{team_id}/space
     try:
