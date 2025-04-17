@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Optional
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
 import json
@@ -61,7 +61,8 @@ def get_clickup_tasks(list_id: str, days: int = 7) -> List[Dict[str, Any]]:
         List[Dict[str, Any]]: A list of dictionaries, where each dictionary represents a task and its properties. Returns an empty list if no tasks are found or an error occurs.
     """
     api = ClickUpAPI()
-    date_limit = datetime.utcnow() - timedelta(days=days)
+    # Use timezone-aware UTC time
+    date_limit = datetime.now(timezone.utc) - timedelta(days=days) 
     # ClickUp API expects milliseconds timestamp
     date_updated_gt = int(date_limit.timestamp() * 1000) 
     
@@ -185,7 +186,8 @@ def get_clickup_user_tasks(username: str, days: int = 7) -> List[Dict[str, Any]]
         print("No teams found for the user via API key.")
         return []
 
-    date_limit = datetime.utcnow() - timedelta(days=days)
+    # Use timezone-aware UTC time here as well
+    date_limit = datetime.now(timezone.utc) - timedelta(days=days) 
     date_updated_gt = int(date_limit.timestamp() * 1000)
 
     for team in teams:
