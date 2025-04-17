@@ -7,6 +7,7 @@ This is the main agent for Gmail functionality, built with Google's Agent Develo
 from config import Config
 AGENT_MODEL = Config.MODEL_NAME
 
+from google.adk.models.lite_llm import LiteLlm
 from google.adk.agents import Agent
 from harpy_agent.tools.gmail_tools import (
     get_gmail_messages,
@@ -19,7 +20,7 @@ from harpy_agent.tools.gmail_tools import (
 
 gmail_agent = Agent(
     name="gmail_agent",
-    model=AGENT_MODEL,
+    model=LiteLlm(model=AGENT_MODEL),
     description=(
         "Agent to answer questions about email. Can also search and categorize emails."
     ),

@@ -6,6 +6,7 @@ Basic Utility Agent
 from config import Config
 AGENT_MODEL = Config.MODEL_NAME
 
+from google.adk.models.lite_llm import LiteLlm
 from google.adk.agents import Agent
 from harpy_agent.tools.basic_tools import (
     get_current_time,
@@ -15,7 +16,7 @@ from harpy_agent.tools.basic_tools import (
 
 basic_agent = Agent(
     name="basic_agent",
-    model=AGENT_MODEL,
+    model=LiteLlm(model=AGENT_MODEL),
     description="Agent for basic utility tasks like calculations, and date/time operations.",
     instruction=(
         "You are a helpful assistant for basic utility tasks.\n\n"
