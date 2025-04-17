@@ -284,305 +284,305 @@ def get_clickup_time_entries(team_id: str, task_id: Optional[str] = None, user_i
         print(f"Error decoding JSON response for time entries team {team_id}.")
         return []
 
-def create_clickup_task(list_id: str, name: str, description: Optional[str] = None,
-                      assignees: Optional[List[int]] = None, status: Optional[str] = None,
-                      priority: Optional[int] = None, due_date: Optional[int] = None,
-                      tags: Optional[List[str]] = None, custom_fields_json: Optional[List[str]] = None) -> Dict[str, Any]:
-    """
-    Creates a new task in a specified ClickUp list.
+# def create_clickup_task(list_id: str, name: str, description: Optional[str] = None,
+#                       assignees: Optional[List[int]] = None, status: Optional[str] = None,
+#                       priority: Optional[int] = None, due_date: Optional[int] = None,
+#                       tags: Optional[List[str]] = None, custom_fields_json: Optional[List[str]] = None) -> Dict[str, Any]:
+#     """
+#     Creates a new task in a specified ClickUp list.
 
-    Args:
-        list_id (str): The ID of the ClickUp list where the task will be created.
-        name (str): The name of the new task.
-        description (Optional[str]): The description for the task.
-        assignees (Optional[List[int]]): A list of user IDs to assign to the task.
-        status (Optional[str]): The status to set for the task (e.g., "To Do", "In Progress").
-        priority (Optional[int]): The priority level (1=Urgent, 2=High, 3=Normal, 4=Low).
-        due_date (Optional[int]): The due date for the task as a Unix timestamp.
-        tags (Optional[List[str]]): A list of tag names to apply to the task.
-        custom_fields_json (Optional[List[str]]): A list of custom field values as JSON strings. Each string must be a valid JSON object, e.g., '{"id": "field_id", "value": "field_value"}'.
+#     Args:
+#         list_id (str): The ID of the ClickUp list where the task will be created.
+#         name (str): The name of the new task.
+#         description (Optional[str]): The description for the task.
+#         assignees (Optional[List[int]]): A list of user IDs to assign to the task.
+#         status (Optional[str]): The status to set for the task (e.g., "To Do", "In Progress").
+#         priority (Optional[int]): The priority level (1=Urgent, 2=High, 3=Normal, 4=Low).
+#         due_date (Optional[int]): The due date for the task as a Unix timestamp.
+#         tags (Optional[List[str]]): A list of tag names to apply to the task.
+#         custom_fields_json (Optional[List[str]]): A list of custom field values as JSON strings. Each string must be a valid JSON object, e.g., '{"id": "field_id", "value": "field_value"}'.
 
-    Returns:
-        Dict[str, Any]: A dictionary representing the newly created task. Raises an error if creation fails.
-    """
-    api = ClickUpAPI()
+#     Returns:
+#         Dict[str, Any]: A dictionary representing the newly created task. Raises an error if creation fails.
+#     """
+#     api = ClickUpAPI()
     
-    payload = {"name": name}
-    if description is not None: payload["description"] = description
-    if assignees is not None: payload["assignees"] = assignees
-    if status is not None: payload["status"] = status
-    if priority is not None: payload["priority"] = priority
-    if due_date is not None: payload["due_date"] = due_date # Unix ms timestamp
-    if tags is not None: payload["tags"] = tags
+#     payload = {"name": name}
+#     if description is not None: payload["description"] = description
+#     if assignees is not None: payload["assignees"] = assignees
+#     if status is not None: payload["status"] = status
+#     if priority is not None: payload["priority"] = priority
+#     if due_date is not None: payload["due_date"] = due_date # Unix ms timestamp
+#     if tags is not None: payload["tags"] = tags
     
-    # Handle custom fields
-    if custom_fields_json:
-        parsed_custom_fields = []
-        try:
-            for cf_str in custom_fields_json:
-                 field_data = json.loads(cf_str)
-                 # Basic validation
-                 if "id" not in field_data or "value" not in field_data:
-                      raise ValueError(f"Custom field JSON missing 'id' or 'value': {cf_str}")
-                 parsed_custom_fields.append(field_data)
-            payload["custom_fields"] = parsed_custom_fields
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON format in custom_fields_json: {e}")
-        except ValueError as e: # Catch validation error
-             raise e
+#     # Handle custom fields
+#     if custom_fields_json:
+#         parsed_custom_fields = []
+#         try:
+#             for cf_str in custom_fields_json:
+#                  field_data = json.loads(cf_str)
+#                  # Basic validation
+#                  if "id" not in field_data or "value" not in field_data:
+#                       raise ValueError(f"Custom field JSON missing 'id' or 'value': {cf_str}")
+#                  parsed_custom_fields.append(field_data)
+#             payload["custom_fields"] = parsed_custom_fields
+#         except json.JSONDecodeError as e:
+#             raise ValueError(f"Invalid JSON format in custom_fields_json: {e}")
+#         except ValueError as e: # Catch validation error
+#              raise e
 
-    try:
-        response = requests.post(
-            f"{api.base_url}/list/{list_id}/task", 
-            headers=api.headers, 
-            json=payload # Send data as JSON body
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error creating task in list {list_id}: {e} - Response: {e.response.text if e.response else 'No response'}")
-        # Re-raise or return error indicator? Raising for now.
-        raise e 
-    except json.JSONDecodeError:
-        # This might happen if the response isn't JSON on success (unlikely for create)
-         print(f"Error decoding JSON response after creating task in list {list_id}.")
-         raise # Re-raise, as a successful creation should return JSON
+#     try:
+#         response = requests.post(
+#             f"{api.base_url}/list/{list_id}/task", 
+#             headers=api.headers, 
+#             json=payload # Send data as JSON body
+#         )
+#         response.raise_for_status()
+#         return response.json()
+#     except requests.exceptions.RequestException as e:
+#         print(f"Error creating task in list {list_id}: {e} - Response: {e.response.text if e.response else 'No response'}")
+#         # Re-raise or return error indicator? Raising for now.
+#         raise e 
+#     except json.JSONDecodeError:
+#         # This might happen if the response isn't JSON on success (unlikely for create)
+#          print(f"Error decoding JSON response after creating task in list {list_id}.")
+#          raise # Re-raise, as a successful creation should return JSON
 
-def update_clickup_task(task_id: str, name: Optional[str] = None, description: Optional[str] = None,
-                      assignees: Optional[List[int]] = None, status: Optional[str] = None,
-                      priority: Optional[int] = None, due_date: Optional[int] = None,
-                      tags: Optional[List[str]] = None) -> Dict[str, Any]:
-    """
-    Updates an existing ClickUp task. Does NOT update custom fields (use set_clickup_custom_fields).
+# def update_clickup_task(task_id: str, name: Optional[str] = None, description: Optional[str] = None,
+#                       assignees: Optional[List[int]] = None, status: Optional[str] = None,
+#                       priority: Optional[int] = None, due_date: Optional[int] = None,
+#                       tags: Optional[List[str]] = None) -> Dict[str, Any]:
+#     """
+#     Updates an existing ClickUp task. Does NOT update custom fields (use set_clickup_custom_fields).
 
-    Args:
-        task_id (str): The ID of the task to update.
-        name (Optional[str]): The new name for the task.
-        description (Optional[str]): The new description for the task.
-        assignees (Optional[List[int]]): The new list of assignee user IDs.
-        status (Optional[str]): The new status for the task.
-        priority (Optional[int]): The new priority level.
-        due_date (Optional[int]): The new due date (Unix timestamp).
-        tags (Optional[List[str]]): The new list of tags.
+#     Args:
+#         task_id (str): The ID of the task to update.
+#         name (Optional[str]): The new name for the task.
+#         description (Optional[str]): The new description for the task.
+#         assignees (Optional[List[int]]): The new list of assignee user IDs.
+#         status (Optional[str]): The new status for the task.
+#         priority (Optional[int]): The new priority level.
+#         due_date (Optional[int]): The new due date (Unix timestamp).
+#         tags (Optional[List[str]]): The new list of tags.
 
-    Returns:
-        Dict[str, Any]: A dictionary representing the updated task. Raises an error if the update fails or the task is not found.
-    """
-    api = ClickUpAPI()
-    payload = {}
-    if name is not None: payload["name"] = name
-    if description is not None: payload["description"] = description
-    # Handling assignees might need PUT for replacement or special handling
-    # Check ClickUp API: PUT /task/{task_id} usually replaces fields provided.
-    if assignees is not None: payload["assignees"] = assignees # This might overwrite existing unless handled carefully by API
-    if status is not None: payload["status"] = status
-    if priority is not None: payload["priority"] = priority
-    if due_date is not None: payload["due_date"] = due_date
-    if tags is not None: payload["tags"] = tags # Check API for how tags are updated (append vs replace)
+#     Returns:
+#         Dict[str, Any]: A dictionary representing the updated task. Raises an error if the update fails or the task is not found.
+#     """
+#     api = ClickUpAPI()
+#     payload = {}
+#     if name is not None: payload["name"] = name
+#     if description is not None: payload["description"] = description
+#     # Handling assignees might need PUT for replacement or special handling
+#     # Check ClickUp API: PUT /task/{task_id} usually replaces fields provided.
+#     if assignees is not None: payload["assignees"] = assignees # This might overwrite existing unless handled carefully by API
+#     if status is not None: payload["status"] = status
+#     if priority is not None: payload["priority"] = priority
+#     if due_date is not None: payload["due_date"] = due_date
+#     if tags is not None: payload["tags"] = tags # Check API for how tags are updated (append vs replace)
 
-    if not payload:
-        print("No update parameters provided for update_clickup_task.")
-        # Maybe return current task details or raise error? Returning {}
-        return get_clickup_task_details(task_id) # Return current details if no changes
+#     if not payload:
+#         print("No update parameters provided for update_clickup_task.")
+#         # Maybe return current task details or raise error? Returning {}
+#         return get_clickup_task_details(task_id) # Return current details if no changes
 
-    try:
-        response = requests.put( # Use PUT for updates typically
-            f"{api.base_url}/task/{task_id}", 
-            headers=api.headers, 
-            json=payload
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error updating task {task_id}: {e} - Response: {e.response.text if e.response else 'No response'}")
-        raise e
-    except json.JSONDecodeError:
-        print(f"Error decoding JSON response after updating task {task_id}.")
-        raise
+#     try:
+#         response = requests.put( # Use PUT for updates typically
+#             f"{api.base_url}/task/{task_id}", 
+#             headers=api.headers, 
+#             json=payload
+#         )
+#         response.raise_for_status()
+#         return response.json()
+#     except requests.exceptions.RequestException as e:
+#         print(f"Error updating task {task_id}: {e} - Response: {e.response.text if e.response else 'No response'}")
+#         raise e
+#     except json.JSONDecodeError:
+#         print(f"Error decoding JSON response after updating task {task_id}.")
+#         raise
 
-def delete_clickup_task(task_id: str) -> Dict[str, Any]:
-    """
-    Deletes a specific ClickUp task.
+# def delete_clickup_task(task_id: str) -> Dict[str, Any]:
+#     """
+#     Deletes a specific ClickUp task.
 
-    Args:
-        task_id (str): The ID of the task to delete.
+#     Args:
+#         task_id (str): The ID of the task to delete.
 
-    Returns:
-        Dict[str, Any]: An empty dictionary ({}) upon successful deletion. Raises an error if deletion fails or the task is not found.
-    """
-    api = ClickUpAPI()
-    try:
-        response = requests.delete(
-            f"{api.base_url}/task/{task_id}", 
-            headers=api.headers
-        )
-        # Successful deletion often returns 204 No Content
-        if response.status_code == 204:
-            return {} # Return empty dict on success (204)
-        response.raise_for_status() # Raise for other errors (4xx, 5xx)
-        # If it returns content on success (e.g., 200 OK with data), handle it:
-        # return response.json() 
-        return {} # Assuming 204 is the primary success case
-    except requests.exceptions.RequestException as e:
-        print(f"Error deleting task {task_id}: {e}")
-        raise e
+#     Returns:
+#         Dict[str, Any]: An empty dictionary ({}) upon successful deletion. Raises an error if deletion fails or the task is not found.
+#     """
+#     api = ClickUpAPI()
+#     try:
+#         response = requests.delete(
+#             f"{api.base_url}/task/{task_id}", 
+#             headers=api.headers
+#         )
+#         # Successful deletion often returns 204 No Content
+#         if response.status_code == 204:
+#             return {} # Return empty dict on success (204)
+#         response.raise_for_status() # Raise for other errors (4xx, 5xx)
+#         # If it returns content on success (e.g., 200 OK with data), handle it:
+#         # return response.json() 
+#         return {} # Assuming 204 is the primary success case
+#     except requests.exceptions.RequestException as e:
+#         print(f"Error deleting task {task_id}: {e}")
+#         raise e
 
-def create_clickup_comment(task_id: str, comment_text: str, assignees: Optional[List[int]] = None, notify_all: bool = False) -> Dict[str, Any]:
-    """
-    Adds a comment to a specific ClickUp task. Can assign and notify.
+# def create_clickup_comment(task_id: str, comment_text: str, assignees: Optional[List[int]] = None, notify_all: bool = False) -> Dict[str, Any]:
+#     """
+#     Adds a comment to a specific ClickUp task. Can assign and notify.
 
-    Args:
-        task_id (str): The ID of the task to add the comment to.
-        comment_text (str): The text content of the comment.
-        assignees (Optional[List[int]]): A list of user IDs to assign to the comment.
-        notify_all (bool): Whether to notify all members of the task.
+#     Args:
+#         task_id (str): The ID of the task to add the comment to.
+#         comment_text (str): The text content of the comment.
+#         assignees (Optional[List[int]]): A list of user IDs to assign to the comment.
+#         notify_all (bool): Whether to notify all members of the task.
 
-    Returns:
-        Dict[str, Any]: A dictionary representing the newly created comment. Raises an error if creation fails.
-    """
-    api = ClickUpAPI()
-    payload = {
-        "comment_text": comment_text,
-        "notify_all": notify_all
-    }
-    if assignees:
-        payload["assignee"] = assignees[0] # API seems to take one assignee for comment creation? Verify.
-        # If multiple assignees needed, maybe @mention in text?
+#     Returns:
+#         Dict[str, Any]: A dictionary representing the newly created comment. Raises an error if creation fails.
+#     """
+#     api = ClickUpAPI()
+#     payload = {
+#         "comment_text": comment_text,
+#         "notify_all": notify_all
+#     }
+#     if assignees:
+#         payload["assignee"] = assignees[0] # API seems to take one assignee for comment creation? Verify.
+#         # If multiple assignees needed, maybe @mention in text?
         
-    # Endpoint: POST /task/{task_id}/comment
-    try:
-        response = requests.post(
-            f"{api.base_url}/task/{task_id}/comment", 
-            headers=api.headers,
-            json=payload
-        )
-        response.raise_for_status()
-        return response.json() # Returns details of the created comment
-    except requests.exceptions.RequestException as e:
-        print(f"Error creating comment on task {task_id}: {e} - Response: {e.response.text if e.response else 'No response'}")
-        raise e
-    except json.JSONDecodeError:
-         print(f"Error decoding JSON response after creating comment on task {task_id}.")
-         raise
+#     # Endpoint: POST /task/{task_id}/comment
+#     try:
+#         response = requests.post(
+#             f"{api.base_url}/task/{task_id}/comment", 
+#             headers=api.headers,
+#             json=payload
+#         )
+#         response.raise_for_status()
+#         return response.json() # Returns details of the created comment
+#     except requests.exceptions.RequestException as e:
+#         print(f"Error creating comment on task {task_id}: {e} - Response: {e.response.text if e.response else 'No response'}")
+#         raise e
+#     except json.JSONDecodeError:
+#          print(f"Error decoding JSON response after creating comment on task {task_id}.")
+#          raise
 
-def update_clickup_comment(comment_id: str, comment_text: str) -> Dict[str, Any]:
-    """
-    Updates the text of an existing ClickUp comment.
+# def update_clickup_comment(comment_id: str, comment_text: str) -> Dict[str, Any]:
+#     """
+#     Updates the text of an existing ClickUp comment.
 
-    Args:
-        comment_id (str): The ID of the comment to update.
-        comment_text (str): The new text content for the comment.
+#     Args:
+#         comment_id (str): The ID of the comment to update.
+#         comment_text (str): The new text content for the comment.
 
-    Returns:
-        Dict[str, Any]: A dictionary representing the updated comment status (often just a success indicator from the API). Raises an error if update fails.
-    """
-    api = ClickUpAPI()
-    payload = {"comment_text": comment_text}
+#     Returns:
+#         Dict[str, Any]: A dictionary representing the updated comment status (often just a success indicator from the API). Raises an error if update fails.
+#     """
+#     api = ClickUpAPI()
+#     payload = {"comment_text": comment_text}
     
-    # Endpoint: PUT /comment/{comment_id}
-    try:
-        response = requests.put(
-            f"{api.base_url}/comment/{comment_id}", 
-            headers=api.headers,
-            json=payload
-        )
-        response.raise_for_status()
-        # Update often returns 200 OK with empty body or success status
-        # Check API docs for expected successful response
-        # If it returns JSON: return response.json()
-        return {"status": "success", "comment_id": comment_id} # Placeholder success
-    except requests.exceptions.RequestException as e:
-        print(f"Error updating comment {comment_id}: {e} - Response: {e.response.text if e.response else 'No response'}")
-        raise e
+#     # Endpoint: PUT /comment/{comment_id}
+#     try:
+#         response = requests.put(
+#             f"{api.base_url}/comment/{comment_id}", 
+#             headers=api.headers,
+#             json=payload
+#         )
+#         response.raise_for_status()
+#         # Update often returns 200 OK with empty body or success status
+#         # Check API docs for expected successful response
+#         # If it returns JSON: return response.json()
+#         return {"status": "success", "comment_id": comment_id} # Placeholder success
+#     except requests.exceptions.RequestException as e:
+#         print(f"Error updating comment {comment_id}: {e} - Response: {e.response.text if e.response else 'No response'}")
+#         raise e
 
-def delete_clickup_comment(comment_id: str) -> Dict[str, Any]:
-    """
-    Deletes a specific ClickUp comment.
+# def delete_clickup_comment(comment_id: str) -> Dict[str, Any]:
+#     """
+#     Deletes a specific ClickUp comment.
 
-    Args:
-        comment_id (str): The ID of the comment to delete.
+#     Args:
+#         comment_id (str): The ID of the comment to delete.
 
-    Returns:
-        Dict[str, Any]: An empty dictionary ({}) upon successful deletion. Raises an error if deletion fails.
-    """
-    api = ClickUpAPI()
-    # Endpoint: DELETE /comment/{comment_id}
-    try:
-        response = requests.delete(
-            f"{api.base_url}/comment/{comment_id}", 
-            headers=api.headers
-        )
-        if response.status_code == 204:
-            return {} # Success
-        response.raise_for_status()
-        return {} # Assuming 204 success
-    except requests.exceptions.RequestException as e:
-        print(f"Error deleting comment {comment_id}: {e}")
-        raise e
+#     Returns:
+#         Dict[str, Any]: An empty dictionary ({}) upon successful deletion. Raises an error if deletion fails.
+#     """
+#     api = ClickUpAPI()
+#     # Endpoint: DELETE /comment/{comment_id}
+#     try:
+#         response = requests.delete(
+#             f"{api.base_url}/comment/{comment_id}", 
+#             headers=api.headers
+#         )
+#         if response.status_code == 204:
+#             return {} # Success
+#         response.raise_for_status()
+#         return {} # Assuming 204 success
+#     except requests.exceptions.RequestException as e:
+#         print(f"Error deleting comment {comment_id}: {e}")
+#         raise e
 
-def set_clickup_custom_fields(task_id: str, custom_fields_json: List[str]) -> Dict[str, Any]:
-    """
-    Sets or updates the values of custom fields for a specific ClickUp task using JSON strings.
+# def set_clickup_custom_fields(task_id: str, custom_fields_json: List[str]) -> Dict[str, Any]:
+#     """
+#     Sets or updates the values of custom fields for a specific ClickUp task using JSON strings.
 
-    Args:
-        task_id (str): The ID of the task to update custom fields for.
-        custom_fields_json (List[str]): A list of custom field dictionaries as JSON strings to set. Each string must be a valid JSON object with "id" and "value". Example: ['{"id": "abc-123", "value": "New Value"}'].
+#     Args:
+#         task_id (str): The ID of the task to update custom fields for.
+#         custom_fields_json (List[str]): A list of custom field dictionaries as JSON strings to set. Each string must be a valid JSON object with "id" and "value". Example: ['{"id": "abc-123", "value": "New Value"}'].
 
-    Returns:
-        Dict[str, Any]: A dictionary representing the task after the custom fields have been updated. Raises an error if the update fails.
-    """
-    api = ClickUpAPI()
+#     Returns:
+#         Dict[str, Any]: A dictionary representing the task after the custom fields have been updated. Raises an error if the update fails.
+#     """
+#     api = ClickUpAPI()
     
-    # Parse and validate JSON strings first
-    parsed_custom_fields = []
-    try:
-        for cf_str in custom_fields_json:
-            field_data = json.loads(cf_str)
-            if "id" not in field_data or "value" not in field_data:
-                 raise ValueError(f"Custom field JSON missing 'id' or 'value': {cf_str}")
-            parsed_custom_fields.append(field_data)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON format in custom_fields_json: {e}")
-    except ValueError as e: # Catch validation error
-         raise e
+#     # Parse and validate JSON strings first
+#     parsed_custom_fields = []
+#     try:
+#         for cf_str in custom_fields_json:
+#             field_data = json.loads(cf_str)
+#             if "id" not in field_data or "value" not in field_data:
+#                  raise ValueError(f"Custom field JSON missing 'id' or 'value': {cf_str}")
+#             parsed_custom_fields.append(field_data)
+#     except json.JSONDecodeError as e:
+#         raise ValueError(f"Invalid JSON format in custom_fields_json: {e}")
+#     except ValueError as e: # Catch validation error
+#          raise e
 
-    if not parsed_custom_fields:
-        raise ValueError("No valid custom field data provided.")
+#     if not parsed_custom_fields:
+#         raise ValueError("No valid custom field data provided.")
 
-    # ClickUp API uses POST /task/{task_id}/field/{field_id}
-    # We need to make one request per custom field to update
+#     # ClickUp API uses POST /task/{task_id}/field/{field_id}
+#     # We need to make one request per custom field to update
     
-    # Note: This approach might be inefficient for many fields. 
-    # Check if task update (PUT /task/{task_id}) supports updating custom fields directly in its payload.
-    # If PUT /task/{task_id} supports 'custom_fields': [{ "id": "...", "value": ...}] then update_clickup_task could handle this.
-    # Assuming we MUST use the specific endpoint for now:
+#     # Note: This approach might be inefficient for many fields. 
+#     # Check if task update (PUT /task/{task_id}) supports updating custom fields directly in its payload.
+#     # If PUT /task/{task_id} supports 'custom_fields': [{ "id": "...", "value": ...}] then update_clickup_task could handle this.
+#     # Assuming we MUST use the specific endpoint for now:
     
-    results = []
-    errors = []
-    for field in parsed_custom_fields:
-        field_id = field["id"]
-        field_value = {"value": field["value"]} # Payload requires {"value": ...}
-        try:
-            response = requests.post( # POST to set/update custom field value
-                f"{api.base_url}/task/{task_id}/field/{field_id}", 
-                headers=api.headers,
-                json=field_value
-            )
-            response.raise_for_status()
-            # Success usually 200 OK, maybe with the updated task?
-            # For simplicity, let's just note success or capture response if needed.
-            results.append({"field_id": field_id, "status": "success"}) 
-        except requests.exceptions.RequestException as e:
-            print(f"Error setting custom field {field_id} on task {task_id}: {e}")
-            errors.append({"field_id": field_id, "error": str(e)})
-            # Decide: continue or stop on first error? Continuing for now.
+#     results = []
+#     errors = []
+#     for field in parsed_custom_fields:
+#         field_id = field["id"]
+#         field_value = {"value": field["value"]} # Payload requires {"value": ...}
+#         try:
+#             response = requests.post( # POST to set/update custom field value
+#                 f"{api.base_url}/task/{task_id}/field/{field_id}", 
+#                 headers=api.headers,
+#                 json=field_value
+#             )
+#             response.raise_for_status()
+#             # Success usually 200 OK, maybe with the updated task?
+#             # For simplicity, let's just note success or capture response if needed.
+#             results.append({"field_id": field_id, "status": "success"}) 
+#         except requests.exceptions.RequestException as e:
+#             print(f"Error setting custom field {field_id} on task {task_id}: {e}")
+#             errors.append({"field_id": field_id, "error": str(e)})
+#             # Decide: continue or stop on first error? Continuing for now.
     
-    if errors:
-        # Raise an error summarizing failures or return partial success?
-        raise Exception(f"Failed to set some custom fields: {errors}")
+#     if errors:
+#         # Raise an error summarizing failures or return partial success?
+#         raise Exception(f"Failed to set some custom fields: {errors}")
         
-    # After setting all fields, maybe fetch the updated task?
-    return get_clickup_task_details(task_id) 
+#     # After setting all fields, maybe fetch the updated task?
+#     return get_clickup_task_details(task_id) 
 
 def get_clickup_list_members(list_id: str) -> List[Dict[str, Any]]:
     """
@@ -678,71 +678,71 @@ def get_clickup_subtasks(task_id: str, archived: bool = False) -> List[Dict[str,
          print(f"Error getting parent task details for {task_id}: {e}")
          return []
 
-def create_clickup_subtask(parent_task_id: str, name: str, **kwargs) -> Dict[str, Any]:
-    """
-    Creates a new subtask under a specified parent task in ClickUp.
-    Accepts same optional args as create_clickup_task.
+# def create_clickup_subtask(parent_task_id: str, name: str, **kwargs) -> Dict[str, Any]:
+#     """
+#     Creates a new subtask under a specified parent task in ClickUp.
+#     Accepts same optional args as create_clickup_task.
 
-    Args:
-        parent_task_id (str): The ID of the parent task under which the subtask will be created.
-        name (str): The name of the new subtask.
-        **kwargs: Additional optional arguments like description, assignees, status, priority, due_date, tags, custom_fields.
+#     Args:
+#         parent_task_id (str): The ID of the parent task under which the subtask will be created.
+#         name (str): The name of the new subtask.
+#         **kwargs: Additional optional arguments like description, assignees, status, priority, due_date, tags, custom_fields.
 
-    Returns:
-        Dict[str, Any]: A dictionary representing the newly created subtask. Raises an error if creation fails.
-    """
-    api = ClickUpAPI()
+#     Returns:
+#         Dict[str, Any]: A dictionary representing the newly created subtask. Raises an error if creation fails.
+#     """
+#     api = ClickUpAPI()
     
-    # Need the list_id of the parent task
-    try:
-        parent_task = get_clickup_task_details(parent_task_id)
-        list_id = parent_task.get("list", {}).get("id")
-        if not list_id:
-            raise ValueError(f"Could not find list_id for parent task {parent_task_id}")
-    except Exception as e:
-         raise ValueError(f"Failed to get parent task details to create subtask: {e}")
+#     # Need the list_id of the parent task
+#     try:
+#         parent_task = get_clickup_task_details(parent_task_id)
+#         list_id = parent_task.get("list", {}).get("id")
+#         if not list_id:
+#             raise ValueError(f"Could not find list_id for parent task {parent_task_id}")
+#     except Exception as e:
+#          raise ValueError(f"Failed to get parent task details to create subtask: {e}")
 
-    payload = {"name": name, "parent": parent_task_id} # Set parent field
+#     payload = {"name": name, "parent": parent_task_id} # Set parent field
     
-    # Add other optional args from kwargs if present
-    # (description, assignees, status, priority, due_date, tags, custom_fields_json)
-    if kwargs.get("description"): payload["description"] = kwargs["description"]
-    if kwargs.get("assignees"): payload["assignees"] = kwargs["assignees"]
-    if kwargs.get("status"): payload["status"] = kwargs["status"]
-    if kwargs.get("priority"): payload["priority"] = kwargs["priority"]
-    if kwargs.get("due_date"): payload["due_date"] = kwargs["due_date"]
-    if kwargs.get("tags"): payload["tags"] = kwargs["tags"]
+#     # Add other optional args from kwargs if present
+#     # (description, assignees, status, priority, due_date, tags, custom_fields_json)
+#     if kwargs.get("description"): payload["description"] = kwargs["description"]
+#     if kwargs.get("assignees"): payload["assignees"] = kwargs["assignees"]
+#     if kwargs.get("status"): payload["status"] = kwargs["status"]
+#     if kwargs.get("priority"): payload["priority"] = kwargs["priority"]
+#     if kwargs.get("due_date"): payload["due_date"] = kwargs["due_date"]
+#     if kwargs.get("tags"): payload["tags"] = kwargs["tags"]
     
-    # Handle custom fields similarly to create_clickup_task
-    if "custom_fields_json" in kwargs:
-        parsed_custom_fields = []
-        try:
-            for cf_str in kwargs["custom_fields_json"]:
-                 field_data = json.loads(cf_str)
-                 if "id" not in field_data or "value" not in field_data:
-                      raise ValueError(f"Subtask Custom field JSON missing 'id' or 'value': {cf_str}")
-                 parsed_custom_fields.append(field_data)
-            payload["custom_fields"] = parsed_custom_fields
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON format in subtask custom_fields_json: {e}")
-        except ValueError as e:
-             raise e
+#     # Handle custom fields similarly to create_clickup_task
+#     if "custom_fields_json" in kwargs:
+#         parsed_custom_fields = []
+#         try:
+#             for cf_str in kwargs["custom_fields_json"]:
+#                  field_data = json.loads(cf_str)
+#                  if "id" not in field_data or "value" not in field_data:
+#                       raise ValueError(f"Subtask Custom field JSON missing 'id' or 'value': {cf_str}")
+#                  parsed_custom_fields.append(field_data)
+#             payload["custom_fields"] = parsed_custom_fields
+#         except json.JSONDecodeError as e:
+#             raise ValueError(f"Invalid JSON format in subtask custom_fields_json: {e}")
+#         except ValueError as e:
+#              raise e
              
-    try:
-        # Use the same endpoint as create_task, just include "parent" in payload
-        response = requests.post(
-            f"{api.base_url}/list/{list_id}/task", 
-            headers=api.headers, 
-            json=payload
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error creating subtask under {parent_task_id} in list {list_id}: {e} - Response: {e.response.text if e.response else 'No response'}")
-        raise e
-    except json.JSONDecodeError:
-         print(f"Error decoding JSON response after creating subtask for {parent_task_id}.")
-         raise
+#     try:
+#         # Use the same endpoint as create_task, just include "parent" in payload
+#         response = requests.post(
+#             f"{api.base_url}/list/{list_id}/task", 
+#             headers=api.headers, 
+#             json=payload
+#         )
+#         response.raise_for_status()
+#         return response.json()
+#     except requests.exceptions.RequestException as e:
+#         print(f"Error creating subtask under {parent_task_id} in list {list_id}: {e} - Response: {e.response.text if e.response else 'No response'}")
+#         raise e
+#     except json.JSONDecodeError:
+#          print(f"Error decoding JSON response after creating subtask for {parent_task_id}.")
+#          raise
 
 def get_clickup_teams() -> List[Dict[str, Any]]:
     """
@@ -874,5 +874,3 @@ def get_clickup_lists(folder_id: str, archived: bool = False) -> List[Dict[str, 
     except json.JSONDecodeError:
         print(f"Error decoding JSON response for lists in folder {folder_id}.")
         return []
-
-# --- End of Standalone Function Tools --- 
