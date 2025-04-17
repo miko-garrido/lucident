@@ -21,7 +21,7 @@ load_dotenv()
 
 root_agent = Agent(
     name="harpy_agent",
-    model=AGENT_MODEL,
+    model=LiteLlm(model=AGENT_MODEL),
     description=(
         "Harpy is an AI-powered project management assistant that provides a unified interface "
         "for managing projects across ClickUp, Gmail, and Slack, intelligently understanding "
