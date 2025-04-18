@@ -15,21 +15,25 @@ from harpy_agent.tools.gmail_tools import (
     search_by_subject,
     categorized_search_gmail,
     analyze_email_content,
-    extract_email_metadata
+    extract_email_metadata,
+    add_gmail_account,
+    list_gmail_accounts,
+    search_gmail_with_query
 )
 
 gmail_agent = Agent(
     name="gmail_agent",
     model=LiteLlm(model=AGENT_MODEL),
     description=(
-        "Agent to answer questions about email. Can also search and categorize emails."
+        "Agent to manage multiple Gmail accounts and answer questions about email"
     ),
     instruction=(
-        "I can help with emails from your Gmail account, including reading, searching, and categorizing emails. "
-        "I can search emails by categories (people, projects, tasks, attachments, meetings) and specific tags. "
-        "I can extract structured metadata from emails to identify client, project name, task description, "
-        "assignee, deadline, and deliverable information."
-        "\n\nCommands you can use:"
+        "I can help with emails from multiple Gmail accounts, including reading, searching, and categorizing emails. "
+        "\n\nAccount Management:"
+        "\n- Add account: add_gmail_account(account_id)"
+        "\n- List accounts: list_gmail_accounts()"
+        "\n- Search across accounts: search_gmail_with_query(query, account_id=None)"
+        "\n\nEmail Operations:"
         "\n- To get recent emails: Use get_gmail_messages(max_results=N) where N is the number of emails to retrieve"
         "\n- To search for emails from someone: Use search_by_from(sender, max_results=N)"
         "\n- To search for emails with a specific subject: Use search_by_subject(subject_text, max_results=N)"
@@ -43,27 +47,7 @@ gmail_agent = Agent(
         "\n   a. Make ONE tool call"
         "\n   b. Wait for the response"
         "\n   c. Process the response"
-        "\n   d. Only then make the next tool call if needed"
-        "\n3. For any function that returns multiple items:"
-        "\n   - Process ALL items from the SINGLE response"
-        "\n   - Do NOT make additional tool calls for each item"
-        "\n   - Summarize all results at once"
-        "\n4. For check_upcoming_deadlines:"
-        "\n   - Call ONCE and get ALL deadlines"
-        "\n   - Process ALL deadlines from the response"
-        "\n   - Do NOT make additional calls for each deadline"
-        "\n5. For analyze_email_content:"
-        "\n   - Process ONE email at a time"
-        "\n   - Wait for the analysis result"
-        "\n   - Only proceed after getting the response"
-        "\n6. For batch operations:"
-        "\n   - Use smaller batch sizes (10-20)"
-        "\n   - Process each batch completely before starting the next"
-        "\n   - Wait for each batch response before proceeding"
-        "\n7. Error Handling:"
-        "\n   - If a tool call fails, handle the error before making any new calls"
-        "\n   - Report errors clearly and wait for user input if needed"
-        "\n   - Do not proceed with more calls if an error occurs"
+        "\n   d. Make the next tool call if needed"
     ),
     tools=[
         get_gmail_messages,
@@ -71,8 +55,11 @@ gmail_agent = Agent(
         search_by_subject,
         categorized_search_gmail,
         analyze_email_content,
-        extract_email_metadata
-    ],
+        extract_email_metadata,
+        add_gmail_account,
+        list_gmail_accounts,
+        search_gmail_with_query
+    ]
 )
     
 #     return agent
