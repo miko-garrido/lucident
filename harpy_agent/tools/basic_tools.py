@@ -5,12 +5,12 @@ from decimal import InvalidOperation
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 
-def get_current_time(time_zone: str = "UTC") -> str:
+def get_current_time(time_zone: str = "Asia/Manila") -> str:
     """
     Gets the current time in the specified timezone. Defaults to UTC if not provided.
 
     Args:
-        time_zone (str, optional): The IANA timezone name (e.g., 'America/New_York', 'UTC'). Defaults to "UTC".
+        time_zone (str, optional): The IANA timezone name (e.g., 'America/New_York', 'UTC'). Defaults to "Asia/Manila".
 
     Returns:
         str: A string representing the current time in the format 'YYYY-MM-DD HH:MM:SS ZZZZ±HHMM', or an error message.
