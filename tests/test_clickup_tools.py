@@ -39,7 +39,7 @@ TEST_TASK_WITH_SUBTASKS_ID = "86et65e20" # Replace with a Task ID that has subta
 TEST_USERNAME = "miko@dorxata.com" # Replace with your ClickUp username
 TEST_TEAM_ID = "3723297" # Replace with your Team/Workspace ID
 TEST_SPACE_ID = "43795741" # Replace with a Space ID within the team
-TEST_FOLDER_ID = "43795741" # Replace with a Folder ID within the space
+TEST_FOLDER_ID = "90184491751" # Replace with a Folder ID within the space
 
 # --- Test Functions ---
 
@@ -110,18 +110,15 @@ def test_get_clickup_user_tasks_live():
     #     # Check if the assignee list actually contains the user (might need user ID)
     #     # This might be complex to assert reliably without knowing the user's ID beforehand.
 
-# Test for get_clickup_time_entries (needs TEAM_ID)
-def test_get_clickup_time_entries_live():
-    """Test get_clickup_time_entries retrieves time entries for a team."""
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
-
+# Test for get_clickup_time_entries (uses workspace_id from env)
+def test_get_clickup_time_entries_for_default_workspace_live():
+    """Test get_clickup_time_entries retrieves time entries for the default workspace."""
     rate_limit_delay()
-    # Fetch all time entries for the team for the last N days (optional filter)
-    # You might need to adjust start/end dates based on expected data
-    # start_ts = int((datetime.now() - timedelta(days=30)).timestamp() * 1000)
-    # entries = clickup_tools.get_clickup_time_entries(team_id=TEST_TEAM_ID, start_date=start_ts)
-    entries = clickup_tools.get_clickup_time_entries(team_id=TEST_TEAM_ID) # Fetch without date filter initially
+    # Fetch all time entries for the default workspace for the last N days (optional filter)
+    entries_data = clickup_tools.get_clickup_time_entries() # Removed team_id argument
+    assert isinstance(entries_data, dict)
+    assert "entries" in entries_data
+    entries = entries_data["entries"]
 
     assert isinstance(entries, list)
     if entries:
@@ -194,29 +191,23 @@ def test_get_clickup_teams_live():
     assert "name" in teams[0]
     assert "members" in teams[0] # Members should be included
 
-# Test for get_clickup_team_members (uses get_clickup_teams)
-def test_get_clickup_team_members_live():
-    """Test get_clickup_team_members retrieves members for a specific team."""
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
-
+# Test for get_clickup_team_members (uses workspace_id from env)
+def test_get_clickup_team_members_for_default_workspace_live():
+    """Test get_clickup_team_members retrieves members for the default workspace."""
     rate_limit_delay()
-    members = clickup_tools.get_clickup_team_members(team_id=TEST_TEAM_ID)
+    members = clickup_tools.get_clickup_team_members() # Removed team_id argument
     
     assert isinstance(members, list)
-    assert len(members) > 0 # Expect members in a valid team
+    assert len(members) > 0 # Expect members in a valid workspace
     assert isinstance(members[0], dict)
     assert "user" in members[0]
     assert "id" in members[0]["user"]
 
-# Test for get_clickup_spaces
-def test_get_clickup_spaces_live():
-    """Test get_clickup_spaces retrieves spaces within a team."""
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
-
+# Test for get_clickup_spaces (uses workspace_id from env)
+def test_get_clickup_spaces_for_default_workspace_live():
+    """Test get_clickup_spaces retrieves spaces within the default workspace."""
     rate_limit_delay()
-    spaces = clickup_tools.get_clickup_spaces(team_id=TEST_TEAM_ID)
+    spaces = clickup_tools.get_clickup_spaces() # Removed team_id argument
     
     assert isinstance(spaces, list)
     assert len(spaces) > 0 # Expect spaces in a typical workspace
@@ -255,6 +246,47 @@ def test_get_clickup_lists_live():
         assert isinstance(lists[0], dict)
         assert "id" in lists[0]
         assert "name" in lists[0]
+
+# Test for find_clickup_users
+def test_find_clickup_users_live():
+    """Test find_clickup_users finds users based on a search string."""
+    if not TEST_USERNAME or TEST_USERNAME == "YOUR_CLICKUP_USERNAME":
+        pytest.skip("TEST_USERNAME not set for find_clickup_users test.")
+
+    # 1. Test with a known partial username/email (expect results)
+    # Extract a part of the username/email for searching
+    search_part = TEST_USERNAME.split('@')[0][:3] # Use first 3 chars of username part
+    if not search_part:
+         pytest.skip("Could not extract a search part from TEST_USERNAME.")
+         
+    rate_limit_delay()
+    found_users = clickup_tools.find_clickup_users(search_string=search_part)
+
+    assert isinstance(found_users, list)
+    assert len(found_users) > 0 # Expect at least one match for a part of TEST_USERNAME
+    assert isinstance(found_users[0], dict)
+    assert "id" in found_users[0]
+    assert "username" in found_users[0]
+    assert "email" in found_users[0]
+    # Verify that the search part is actually in the results (case-insensitive)
+    match_found = any(
+        search_part.lower() in user.get("username", "").lower() or \
+        search_part.lower() in user.get("email", "").lower() 
+        for user in found_users
+    )
+    assert match_found, f"Search part '{search_part}' not found in any result: {found_users}"
+
+    # 2. Test with a nonsensical string (expect no results)
+    rate_limit_delay()
+    no_users_found = clickup_tools.find_clickup_users(search_string="__nonsensical_string_xyz__")
+    assert isinstance(no_users_found, list)
+    assert len(no_users_found) == 0
+    
+    # 3. Test with an empty string (expect no results)
+    rate_limit_delay()
+    empty_search_users = clickup_tools.find_clickup_users(search_string="")
+    assert isinstance(empty_search_users, list)
+    assert len(empty_search_users) == 0
 
 # --- Original Mock Tests Removed ---
 # @patch('harpy_agent.tools.clickup_tools.requests.get')

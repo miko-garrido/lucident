@@ -9,5 +9,3 @@ pytz
 forex-python
 python-dateutil
 numexpr
-
-#test
