@@ -104,7 +104,10 @@ class ClickUpAPI:
                 for member in members:
                     user = member.get("user", {})
                     api_username = user.get("username")
-                    if api_username and api_username.lower() == username.lower():
+                    api_email = user.get("email") # Get email field
+                    # Check if the input username matches either the API username or email (case-insensitive)
+                    if (api_username and api_username.lower() == username.lower()) or \
+                       (api_email and api_email.lower() == username.lower()):
                         user_id = user.get("id")
                         if user_id:
                             return str(user_id) # Ensure it returns string ID
@@ -113,7 +116,7 @@ class ClickUpAPI:
                             raise ClickUpError(f"Found user '{username}' but ID is missing in API response.")
             
             # If loop completes without returning, user was not found
-            raise ResourceNotFoundError(f"User with username '{username}' not found in any accessible team.")
+            raise ResourceNotFoundError(f"User with username or email '{username}' not found in any accessible team.")
 
         except ClickUpAPIError as e:
              # Re-raise API errors with more context
@@ -327,7 +330,7 @@ def get_clickup_user_tasks(username: str, days: int = 7) -> List[Dict[str, Any]]
 
 
 def get_clickup_time_entries(task_id: Optional[str] = None, user_id: Optional[str] = None,
-                           start_date: Optional[int] = None, end_date: Optional[int] = None) -> List[Dict[str, Any]]:
+                           start_date: Optional[int] = None, end_date: Optional[int] = None) -> Dict[str, List[Dict[str, Any]]]:
     """
     Retrieves ClickUp time entries, optionally filtered.
 
@@ -338,7 +341,7 @@ def get_clickup_time_entries(task_id: Optional[str] = None, user_id: Optional[st
         end_date (Optional[int]): End Unix timestamp (ms).
 
     Returns:
-        List[Dict[str, Any]]: A list of time entry dictionaries.
+        Dict[str, List[Dict[str, Any]]]: A dictionary with 'entries' key containing a list of time entry dictionaries.
 
     Raises:
         ClickUpAPIError: If the API request fails.
@@ -366,12 +369,20 @@ def get_clickup_time_entries(task_id: Optional[str] = None, user_id: Optional[st
         if task_id:
              entries = [entry for entry in entries if entry.get('task', {}).get('id') == task_id]
              
-        return entries
+        # Return a dictionary structure instead of a plain list
+        return {"entries": entries}
     except (ClickUpAPIError, ResourceNotFoundError) as e:
         logging.error(f"Failed to get time entries for team {team_id}: {e}")
+        
+        # If an error occurs, potentially return an empty structure or re-raise
+        # For consistency, let's return an empty list within the dict structure on handled errors too,
+        # although re-raising might be preferred depending on desired error handling.
+        # Re-raising as it was originally. Consider returning {'entries': []} here if needed.
         raise # Re-raise the specific error
     except Exception as e: # Catch unexpected errors
         logging.error(f"Unexpected error getting time entries for team {team_id}: {e}", exc_info=True)
+        # Similarly, consider returning {'entries': []} here too if exceptions should yield empty results.
+        # Re-raising as it was originally.
         raise ClickUpError(f"An unexpected error occurred fetching time entries for team {team_id}.") from e
 
 
