@@ -248,15 +248,17 @@ def get_gmail_service():
         }
 
 # Gmail functionality
-def get_gmail_messages() -> dict:
+def get_gmail_messages(max_results: int = 10) -> dict:
     """Retrieves recent messages from Gmail.
+    
+    Args:
+        max_results (int, optional): Maximum number of emails to retrieve. Defaults to 10.
         
     Returns:
         Result containing recent emails
     """
     # Set default values
     account_id = "default"
-    max_results = 10
         
     # Get Gmail service for the specified account
     service_result = get_gmail_service()
@@ -313,18 +315,18 @@ def get_gmail_messages() -> dict:
         }
 
 # Helper to fix the parameter issue by providing an explicit parameter schema function
-def search_gmail_with_query(query):
+def search_gmail_with_query(query: str, max_results: int = 10) -> dict:
     """Searches Gmail for specific emails matching a query.
     
     Args:
         query (str): Search query (e.g. "from:example@gmail.com", "subject:meeting")
+        max_results (int, optional): Maximum number of emails to retrieve. Defaults to 10.
         
     Returns:
         dict: status and result containing email information or error message.
     """
     # Set defaults
     account_id = "default"
-    max_results = 10
     
     # Call the implementation
     return _search_gmail_impl(query, account_id, max_results)
@@ -407,18 +409,18 @@ def _search_gmail_impl(query, account_id, max_results):
 # Replace the original search_gmail with the new clean version
 search_gmail = search_gmail_with_query
 
-def categorized_search_gmail(category: str) -> dict:
+def categorized_search_gmail(category: str, max_results: int = 10) -> dict:
     """Searches Gmail for specific emails based on predefined categories.
     
     Args:
         category: Category to search for. Valid values: 'people', 'projects', 'tasks', 'attachments', 'meetings'
+        max_results (int, optional): Maximum number of emails to retrieve. Defaults to 10.
         
     Returns:
         Result containing matching emails
     """
     # Set default values
     tag = None
-    max_results = 10
         
     # Define search queries based on categories and tags
     search_queries = {
@@ -465,7 +467,7 @@ def categorized_search_gmail(category: str) -> dict:
         query = " OR ".join([f"({q})" for q in category_queries.values()])
     
     # Use the implementation directly
-    results = _search_gmail_impl(query, "default", 10)
+    results = _search_gmail_impl(query, "default", max_results)
     
     # Add categorization info to the results
     if results["status"] == "success" and "emails" in results:
@@ -943,4 +945,4 @@ if __name__ == "__main__":
         sys.exit(1) 
 
 
-        #test
+        
