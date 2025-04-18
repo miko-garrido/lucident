@@ -121,6 +121,8 @@ class ClickUpAPI:
         except ClickUpAPIError as e:
              # Re-raise API errors with more context
              raise ClickUpAPIError(f"Failed to fetch teams to find user ID for '{username}': {e}", status_code=e.status_code, response_text=e.response_text) from e
+        except ResourceNotFoundError: # Explicitly catch and re-raise before the generic Exception
+             raise
         except Exception as e: # Catch any other unexpected error
              logging.error(f"Unexpected error finding user ID for '{username}': {e}", exc_info=True)
              raise ClickUpError(f"An unexpected error occurred while finding user ID for '{username}'.") from e
@@ -255,8 +257,9 @@ def get_clickup_user_tasks(username: str, days: int = 7) -> List[Dict[str, Any]]
         user_id = api._get_user_id(username) # Can raise ResourceNotFoundError or ClickUpAPIError
     except ResourceNotFoundError as e:
         logging.error(f"Failed to find user '{username}': {e}")
-        # Return empty list if user not found, as no tasks can be fetched.
-        return [] 
+        # Raise a more informative error instead of returning [] silently.
+        # This might help the agent realize the initial lookup failed and prompt it to try find_clickup_users.
+        raise ResourceNotFoundError(f"User '{username}' not found directly. Consider using find_clickup_users or provide the exact username/email.") from e
     except ClickUpAPIError as e:
          logging.error(f"API error getting user ID for '{username}': {e}")
          raise # Propagate API errors
@@ -333,14 +336,14 @@ def get_clickup_user_tasks(username: str, days: int = 7) -> List[Dict[str, Any]]
     return all_tasks
 
 
-def get_clickup_time_entries(task_id: Optional[str] = None, user_id: Optional[str] = None,
+def get_clickup_time_entries(task_id: Optional[str] = None, username: Optional[str] = None,
                            start_date: Optional[int] = None, end_date: Optional[int] = None) -> Dict[str, List[Dict[str, Any]]]:
     """
     Retrieves ClickUp time entries, optionally filtered.
 
     Args:
         task_id (Optional[str]): Filter by task ID.
-        user_id (Optional[str]): Filter by user ID.
+        username (Optional[str]): Filter by ClickUp username or email. 
         start_date (Optional[int]): Start Unix timestamp (ms).
         end_date (Optional[int]): End Unix timestamp (ms).
 
@@ -349,44 +352,54 @@ def get_clickup_time_entries(task_id: Optional[str] = None, user_id: Optional[st
 
     Raises:
         ClickUpAPIError: If the API request fails.
-        ResourceNotFoundError: If the underlying team/workspace is not found.
+        ResourceNotFoundError: If the underlying team/workspace is not found or the specified user is not found.
         ClickUpError: For other ClickUp related errors.
     """
     api = ClickUpAPI()
     team_id = api.workspace_id # Use the workspace ID
     params = {}
-    # API uses 'assignee' param for user filtering
-    if user_id: params["assignee"] = user_id 
+    user_id_to_query = None
+
+    # If username is provided, try to resolve it to user_id first
+    if username:
+        try:
+            user_id_to_query = api._get_user_id(username)
+            params["assignee"] = user_id_to_query
+        except ResourceNotFoundError as e:
+            logging.error(f"Failed to find user '{username}' before fetching time entries: {e}")
+            raise ResourceNotFoundError(f"User '{username}' not found. Cannot fetch time entries. Consider using find_clickup_users or provide the exact username/email.") from e
+        except ClickUpAPIError as e:
+            logging.error(f"API error getting user ID for '{username}' before fetching time entries: {e}")
+            raise # Propagate API errors
+        except Exception as e:
+            logging.error(f"Unexpected error getting user ID for '{username}': {e}", exc_info=True)
+            raise ClickUpError(f"An unexpected error occurred getting user ID for {username}.") from e
+
+    # Add other parameters
     if start_date: params["start_date"] = start_date
     if end_date: params["end_date"] = end_date
     # Add other potential params if needed:
     # params["include_task_tags"] = "true" 
     # params["include_location_names"] = "true"
-    
+
     endpoint = f"/team/{team_id}/time_entries"
-    
+
     try:
         response_data = api._make_request("GET", endpoint, params=params)
-        entries = response_data.get("data", []) 
-        
+        entries = response_data.get("data", [])
+
         # Client-side filtering for task_id if provided, as API might not support it directly
         if task_id:
              entries = [entry for entry in entries if entry.get('task', {}).get('id') == task_id]
-             
+
         # Return a dictionary structure instead of a plain list
         return {"entries": entries}
     except (ClickUpAPIError, ResourceNotFoundError) as e:
-        logging.error(f"Failed to get time entries for team {team_id}: {e}")
-        
-        # If an error occurs, potentially return an empty structure or re-raise
-        # For consistency, let's return an empty list within the dict structure on handled errors too,
-        # although re-raising might be preferred depending on desired error handling.
-        # Re-raising as it was originally. Consider returning {'entries': []} here if needed.
+        # This catches errors from the time_entries API call itself
+        logging.error(f"Failed to get time entries for team {team_id} (Params: {params}): {e}")
         raise # Re-raise the specific error
-    except Exception as e: # Catch unexpected errors
-        logging.error(f"Unexpected error getting time entries for team {team_id}: {e}", exc_info=True)
-        # Similarly, consider returning {'entries': []} here too if exceptions should yield empty results.
-        # Re-raising as it was originally.
+    except Exception as e: # Catch unexpected errors from the time_entries API call
+        logging.error(f"Unexpected error getting time entries for team {team_id} (Params: {params}): {e}", exc_info=True)
         raise ClickUpError(f"An unexpected error occurred fetching time entries for team {team_id}.") from e
 
 
