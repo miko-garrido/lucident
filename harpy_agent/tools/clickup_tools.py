@@ -253,10 +253,14 @@ def get_clickup_user_tasks(username: str, days: int = 7) -> List[Dict[str, Any]]
     
     try:
         user_id = api._get_user_id(username) # Can raise ResourceNotFoundError or ClickUpAPIError
-    except (ResourceNotFoundError, ClickUpAPIError) as e:
-         logging.error(f"Failed to get user ID for '{username}': {e}")
-         raise # Propagate the error
-    except Exception as e: # Catch unexpected errors from _get_user_id
+    except ResourceNotFoundError as e:
+        logging.error(f"Failed to find user '{username}': {e}")
+        # Return empty list if user not found, as no tasks can be fetched.
+        return [] 
+    except ClickUpAPIError as e:
+         logging.error(f"API error getting user ID for '{username}': {e}")
+         raise # Propagate API errors
+    except Exception as e: # Catch other unexpected errors from _get_user_id
         logging.error(f"Unexpected error getting user ID for '{username}': {e}", exc_info=True)
         raise ClickUpError(f"An unexpected error occurred getting user ID for {username}.") from e
 
@@ -646,3 +650,72 @@ def get_clickup_lists(folder_id: str, archived: bool = False) -> List[Dict[str, 
     except Exception as e:
         logging.error(f"Unexpected error getting lists for folder {folder_id}: {e}", exc_info=True)
         raise ClickUpError(f"An unexpected error occurred fetching lists for folder {folder_id}.") from e
+
+
+def find_clickup_users(search_string: str) -> List[Dict[str, Any]]:
+    """
+    Useful when you don't have all the information about the user. Finds ClickUp users whose username or email contains the search string.
+
+    Args:
+        search_string (str): The string to search for within usernames or emails.
+
+    Returns:
+        List[Dict[str, Any]]: A list of matching user dictionaries, each containing 
+                               'id', 'username', and 'email'. Returns an empty list 
+                               if no matches are found or no teams are accessible.
+
+    Raises:
+        ClickUpAPIError: If fetching teams fails.
+        ClickUpError: For other unexpected ClickUp related errors.
+    """
+    if not search_string:
+        logging.warning("find_clickup_users called with empty search string.")
+        return []
+
+    api = ClickUpAPI()
+    matching_users = []
+    processed_user_ids = set()
+    search_lower = search_string.lower()
+
+    try:
+        teams_data = api._make_request("GET", "/team")
+        teams = teams_data.get("teams", [])
+
+        if not teams:
+            logging.warning("No teams found via API key, cannot search for users.")
+            return []
+
+        for team in teams:
+            members = team.get("members", [])
+            for member in members:
+                user = member.get("user", {})
+                user_id = user.get("id")
+                api_username = user.get("username", "") # Use empty string if missing
+                api_email = user.get("email", "")      # Use empty string if missing
+                
+                # Skip if user ID is missing or already processed
+                if not user_id or user_id in processed_user_ids:
+                    continue
+
+                # Check for partial match in username or email (case-insensitive)
+                # Ensure username/email are treated as empty strings if None before lower()
+                username_lower = api_username.lower() if api_username else ""
+                email_lower = api_email.lower() if api_email else ""
+                if (search_lower in username_lower) or \
+                   (search_lower in email_lower):
+                    matching_users.append({
+                        "id": str(user_id),
+                        "username": api_username,
+                        "email": api_email
+                    })
+                    processed_user_ids.add(user_id) # Add to set to avoid duplicates
+
+        logging.info(f"Found {len(matching_users)} users matching '{search_string}'.")
+        return matching_users
+
+    except ClickUpAPIError as e:
+        logging.error(f"Failed to fetch teams while searching for users matching '{search_string}': {e}")
+        raise # Re-raise API errors
+    except Exception as e:
+        logging.error(f"Unexpected error searching for users matching '{search_string}': {e}", exc_info=True)
+        raise ClickUpError(f"An unexpected error occurred while searching for users matching '{search_string}'.") from e

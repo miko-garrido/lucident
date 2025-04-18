@@ -247,6 +247,47 @@ def test_get_clickup_lists_live():
         assert "id" in lists[0]
         assert "name" in lists[0]
 
+# Test for find_clickup_users
+def test_find_clickup_users_live():
+    """Test find_clickup_users finds users based on a search string."""
+    if not TEST_USERNAME or TEST_USERNAME == "YOUR_CLICKUP_USERNAME":
+        pytest.skip("TEST_USERNAME not set for find_clickup_users test.")
+
+    # 1. Test with a known partial username/email (expect results)
+    # Extract a part of the username/email for searching
+    search_part = TEST_USERNAME.split('@')[0][:3] # Use first 3 chars of username part
+    if not search_part:
+         pytest.skip("Could not extract a search part from TEST_USERNAME.")
+         
+    rate_limit_delay()
+    found_users = clickup_tools.find_clickup_users(search_string=search_part)
+
+    assert isinstance(found_users, list)
+    assert len(found_users) > 0 # Expect at least one match for a part of TEST_USERNAME
+    assert isinstance(found_users[0], dict)
+    assert "id" in found_users[0]
+    assert "username" in found_users[0]
+    assert "email" in found_users[0]
+    # Verify that the search part is actually in the results (case-insensitive)
+    match_found = any(
+        search_part.lower() in user.get("username", "").lower() or \
+        search_part.lower() in user.get("email", "").lower() 
+        for user in found_users
+    )
+    assert match_found, f"Search part '{search_part}' not found in any result: {found_users}"
+
+    # 2. Test with a nonsensical string (expect no results)
+    rate_limit_delay()
+    no_users_found = clickup_tools.find_clickup_users(search_string="__nonsensical_string_xyz__")
+    assert isinstance(no_users_found, list)
+    assert len(no_users_found) == 0
+    
+    # 3. Test with an empty string (expect no results)
+    rate_limit_delay()
+    empty_search_users = clickup_tools.find_clickup_users(search_string="")
+    assert isinstance(empty_search_users, list)
+    assert len(empty_search_users) == 0
+
 # --- Original Mock Tests Removed ---
 # @patch('harpy_agent.tools.clickup_tools.requests.get')
 # def test_get_clickup_tasks_success(mock_get): ... (removed)
