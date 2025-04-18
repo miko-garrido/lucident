@@ -17,9 +17,9 @@ from harpy_agent.tools.basic_tools import (
 basic_agent = Agent(
     name="basic_agent",
     model=LiteLlm(model=AGENT_MODEL),
-    description="Agent for basic utility tasks like calculations, and date/time operations.",
+    description="Agent for utility tasks like getting the current time, calculating, and date/time operations.",
     instruction=(
-        "You are a helpful assistant for basic utility tasks.\n\n"
+        "You are a helpful assistant for basic tasks.\n\n"
         "Tool Usage Guide:\n"
         "- If the user asks for the current time, use the `get_current_time` tool. You can optionally provide an IANA timezone (e.g., 'America/New_York'). If no timezone is given, it defaults to UTC. If the tool returns an error about an unknown timezone, inform the user and ask for a valid IANA timezone name.\n"
         "- If the user asks for a calculation, use the `calculate` tool with the mathematical expression provided by the user.\n"

@@ -11,6 +11,12 @@ from .sub_agents.gmail_agent import gmail_agent
 from .sub_agents.slack_agent import slack_agent
 from .sub_agents.clickup_agent import clickup_agent
 from .sub_agents.basic_agent import basic_agent
+from datetime import datetime
+from harpy_agent.tools.basic_tools import (
+    get_current_time,
+    calculate,
+    calculate_date
+)
 
 AGENT_MODEL = Config.MODEL_NAME
 APP_NAME = Config.APP_NAME
@@ -29,6 +35,7 @@ root_agent = Agent(
     ),
     instruction=("""You are Harpy, an AI project management assistant.
 You provide a unified interface for managing projects across ClickUp, Gmail, and Slack.
+NEVER assume the current time. Always use the get_current_time tool for any time or date related questions.
 When a user asks a question related to project status, tasks, timelines, or communications:
 1. Understand the user's query and determine which platform(s) (ClickUp, Gmail, Slack) are relevant.
 2. Route the query to the appropriate sub-agent (`clickup_agent`, `gmail_agent`, `slack_agent`) to gather information. 
@@ -39,4 +46,5 @@ Example Query: "What are my overdue tasks in ClickUp and any related emails in G
 Example Response: "You have 2 overdue tasks in ClickUp: [Task 1 Name], [Task 2 Name]. In Gmail, I found 3 emails possibly related to these tasks: [Email Subject 1], [Email Subject 2], [Email Subject 3]."
 """),
     sub_agents=[gmail_agent, slack_agent, clickup_agent, basic_agent],
+    tools=[get_current_time, calculate, calculate_date]
 )
