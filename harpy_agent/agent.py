@@ -17,11 +17,22 @@ from harpy_agent.tools.basic_tools import (
     calculate,
     calculate_date
 )
+from google.adk.sessions import InMemorySessionService
 
 AGENT_MODEL = Config.MODEL_NAME
 APP_NAME = Config.APP_NAME
 USER_ID = Config.USER_ID
 SESSION_ID = Config.SESSION_ID
+TIMEZONE = Config.TIMEZONE
+
+session_service = InMemorySessionService()
+initial_state = {"current_time": get_current_time(TIMEZONE)}
+session = session_service.create_session(
+    app_name=APP_NAME,
+    user_id=USER_ID,
+    session_id=SESSION_ID,
+    state=initial_state
+)
 
 load_dotenv()
 
@@ -35,7 +46,8 @@ root_agent = Agent(
     ),
     instruction=("""You are Harpy, an AI project management assistant.
 You provide a unified interface for managing projects across ClickUp, Gmail, and Slack.
-NEVER assume the current time. Always use the get_current_time tool for any time or date related questions.
+NEVER assume the current time. If the user mentions anything time or date related, alway use the get_current_time tool before passing information to the sub-agents.
+ALWAYS use calculate and calculate_date tools for any mathematical calculations.
 When a user asks a question related to project status, tasks, timelines, or communications:
 1. Understand the user's query and determine which platform(s) (ClickUp, Gmail, Slack) are relevant.
 2. Route the query to the appropriate sub-agent (`clickup_agent`, `gmail_agent`, `slack_agent`) to gather information. 

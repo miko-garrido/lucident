@@ -4,8 +4,9 @@ import numexpr
 from decimal import InvalidOperation
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
+from config import Config
 
-def get_current_time(time_zone: str = "Asia/Manila") -> str:
+def get_current_time(time_zone: str = Config.TIMEZONE) -> str:
     """
     Gets the current time in the specified timezone. Defaults to UTC if not provided.
 
