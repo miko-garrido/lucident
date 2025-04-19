@@ -20,6 +20,7 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from email.mime.text import MIMEText
 from .gmail_account_manager import GmailAccountManager
+from typing import Optional
 
 # Define the scopes needed for Gmail API
 SCOPES = [
@@ -247,90 +248,96 @@ def gmail_auth(account_id="default"):
         return False
 
 # Gmail functionality
-def get_gmail_messages(max_results: int = 10, account_id: str = "") -> dict:
-    """Retrieves recent messages from Gmail.
+def get_gmail_messages(max_results: int = 10, account_id: Optional[str] = None) -> dict:
+    """
+    Get recent messages from Gmail.
     
     Args:
-        max_results (int, optional): Maximum number of emails to retrieve. Defaults to 10.
-        account_id (str, optional): Specific account to retrieve from. If empty, retrieves from all accounts.
-        
-    Returns:
-        Result containing recent emails
-    """
-    account_manager = GmailAccountManager()
+        max_results (int): Maximum number of messages to retrieve
+        account_id (Optional[str]): Specific account ID to check. If None, will check accounts one by one.
     
-    # If account_id is specified, get messages only from that account
-    if account_id:
-        service_result = get_gmail_service(account_id)
-        if service_result["status"] == "error":
-            return {
-                "status": "error",
-                "error_message": service_result["error_message"],
-                "tool_call_id": "call_VI4dGQ24LpuWCVj9EMsmNZcS"
-            }
+    Returns:
+        dict: Dictionary containing messages and account information
+    """
+    try:
+        account_manager = GmailAccountManager()
+        accounts = account_manager.get_accounts()
+        
+        if not accounts:
+            return {"error": "No Gmail accounts configured"}
             
-        service = service_result["service"]
-        try:
+        if account_id:
+            # Check specific account
+            if account_id not in accounts:
+                return {"error": f"Account {account_id} not found"}
+            
+            service_result = get_gmail_service(account_id)
+            if service_result["status"] == "error":
+                return service_result
+                
+            service = service_result["service"]
             results = service.users().messages().list(userId='me', maxResults=max_results).execute()
             messages = results.get('messages', [])
             
             if not messages:
-                return {
-                    "status": "success",
-                    "account": account_id,
-                    "report": f"No messages found for account {account_id}.",
-                    "tool_call_id": "call_1pTplrIRR81O9go9VmuHt2I6"
-                }
+                return {"account": account_id, "messages": [], "status": "No messages found"}
             
-            # Get details for each message
+            # Get full message details for each message
             email_data = []
             for message in messages:
-                msg = service.users().messages().get(userId='me', id=message['id'], format='metadata').execute()
-                headers = msg['payload']['headers']
-                
-                # Extract subject, from, and date information
-                subject = next((header['value'] for header in headers if header['name'].lower() == 'subject'), 'No subject')
-                sender = next((header['value'] for header in headers if header['name'].lower() == 'from'), 'Unknown sender')
-                date = next((header['value'] for header in headers if header['name'].lower() == 'date'), 'Unknown date')
-                
-                email_data.append({
-                    'id': message['id'],
-                    'subject': subject,
-                    'from': sender,
-                    'date': date,
-                    'snippet': msg.get('snippet', '')
-                })
+                try:
+                    msg = service.users().messages().get(userId='me', id=message['id'], format='full').execute()
+                    headers = msg['payload']['headers']
+                    
+                    # Extract subject, from, and date information
+                    subject = next((header['value'] for header in headers if header['name'].lower() == 'subject'), 'No subject')
+                    sender = next((header['value'] for header in headers if header['name'].lower() == 'from'), 'Unknown sender')
+                    date = next((header['value'] for header in headers if header['name'].lower() == 'date'), 'Unknown date')
+                    
+                    # Extract body content
+                    body = ""
+                    if 'parts' in msg['payload']:
+                        for part in msg['payload']['parts']:
+                            if part['mimeType'] == 'text/plain':
+                                body_data = part['body'].get('data', '')
+                                if body_data:
+                                    body = base64.urlsafe_b64decode(body_data).decode('utf-8')
+                                    break
+                    elif 'body' in msg['payload'] and 'data' in msg['payload']['body']:
+                        body_data = msg['payload']['body']['data']
+                        body = base64.urlsafe_b64decode(body_data).decode('utf-8')
+                    
+                    email_data.append({
+                        'id': message['id'],
+                        'subject': subject,
+                        'from': sender,
+                        'date': date,
+                        'snippet': msg.get('snippet', ''),
+                        'body': body[:500] + ('...' if len(body) > 500 else '')
+                    })
+                except Exception as e:
+                    print(f"Error getting message {message['id']}: {str(e)}")
+                    continue
             
             return {
-                "status": "success",
                 "account": account_id,
-                "report": f"Found {len(email_data)} emails",
-                "emails": email_data,
-                "tool_call_id": "call_HbAV7Vh5hqEbt2mGjCGzBuv3"
+                "messages": email_data,
+                "status": "success"
+            }
+        else:
+            # Get all accounts and check them one by one
+            all_results = []
+            for acc_id in accounts:
+                result = get_gmail_messages(max_results=max_results, account_id=acc_id)
+                all_results.append(result)
+            
+            return {
+                "accounts_checked": len(accounts),
+                "results": all_results
             }
             
-        except Exception as e:
-            return {
-                "status": "error",
-                "error_message": f"Error retrieving Gmail messages for account {account_id}: {str(e)}",
-                "tool_call_id": "call_VI4dGQ24LpuWCVj9EMsmNZcS"
-            }
-    
-    # Otherwise get messages from all accounts
-    all_results = []
-    accounts = list(account_manager.get_accounts().keys())
-    
-    for acc in accounts:
-        result = get_gmail_messages(max_results, acc)
-        if result["status"] == "success":
-            all_results.append(result)
-    
-    return {
-        "status": "success",
-        "results": all_results,
-        "accounts_searched": accounts,
-        "tool_call_id": "call_HbAV7Vh5hqEbt2mGjCGzBuv3"
-    }
+    except Exception as e:
+        return {"error": str(e)}
 
 # Helper to fix the parameter issue by providing an explicit parameter schema function
 def search_gmail_with_query(query: str = "", account_id: str = "", max_results: int = 10):

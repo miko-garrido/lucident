@@ -7,18 +7,14 @@ class GmailAccountManager:
     
     def _load_accounts(self):
         accounts = {}
-        for file in os.listdir():
-            if file.startswith('token_') and file.endswith('.json'):
-                account_id = file.replace('token_', '').replace('.json', '')
-                accounts[account_id] = self._get_email_from_token(file)
-        if os.path.exists('token.json'):
-            accounts['default'] = self._get_email_from_token('token.json')
+        token_file = 'gmail_tokens.json'
+        
+        if os.path.exists(token_file):
+            with open(token_file, 'r') as f:
+                all_tokens = json.load(f)
+                for account_id in all_tokens:
+                    accounts[account_id] = account_id  # Use account_id as email since it's the same
         return accounts
-    
-    def _get_email_from_token(self, token_file):
-        with open(token_file, 'r') as f:
-            data = json.load(f)
-            return data.get('email', 'Unknown')
     
     def add_account(self, account_id, email):
         self.accounts[account_id] = email
