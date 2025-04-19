@@ -7,6 +7,11 @@ from harpy_agent.tools.slack_tools.slack_tools import *
 import os
 import logging
 from typing import Dict, Any, Optional
+from harpy_agent.tools.basic_tools import (
+    get_current_time,
+    calculate,
+    calculate_date
+)
 
 load_dotenv()
 
@@ -24,6 +29,11 @@ slack_agent = Agent(
     model=LiteLlm(model=MODEL_NAME),
     description="Agent to process Slack messages using GPT-4 and MCP server.",
     instruction="I can process Slack messages and respond using GPT-4.",
+    tools=[
+        get_current_time,
+        calculate,
+        calculate_date
+    ]
 )
 
 # Export the agent instance

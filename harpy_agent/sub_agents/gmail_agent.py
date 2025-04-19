@@ -20,6 +20,11 @@ from harpy_agent.tools.gmail_tools import (
     list_gmail_accounts,
     search_gmail_with_query
 )
+from harpy_agent.tools.basic_tools import (
+    get_current_time,
+    calculate,
+    calculate_date
+)
 
 gmail_agent = Agent(
     name="gmail_agent",
@@ -58,7 +63,10 @@ gmail_agent = Agent(
         extract_email_metadata,
         add_gmail_account,
         list_gmail_accounts,
-        search_gmail_with_query
+        search_gmail_with_query,
+        get_current_time,
+        calculate,
+        calculate_date
     ]
 )
     

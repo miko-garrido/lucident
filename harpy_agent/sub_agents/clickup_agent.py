@@ -11,6 +11,11 @@ from ..tools.clickup_tools import (
     get_clickup_spaces, get_clickup_folders, get_clickup_lists,
     find_clickup_users
 )
+from harpy_agent.tools.basic_tools import (
+    get_current_time,
+    calculate,
+    calculate_date
+)
 
 load_dotenv()
 
@@ -41,6 +46,6 @@ clickup_agent = Agent(
             get_clickup_list_members, get_clickup_task_members, get_clickup_subtasks,
             get_clickup_teams, get_clickup_team_members,
             get_clickup_spaces, get_clickup_folders, get_clickup_lists,
-            find_clickup_users
+            find_clickup_users, get_current_time, calculate, calculate_date
         ],
     )
