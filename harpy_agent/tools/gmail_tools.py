@@ -42,6 +42,61 @@ def find_free_port():
         s.bind(('', 0))
         return s.getsockname()[1]
 
+def get_gmail_service(account_id=None):
+    """Get Gmail service for specified account"""
+    if not account_id:
+        account_id = "default"
+        
+    token_file = 'gmail_tokens.json'
+    
+    try:
+        # Load all credentials from consolidated token file
+        if os.path.exists(token_file):
+            with open(token_file, 'r') as f:
+                all_tokens = json.load(f)
+        else:
+            all_tokens = {}
+            
+        if account_id not in all_tokens:
+            return {
+                "status": "error",
+                "error_message": f"Gmail authentication not set up for account {account_id}. Please run 'python gmail_tools.py auth {account_id}' to set up authentication."
+            }
+            
+        # Load credentials for specific account
+        creds = Credentials.from_authorized_user_info(all_tokens[account_id])
+        
+        # If credentials expired, refresh them
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            # Update token file with refreshed credentials
+            all_tokens[account_id] = {
+                'token': creds.token,
+                'refresh_token': creds.refresh_token,
+                'token_uri': creds.token_uri,
+                'client_id': creds.client_id,
+                'client_secret': creds.client_secret,
+                'scopes': creds.scopes,
+                'expiry': creds.expiry.isoformat() if creds.expiry else None
+            }
+            with open(token_file, 'w') as f:
+                json.dump(all_tokens, f, indent=2)
+        
+        # Build the Gmail service
+        service = build('gmail', 'v1', credentials=creds)
+        
+        return {
+            "status": "success",
+            "service": service,
+            "account": account_id
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "error_message": f"Error authenticating with Gmail for account {account_id}: {str(e)}"
+        }
+
 def gmail_auth(account_id="default"):
     """Authenticates with Gmail API and sets up credentials.
     
@@ -53,8 +108,7 @@ def gmail_auth(account_id="default"):
     """
     print(f"\n=== Gmail API Authentication Setup for {account_id} ===\n")
     
-    # Define the token file name based on account ID
-    token_file = f'token_{account_id}.json' if account_id != "default" else 'token.json'
+    token_file = 'gmail_tokens.json'
     
     # Check if credentials.json exists
     if not os.path.exists('credentials.json'):
@@ -71,10 +125,12 @@ def gmail_auth(account_id="default"):
         print("9. Download the JSON file and save it as 'credentials.json' in this directory")
         return False
     
-    # Remove existing token if any
+    # Load existing tokens if any
     if os.path.exists(token_file):
-        os.remove(token_file)
-        print(f"Removed existing {token_file} file for a fresh authentication.\n")
+        with open(token_file, 'r') as f:
+            all_tokens = json.load(f)
+    else:
+        all_tokens = {}
     
     try:
         # Allow insecure localhost
@@ -117,18 +173,14 @@ def gmail_auth(account_id="default"):
                 
             except Exception as e:
                 print(f"Error with port {port}: {e}")
-                # Try the next port
                 continue
         
         if not success:
             print("All ports failed. Trying a random free port...")
+            port = find_free_port()
+            print(f"Using random free port: {port}")
             
             try:
-                # Find a random free port
-                port = find_free_port()
-                print(f"Using random free port: {port}")
-                
-                # Create the flow
                 flow = InstalledAppFlow.from_client_secrets_file(
                     'credentials.json',
                     SCOPES
@@ -137,7 +189,6 @@ def gmail_auth(account_id="default"):
                 print(f"Starting OAuth authentication flow on port {port}...")
                 print("This will open a browser window for you to sign in to your Google account.")
                 
-                # Run the local server
                 creds = flow.run_local_server(
                     port=port,
                     open_browser=True,
@@ -160,22 +211,24 @@ def gmail_auth(account_id="default"):
             print("for this app, then run this script again.")
             return False
         
-        # Save the credentials for future runs as properly formatted JSON
-        with open(token_file, 'w') as token:
-            token_data = {
-                'token': creds.token,
-                'refresh_token': creds.refresh_token,
-                'token_uri': creds.token_uri,
-                'client_id': creds.client_id,
-                'client_secret': creds.client_secret,
-                'scopes': creds.scopes,
-                'expiry': creds.expiry.isoformat() if creds.expiry else None
-            }
-            json.dump(token_data, token)
+        # Save the credentials for this account
+        all_tokens[account_id] = {
+            'token': creds.token,
+            'refresh_token': creds.refresh_token,
+            'token_uri': creds.token_uri,
+            'client_id': creds.client_id,
+            'client_secret': creds.client_secret,
+            'scopes': creds.scopes,
+            'expiry': creds.expiry.isoformat() if creds.expiry else None
+        }
+        
+        # Save all tokens to file
+        with open(token_file, 'w') as f:
+            json.dump(all_tokens, f, indent=2)
         
         print("\nAuthentication successful!")
         print(f"Refresh token obtained: {bool(creds.refresh_token)}")
-        print(f"Credentials saved to '{token_file}'\n")
+        print(f"Credentials saved to '{token_file}' for account '{account_id}'\n")
         return True
         
     except Exception as e:
@@ -192,56 +245,6 @@ def gmail_auth(account_id="default"):
         print("5. Go to https://myaccount.google.com/permissions and revoke access for this app, then try again")
         print("6. Check if your firewall is blocking localhost connections")
         return False
-
-def get_gmail_service(account_id=None):
-    """Get Gmail service for specified account"""
-    if not account_id:
-        account_id = "default"
-        
-    token_file = f'token_{account_id}.json' if account_id != "default" else 'token.json'
-    
-    if not os.path.exists(token_file):
-        return {
-            "status": "error",
-            "error_message": f"Gmail authentication not set up for account {account_id}. Please run 'python gmail_tools.py auth {account_id}' to set up authentication."
-        }
-    
-    try:
-        # Load credentials from token file
-        with open(token_file, 'r') as token:
-            token_data = json.load(token)
-            creds = Credentials.from_authorized_user_info(token_data)
-        
-        # If credentials expired, refresh them
-        if creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            # Update token file with refreshed credentials
-            with open(token_file, 'w') as token:
-                token_data = {
-                    'token': creds.token,
-                    'refresh_token': creds.refresh_token,
-                    'token_uri': creds.token_uri,
-                    'client_id': creds.client_id,
-                    'client_secret': creds.client_secret,
-                    'scopes': creds.scopes,
-                    'expiry': creds.expiry.isoformat() if creds.expiry else None
-                }
-                json.dump(token_data, token)
-        
-        # Build the Gmail service
-        service = build('gmail', 'v1', credentials=creds)
-        
-        return {
-            "status": "success",
-            "service": service,
-            "account": account_id
-        }
-        
-    except Exception as e:
-        return {
-            "status": "error",
-            "error_message": f"Error authenticating with Gmail for account {account_id}: {str(e)}"
-        }
 
 # Gmail functionality
 def get_gmail_messages(max_results: int = 10, account_id: str = "") -> dict:
@@ -323,20 +326,23 @@ def get_gmail_messages(max_results: int = 10, account_id: str = "") -> dict:
 
 # Helper to fix the parameter issue by providing an explicit parameter schema function
 def search_gmail_with_query(query: str = "", account_id: str = "", max_results: int = 10):
-    """Search Gmail across specified or all accounts"""
+    """Search Gmail across specified or all accounts.
+    
+    Args:
+        query: Gmail search query string. If empty, returns most recent emails.
+        account_id: Specific account ID to search. If empty, searches all accounts.
+        max_results: Maximum number of results to return.
+    """
     if not query:
-        return {
-            "status": "error",
-            "error_message": "Search query is required"
-        }
-        
+        return get_gmail_messages(max_results, account_id)
+    
     account_manager = GmailAccountManager()
     
     # If account_id is specified, search only that account
     if account_id:
         result = _search_gmail_impl(query, account_id, max_results)
         return {
-            "status": "success",
+            "status": "success", 
             "results": [result] if result["status"] == "success" else [],
             "accounts_searched": [account_id]
         }
@@ -953,11 +959,34 @@ def add_gmail_account(account_id: str):
 
 def list_gmail_accounts():
     """List all configured Gmail accounts"""
-    manager = GmailAccountManager()
-    return {
-        "status": "success",
-        "accounts": manager.get_accounts()
-    }
+    token_file = 'gmail_tokens.json'
+    
+    if not os.path.exists(token_file):
+        return {
+            "status": "success",
+            "accounts": {}
+        }
+        
+    try:
+        with open(token_file, 'r') as f:
+            all_tokens = json.load(f)
+            
+        accounts = {
+            account_id: {
+                "scopes": token_data["scopes"],
+                "expiry": token_data["expiry"]
+            } for account_id, token_data in all_tokens.items()
+        }
+        
+        return {
+            "status": "success",
+            "accounts": accounts
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error_message": f"Error listing Gmail accounts: {str(e)}"
+        }
 
 # Main function to run from command line
 if __name__ == "__main__":
