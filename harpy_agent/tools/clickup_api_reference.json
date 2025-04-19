@@ -1,0 +1,986 @@
+[
+    {
+      "Category": "Audit Logs",
+      "Endpoint": "Create Workspace‑level audit logs",
+      "Reference": "https://developer.clickup.com/reference/createworkspaceauditlog",
+      "Method": "POST"
+    },
+    {
+      "Category": "Authorization",
+      "Endpoint": "Get Access Token",
+      "Reference": "https://developer.clickup.com/reference/getaccesstoken",
+      "Method": "POST"
+    },
+    {
+      "Category": "Authorization",
+      "Endpoint": "Get Authorized User",
+      "Reference": "https://developer.clickup.com/reference/getauthorizeduser",
+      "Method": "GET"
+    },
+    {
+      "Category": "Authorization",
+      "Endpoint": "Get Authorized Workspaces",
+      "Reference": "https://developer.clickup.com/reference/getauthorizedteams",
+      "Method": "GET"
+    },
+    {
+      "Category": "Attachments",
+      "Endpoint": "Create Task Attachment",
+      "Reference": "https://developer.clickup.com/reference/createtaskattachment",
+      "Method": "POST"
+    },
+    {
+      "Category": "Comments",
+      "Endpoint": "Get Task Comments",
+      "Reference": "https://developer.clickup.com/reference/gettaskcomments",
+      "Method": "GET"
+    },
+    {
+      "Category": "Comments",
+      "Endpoint": "Create Task Comment",
+      "Reference": "https://developer.clickup.com/reference/createtaskcomment",
+      "Method": "POST"
+    },
+    {
+      "Category": "Comments",
+      "Endpoint": "Get Chat View Comments",
+      "Reference": "https://developer.clickup.com/reference/getchatviewcomments",
+      "Method": "GET"
+    },
+    {
+      "Category": "Comments",
+      "Endpoint": "Create Chat View Comment",
+      "Reference": "https://developer.clickup.com/reference/createchatviewcomment",
+      "Method": "POST"
+    },
+    {
+      "Category": "Comments",
+      "Endpoint": "Get List Comments",
+      "Reference": "https://developer.clickup.com/reference/getlistcomments",
+      "Method": "GET"
+    },
+    {
+      "Category": "Comments",
+      "Endpoint": "Create List Comment",
+      "Reference": "https://developer.clickup.com/reference/createlistcomment",
+      "Method": "POST"
+    },
+    {
+      "Category": "Comments",
+      "Endpoint": "Update Comment",
+      "Reference": "https://developer.clickup.com/reference/updatecomment",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Comments",
+      "Endpoint": "Delete Comment",
+      "Reference": "https://developer.clickup.com/reference/deletecomment",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Comments",
+      "Endpoint": "Get Threaded Comments",
+      "Reference": "https://developer.clickup.com/reference/getthreadedcomments",
+      "Method": "GET"
+    },
+    {
+      "Category": "Comments",
+      "Endpoint": "Create Threaded Comment",
+      "Reference": "https://developer.clickup.com/reference/createthreadedcomment",
+      "Method": "POST"
+    },
+    {
+      "Category": "Custom Task Types",
+      "Endpoint": "Get Custom Task Types",
+      "Reference": "https://developer.clickup.com/reference/getcustomitems",
+      "Method": "GET"
+    },
+    {
+      "Category": "Custom Fields",
+      "Endpoint": "Get List Custom Fields",
+      "Reference": "https://developer.clickup.com/reference/getaccessiblecustomfields",
+      "Method": "GET"
+    },
+    {
+      "Category": "Custom Fields",
+      "Endpoint": "Get Folder Custom Fields",
+      "Reference": "https://developer.clickup.com/reference/getfolderavailablefields",
+      "Method": "GET"
+    },
+    {
+      "Category": "Custom Fields",
+      "Endpoint": "Get Space Custom Fields",
+      "Reference": "https://developer.clickup.com/reference/getspaceavailablefields",
+      "Method": "GET"
+    },
+    {
+      "Category": "Custom Fields",
+      "Endpoint": "Get Workspace Custom Fields",
+      "Reference": "https://developer.clickup.com/reference/getteamavailablefields",
+      "Method": "GET"
+    },
+    {
+      "Category": "Custom Fields",
+      "Endpoint": "Set Custom Field Value",
+      "Reference": "https://developer.clickup.com/reference/setcustomfieldvalue",
+      "Method": "POST"
+    },
+    {
+      "Category": "Custom Fields",
+      "Endpoint": "Remove Custom Field Value",
+      "Reference": "https://developer.clickup.com/reference/removecustomfieldvalue",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Docs",
+      "Endpoint": "Search Docs",
+      "Reference": "https://developer.clickup.com/reference/searchdocs",
+      "Method": "GET"
+    },
+    {
+      "Category": "Docs",
+      "Endpoint": "Create Doc",
+      "Reference": "https://developer.clickup.com/reference/createdoc",
+      "Method": "POST"
+    },
+    {
+      "Category": "Docs",
+      "Endpoint": "Get Doc",
+      "Reference": "https://developer.clickup.com/reference/getdoc",
+      "Method": "GET"
+    },
+    {
+      "Category": "Docs",
+      "Endpoint": "Get Doc PageListing",
+      "Reference": "https://developer.clickup.com/reference/getdocpagelisting",
+      "Method": "GET"
+    },
+    {
+      "Category": "Docs",
+      "Endpoint": "Get Doc pages",
+      "Reference": "https://developer.clickup.com/reference/getdocpages",
+      "Method": "GET"
+    },
+    {
+      "Category": "Docs",
+      "Endpoint": "Create page",
+      "Reference": "https://developer.clickup.com/reference/createpage",
+      "Method": "POST"
+    },
+    {
+      "Category": "Docs",
+      "Endpoint": "Get page",
+      "Reference": "https://developer.clickup.com/reference/getpage",
+      "Method": "GET"
+    },
+    {
+      "Category": "Docs",
+      "Endpoint": "Edit page",
+      "Reference": "https://developer.clickup.com/reference/editpage",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Folders",
+      "Endpoint": "Get Folders",
+      "Reference": "https://developer.clickup.com/reference/getfolders",
+      "Method": "GET"
+    },
+    {
+      "Category": "Folders",
+      "Endpoint": "Create Folder",
+      "Reference": "https://developer.clickup.com/reference/createfolder",
+      "Method": "POST"
+    },
+    {
+      "Category": "Folders",
+      "Endpoint": "Get Folder",
+      "Reference": "https://developer.clickup.com/reference/getfolder",
+      "Method": "GET"
+    },
+    {
+      "Category": "Folders",
+      "Endpoint": "Update Folder",
+      "Reference": "https://developer.clickup.com/reference/updatefolder",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Folders",
+      "Endpoint": "Delete Folder",
+      "Reference": "https://developer.clickup.com/reference/deletefolder",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Folders",
+      "Endpoint": "Create Folder from template",
+      "Reference": "https://developer.clickup.com/reference/createfolderfromtemplate",
+      "Method": "POST"
+    },
+    {
+      "Category": "Goals",
+      "Endpoint": "Get Goals",
+      "Reference": "https://developer.clickup.com/reference/getgoals",
+      "Method": "GET"
+    },
+    {
+      "Category": "Goals",
+      "Endpoint": "Create Goal",
+      "Reference": "https://developer.clickup.com/reference/creategoal",
+      "Method": "POST"
+    },
+    {
+      "Category": "Goals",
+      "Endpoint": "Get Goal",
+      "Reference": "https://developer.clickup.com/reference/getgoal",
+      "Method": "GET"
+    },
+    {
+      "Category": "Goals",
+      "Endpoint": "Update Goal",
+      "Reference": "https://developer.clickup.com/reference/updategoal",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Goals",
+      "Endpoint": "Delete Goal",
+      "Reference": "https://developer.clickup.com/reference/deletegoal",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Goals",
+      "Endpoint": "Create Key Result",
+      "Reference": "https://developer.clickup.com/reference/createkeyresult",
+      "Method": "POST"
+    },
+    {
+      "Category": "Goals",
+      "Endpoint": "Edit Key Result",
+      "Reference": "https://developer.clickup.com/reference/editkeyresult",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Goals",
+      "Endpoint": "Delete Key Result",
+      "Reference": "https://developer.clickup.com/reference/deletekeyresult",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Guests",
+      "Endpoint": "Invite Guest To Workspace",
+      "Reference": "https://developer.clickup.com/reference/inviteguesttoworkspace",
+      "Method": "POST"
+    },
+    {
+      "Category": "Guests",
+      "Endpoint": "Get Guest",
+      "Reference": "https://developer.clickup.com/reference/getguest",
+      "Method": "GET"
+    },
+    {
+      "Category": "Guests",
+      "Endpoint": "Edit Guest On Workspace",
+      "Reference": "https://developer.clickup.com/reference/editguestonworkspace",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Guests",
+      "Endpoint": "Remove Guest From Workspace",
+      "Reference": "https://developer.clickup.com/reference/removeguestfromworkspace",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Guests",
+      "Endpoint": "Add Guest To Task",
+      "Reference": "https://developer.clickup.com/reference/addguesttotask",
+      "Method": "POST"
+    },
+    {
+      "Category": "Guests",
+      "Endpoint": "Remove Guest From Task",
+      "Reference": "https://developer.clickup.com/reference/removeguestfromtask",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Guests",
+      "Endpoint": "Add Guest To List",
+      "Reference": "https://developer.clickup.com/reference/addguesttolist",
+      "Method": "POST"
+    },
+    {
+      "Category": "Guests",
+      "Endpoint": "Remove Guest From List",
+      "Reference": "https://developer.clickup.com/reference/removeguestfromlist",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Guests",
+      "Endpoint": "Add Guest To Folder",
+      "Reference": "https://developer.clickup.com/reference/addguesttofolder",
+      "Method": "POST"
+    },
+    {
+      "Category": "Guests",
+      "Endpoint": "Remove Guest From Folder",
+      "Reference": "https://developer.clickup.com/reference/removeguestfromfolder",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Lists",
+      "Endpoint": "Get Lists",
+      "Reference": "https://developer.clickup.com/reference/getlists",
+      "Method": "GET"
+    },
+    {
+      "Category": "Lists",
+      "Endpoint": "Create List",
+      "Reference": "https://developer.clickup.com/reference/createlist",
+      "Method": "POST"
+    },
+    {
+      "Category": "Lists",
+      "Endpoint": "Get Folderless Lists",
+      "Reference": "https://developer.clickup.com/reference/getfolderlesslists",
+      "Method": "GET"
+    },
+    {
+      "Category": "Lists",
+      "Endpoint": "Create Folderless List",
+      "Reference": "https://developer.clickup.com/reference/createfolderlesslist",
+      "Method": "POST"
+    },
+    {
+      "Category": "Lists",
+      "Endpoint": "Get List",
+      "Reference": "https://developer.clickup.com/reference/getlist",
+      "Method": "GET"
+    },
+    {
+      "Category": "Lists",
+      "Endpoint": "Update List",
+      "Reference": "https://developer.clickup.com/reference/updatelist",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Lists",
+      "Endpoint": "Delete List",
+      "Reference": "https://developer.clickup.com/reference/deletelist",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Lists",
+      "Endpoint": "Add Task To List",
+      "Reference": "https://developer.clickup.com/reference/addtasktolist",
+      "Method": "POST"
+    },
+    {
+      "Category": "Lists",
+      "Endpoint": "Remove Task From List",
+      "Reference": "https://developer.clickup.com/reference/removetaskfromlist",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Lists",
+      "Endpoint": "Create List From Template in Folder",
+      "Reference": "https://developer.clickup.com/reference/createfolderlistfromtemplate",
+      "Method": "POST"
+    },
+    {
+      "Category": "Lists",
+      "Endpoint": "Create List From Template in Space",
+      "Reference": "https://developer.clickup.com/reference/createspacelistfromtemplate",
+      "Method": "POST"
+    },
+    {
+      "Category": "Members",
+      "Endpoint": "Get Task Members",
+      "Reference": "https://developer.clickup.com/reference/gettaskmembers",
+      "Method": "GET"
+    },
+    {
+      "Category": "Members",
+      "Endpoint": "Get List Members",
+      "Reference": "https://developer.clickup.com/reference/getlistmembers",
+      "Method": "GET"
+    },
+    {
+      "Category": "Privacy & Access",
+      "Endpoint": "Update privacy and access",
+      "Reference": "https://developer.clickup.com/reference/updateprivacyandaccess",
+      "Method": "PATCH"
+    },
+    {
+      "Category": "Roles",
+      "Endpoint": "Get Custom Roles",
+      "Reference": "https://developer.clickup.com/reference/getcustomroles",
+      "Method": "GET"
+    },
+    {
+      "Category": "Shared Hierarchy",
+      "Endpoint": "Shared Hierarchy",
+      "Reference": "https://developer.clickup.com/reference/sharedhierarchy",
+      "Method": "GET"
+    },
+    {
+      "Category": "Spaces",
+      "Endpoint": "Get Spaces",
+      "Reference": "https://developer.clickup.com/reference/getspaces",
+      "Method": "GET"
+    },
+    {
+      "Category": "Spaces",
+      "Endpoint": "Create Space",
+      "Reference": "https://developer.clickup.com/reference/createspace",
+      "Method": "POST"
+    },
+    {
+      "Category": "Spaces",
+      "Endpoint": "Get Space",
+      "Reference": "https://developer.clickup.com/reference/getspace",
+      "Method": "GET"
+    },
+    {
+      "Category": "Spaces",
+      "Endpoint": "Update Space",
+      "Reference": "https://developer.clickup.com/reference/updatespace",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Spaces",
+      "Endpoint": "Delete Space",
+      "Reference": "https://developer.clickup.com/reference/deletespace",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Tags",
+      "Endpoint": "Get Space Tags",
+      "Reference": "https://developer.clickup.com/reference/getspacetags",
+      "Method": "GET"
+    },
+    {
+      "Category": "Tags",
+      "Endpoint": "Create Space Tag",
+      "Reference": "https://developer.clickup.com/reference/createspacetag",
+      "Method": "POST"
+    },
+    {
+      "Category": "Tags",
+      "Endpoint": "Edit Space Tag",
+      "Reference": "https://developer.clickup.com/reference/editspacetag",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Tags",
+      "Endpoint": "Delete Space Tag",
+      "Reference": "https://developer.clickup.com/reference/deletespacetag",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Tags",
+      "Endpoint": "Add Tag To Task",
+      "Reference": "https://developer.clickup.com/reference/addtagtotask",
+      "Method": "POST"
+    },
+    {
+      "Category": "Tags",
+      "Endpoint": "Remove Tag From Task",
+      "Reference": "https://developer.clickup.com/reference/removetagfromtask",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Tasks",
+      "Endpoint": "Get Tasks",
+      "Reference": "https://developer.clickup.com/reference/gettasks",
+      "Method": "GET"
+    },
+    {
+      "Category": "Tasks",
+      "Endpoint": "Create Task",
+      "Reference": "https://developer.clickup.com/reference/createtask",
+      "Method": "POST"
+    },
+    {
+      "Category": "Tasks",
+      "Endpoint": "Get Task",
+      "Reference": "https://developer.clickup.com/reference/gettask",
+      "Method": "GET"
+    },
+    {
+      "Category": "Tasks",
+      "Endpoint": "Update Task",
+      "Reference": "https://developer.clickup.com/reference/updatetask",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Tasks",
+      "Endpoint": "Delete Task",
+      "Reference": "https://developer.clickup.com/reference/deletetask",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Tasks",
+      "Endpoint": "Get Filtered Team Tasks",
+      "Reference": "https://developer.clickup.com/reference/getfilteredteamtasks",
+      "Method": "GET"
+    },
+    {
+      "Category": "Tasks",
+      "Endpoint": "Merge Tasks",
+      "Reference": "https://developer.clickup.com/reference/mergetasks",
+      "Method": "POST"
+    },
+    {
+      "Category": "Tasks",
+      "Endpoint": "Get Task’s Time in Status",
+      "Reference": "https://developer.clickup.com/reference/gettaskstimeinstatus",
+      "Method": "GET"
+    },
+    {
+      "Category": "Tasks",
+      "Endpoint": "Get Bulk Tasks’ Time in Status",
+      "Reference": "https://developer.clickup.com/reference/getbulktaskstimeinstatus",
+      "Method": "GET"
+    },
+    {
+      "Category": "Tasks",
+      "Endpoint": "Create Task From Template",
+      "Reference": "https://developer.clickup.com/reference/createtaskfromtemplate",
+      "Method": "POST"
+    },
+    {
+      "Category": "Task Checklists",
+      "Endpoint": "Create Checklist",
+      "Reference": "https://developer.clickup.com/reference/createchecklist",
+      "Method": "POST"
+    },
+    {
+      "Category": "Task Checklists",
+      "Endpoint": "Edit Checklist",
+      "Reference": "https://developer.clickup.com/reference/editchecklist",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Task Checklists",
+      "Endpoint": "Delete Checklist",
+      "Reference": "https://developer.clickup.com/reference/deletechecklist",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Task Checklists",
+      "Endpoint": "Create Checklist Item",
+      "Reference": "https://developer.clickup.com/reference/createchecklistitem",
+      "Method": "POST"
+    },
+    {
+      "Category": "Task Checklists",
+      "Endpoint": "Edit Checklist Item",
+      "Reference": "https://developer.clickup.com/reference/editchecklistitem",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Task Checklists",
+      "Endpoint": "Delete Checklist Item",
+      "Reference": "https://developer.clickup.com/reference/deletechecklistitem",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Task Relationships",
+      "Endpoint": "Add Dependency",
+      "Reference": "https://developer.clickup.com/reference/adddependency",
+      "Method": "POST"
+    },
+    {
+      "Category": "Task Relationships",
+      "Endpoint": "Delete Dependency",
+      "Reference": "https://developer.clickup.com/reference/deletedependency",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Task Relationships",
+      "Endpoint": "Add Task Link",
+      "Reference": "https://developer.clickup.com/reference/addtasklink",
+      "Method": "POST"
+    },
+    {
+      "Category": "Task Relationships",
+      "Endpoint": "Delete Task Link",
+      "Reference": "https://developer.clickup.com/reference/deletetasklink",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Templates",
+      "Endpoint": "Get Task Templates",
+      "Reference": "https://developer.clickup.com/reference/gettasktemplates",
+      "Method": "GET"
+    },
+    {
+      "Category": "Workspaces",
+      "Endpoint": "Get Workspace seats",
+      "Reference": "https://developer.clickup.com/reference/getworkspaceseats",
+      "Method": "GET"
+    },
+    {
+      "Category": "Workspaces",
+      "Endpoint": "Get Workspace Plan",
+      "Reference": "https://developer.clickup.com/reference/getworkspaceplan",
+      "Method": "GET"
+    },
+    {
+      "Category": "User Groups",
+      "Endpoint": "Create Group",
+      "Reference": "https://developer.clickup.com/reference/createusergroup",
+      "Method": "POST"
+    },
+    {
+      "Category": "User Groups",
+      "Endpoint": "Update Group",
+      "Reference": "https://developer.clickup.com/reference/updateteam",
+      "Method": "PUT"
+    },
+    {
+      "Category": "User Groups",
+      "Endpoint": "Delete Group",
+      "Reference": "https://developer.clickup.com/reference/deleteteam",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "User Groups",
+      "Endpoint": "Get Groups",
+      "Reference": "https://developer.clickup.com/reference/getteams1",
+      "Method": "GET"
+    },
+    {
+      "Category": "Time Tracking",
+      "Endpoint": "Get time entries within a date range",
+      "Reference": "https://developer.clickup.com/reference/gettimeentrieswithinadaterange",
+      "Method": "GET"
+    },
+    {
+      "Category": "Time Tracking",
+      "Endpoint": "Create a time entry",
+      "Reference": "https://developer.clickup.com/reference/createatimeentry",
+      "Method": "POST"
+    },
+    {
+      "Category": "Time Tracking",
+      "Endpoint": "Get singular time entry",
+      "Reference": "https://developer.clickup.com/reference/getsingulartimeentry",
+      "Method": "GET"
+    },
+    {
+      "Category": "Time Tracking",
+      "Endpoint": "Delete a time Entry",
+      "Reference": "https://developer.clickup.com/reference/deleteatimeentry",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Time Tracking",
+      "Endpoint": "Update a time Entry",
+      "Reference": "https://developer.clickup.com/reference/updateatimeentry",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Time Tracking",
+      "Endpoint": "Get time entry history",
+      "Reference": "https://developer.clickup.com/reference/gettimeentryhistory",
+      "Method": "GET"
+    },
+    {
+      "Category": "Time Tracking",
+      "Endpoint": "Get running time entry",
+      "Reference": "https://developer.clickup.com/reference/getrunningtimeentry",
+      "Method": "GET"
+    },
+    {
+      "Category": "Time Tracking",
+      "Endpoint": "Remove tags from time entries",
+      "Reference": "https://developer.clickup.com/reference/removetagsfromtimeentries",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Time Tracking",
+      "Endpoint": "Get all tags from time entries",
+      "Reference": "https://developer.clickup.com/reference/getalltagsfromtimeentries",
+      "Method": "GET"
+    },
+    {
+      "Category": "Time Tracking",
+      "Endpoint": "Add tags from time entries",
+      "Reference": "https://developer.clickup.com/reference/addtagsfromtimeentries",
+      "Method": "POST"
+    },
+    {
+      "Category": "Time Tracking",
+      "Endpoint": "Change tag names from time entries",
+      "Reference": "https://developer.clickup.com/reference/changetagnamesfromtimeentries",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Time Tracking",
+      "Endpoint": "Start a time Entry",
+      "Reference": "https://developer.clickup.com/reference/startatimeentry",
+      "Method": "POST"
+    },
+    {
+      "Category": "Time Tracking",
+      "Endpoint": "Stop a time Entry",
+      "Reference": "https://developer.clickup.com/reference/stopatimeentry",
+      "Method": "POST"
+    },
+    {
+      "Category": "Time Tracking (Legacy)",
+      "Endpoint": "Get tracked time",
+      "Reference": "https://developer.clickup.com/reference/gettrackedtime",
+      "Method": "GET"
+    },
+    {
+      "Category": "Time Tracking (Legacy)",
+      "Endpoint": "Track time",
+      "Reference": "https://developer.clickup.com/reference/tracktime",
+      "Method": "POST"
+    },
+    {
+      "Category": "Time Tracking (Legacy)",
+      "Endpoint": "Edit time tracked",
+      "Reference": "https://developer.clickup.com/reference/edittimetracked",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Time Tracking (Legacy)",
+      "Endpoint": "Delete time tracked",
+      "Reference": "https://developer.clickup.com/reference/deletetimetracked",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Users",
+      "Endpoint": "Invite User To Workspace",
+      "Reference": "https://developer.clickup.com/reference/inviteusertoworkspace",
+      "Method": "POST"
+    },
+    {
+      "Category": "Users",
+      "Endpoint": "Get User",
+      "Reference": "https://developer.clickup.com/reference/getuser",
+      "Method": "GET"
+    },
+    {
+      "Category": "Users",
+      "Endpoint": "Edit User On Workspace",
+      "Reference": "https://developer.clickup.com/reference/edituseronworkspace",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Users",
+      "Endpoint": "Remove User From Workspace",
+      "Reference": "https://developer.clickup.com/reference/removeuserfromworkspace",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Views",
+      "Endpoint": "Get Workspace (Everything level) Views",
+      "Reference": "https://developer.clickup.com/reference/getteamviews",
+      "Method": "GET"
+    },
+    {
+      "Category": "Views",
+      "Endpoint": "Create Workspace View",
+      "Reference": "https://developer.clickup.com/reference/createteamview",
+      "Method": "POST"
+    },
+    {
+      "Category": "Views",
+      "Endpoint": "Get Space Views",
+      "Reference": "https://developer.clickup.com/reference/getspaceviews",
+      "Method": "GET"
+    },
+    {
+      "Category": "Views",
+      "Endpoint": "Create Space View",
+      "Reference": "https://developer.clickup.com/reference/createspaceview",
+      "Method": "POST"
+    },
+    {
+      "Category": "Views",
+      "Endpoint": "Get Folder Views",
+      "Reference": "https://developer.clickup.com/reference/getfolderviews",
+      "Method": "GET"
+    },
+    {
+      "Category": "Views",
+      "Endpoint": "Create Folder View",
+      "Reference": "https://developer.clickup.com/reference/createfolderview",
+      "Method": "POST"
+    },
+    {
+      "Category": "Views",
+      "Endpoint": "Get List Views",
+      "Reference": "https://developer.clickup.com/reference/getlistviews",
+      "Method": "GET"
+    },
+    {
+      "Category": "Views",
+      "Endpoint": "Create List View",
+      "Reference": "https://developer.clickup.com/reference/createlistview",
+      "Method": "POST"
+    },
+    {
+      "Category": "Views",
+      "Endpoint": "Get View",
+      "Reference": "https://developer.clickup.com/reference/getview",
+      "Method": "GET"
+    },
+    {
+      "Category": "Views",
+      "Endpoint": "Update View",
+      "Reference": "https://developer.clickup.com/reference/updateview",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Views",
+      "Endpoint": "Delete View",
+      "Reference": "https://developer.clickup.com/reference/deleteview",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Views",
+      "Endpoint": "Get View Tasks",
+      "Reference": "https://developer.clickup.com/reference/getviewtasks",
+      "Method": "GET"
+    },
+    {
+      "Category": "Webhooks",
+      "Endpoint": "Get Webhooks",
+      "Reference": "https://developer.clickup.com/reference/getwebhooks",
+      "Method": "GET"
+    },
+    {
+      "Category": "Webhooks",
+      "Endpoint": "Create Webhook",
+      "Reference": "https://developer.clickup.com/reference/createwebhook",
+      "Method": "POST"
+    },
+    {
+      "Category": "Webhooks",
+      "Endpoint": "Update Webhook",
+      "Reference": "https://developer.clickup.com/reference/updatewebhook",
+      "Method": "PUT"
+    },
+    {
+      "Category": "Webhooks",
+      "Endpoint": "Delete Webhook",
+      "Reference": "https://developer.clickup.com/reference/deletewebhook",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Retrieve Channels",
+      "Reference": "https://developer.clickup.com/reference/getchatchannels",
+      "Method": "GET"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Create a Channel",
+      "Reference": "https://developer.clickup.com/reference/createchatchannel",
+      "Method": "POST"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Create a Location Channel",
+      "Reference": "https://developer.clickup.com/reference/createlocationchatchannel",
+      "Method": "POST"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Create a Direct Message",
+      "Reference": "https://developer.clickup.com/reference/createdirectmessagechatchannel",
+      "Method": "POST"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Get Channel by ID",
+      "Reference": "https://developer.clickup.com/reference/getchatchannel",
+      "Method": "GET"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Update a Channel",
+      "Reference": "https://developer.clickup.com/reference/updatechatchannel",
+      "Method": "PATCH"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Delete a Channel",
+      "Reference": "https://developer.clickup.com/reference/deletechatchannel",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Get Channel Followers",
+      "Reference": "https://developer.clickup.com/reference/getchatchannelfollowers",
+      "Method": "GET"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Get Channel Members",
+      "Reference": "https://developer.clickup.com/reference/getchatchannelmembers",
+      "Method": "GET"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Retrieve Channel Messages",
+      "Reference": "https://developer.clickup.com/reference/getchatmessages",
+      "Method": "GET"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Send a Message",
+      "Reference": "https://developer.clickup.com/reference/createchatmessage",
+      "Method": "POST"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Update a Message",
+      "Reference": "https://developer.clickup.com/reference/patchchatmessage",
+      "Method": "PATCH"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Delete a Message",
+      "Reference": "https://developer.clickup.com/reference/deletechatmessage",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Get Message Reactions",
+      "Reference": "https://developer.clickup.com/reference/getchatmessagereactions",
+      "Method": "GET"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Create Message Reaction",
+      "Reference": "https://developer.clickup.com/reference/createchatreaction",
+      "Method": "POST"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Delete Message Reaction",
+      "Reference": "https://developer.clickup.com/reference/deletechatreaction",
+      "Method": "DELETE"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Retrieve Message Replies",
+      "Reference": "https://developer.clickup.com/reference/getchatmessagereplies",
+      "Method": "GET"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Create Reply Message",
+      "Reference": "https://developer.clickup.com/reference/createreplymessage",
+      "Method": "POST"
+    },
+    {
+      "Category": "Chat (Experimental)",
+      "Endpoint": "Get Tagged Users for Message",
+      "Reference": "https://developer.clickup.com/reference/getchatmessagetaggedusers",
+      "Method": "GET"
+    }
+  ]
