@@ -263,7 +263,11 @@ def get_gmail_messages(max_results: int = 10, account_id: str = "") -> dict:
     if account_id:
         service_result = get_gmail_service(account_id)
         if service_result["status"] == "error":
-            return service_result
+            return {
+                "status": "error",
+                "error_message": service_result["error_message"],
+                "tool_call_id": "call_VI4dGQ24LpuWCVj9EMsmNZcS"
+            }
             
         service = service_result["service"]
         try:
@@ -274,7 +278,8 @@ def get_gmail_messages(max_results: int = 10, account_id: str = "") -> dict:
                 return {
                     "status": "success",
                     "account": account_id,
-                    "report": f"No messages found for account {account_id}."
+                    "report": f"No messages found for account {account_id}.",
+                    "tool_call_id": "call_1pTplrIRR81O9go9VmuHt2I6"
                 }
             
             # Get details for each message
@@ -300,13 +305,15 @@ def get_gmail_messages(max_results: int = 10, account_id: str = "") -> dict:
                 "status": "success",
                 "account": account_id,
                 "report": f"Found {len(email_data)} emails",
-                "emails": email_data
+                "emails": email_data,
+                "tool_call_id": "call_HbAV7Vh5hqEbt2mGjCGzBuv3"
             }
             
         except Exception as e:
             return {
                 "status": "error",
-                "error_message": f"Error retrieving Gmail messages for account {account_id}: {str(e)}"
+                "error_message": f"Error retrieving Gmail messages for account {account_id}: {str(e)}",
+                "tool_call_id": "call_VI4dGQ24LpuWCVj9EMsmNZcS"
             }
     
     # Otherwise get messages from all accounts
@@ -321,7 +328,8 @@ def get_gmail_messages(max_results: int = 10, account_id: str = "") -> dict:
     return {
         "status": "success",
         "results": all_results,
-        "accounts_searched": accounts
+        "accounts_searched": accounts,
+        "tool_call_id": "call_HbAV7Vh5hqEbt2mGjCGzBuv3"
     }
 
 # Helper to fix the parameter issue by providing an explicit parameter schema function
@@ -333,6 +341,20 @@ def search_gmail_with_query(query: str = "", account_id: str = "", max_results: 
         account_id: Specific account ID to search. If empty, searches all accounts.
         max_results: Maximum number of results to return.
     """
+    # Extract time filter from query
+    time_filter = ""
+    if "this week" in query.lower():
+        time_filter = "newer_than:7d"
+    elif "this month" in query.lower():
+        time_filter = "newer_than:30d"
+    elif "today" in query.lower():
+        time_filter = "newer_than:1d"
+    
+    # If query is empty or about projects, use smart project search
+    if not query or query.lower() in ["project", "projects", "new project", "latest project"] or "project" in query.lower():
+        return smart_project_search(account_id, max_results, time_filter)
+    
+    # Otherwise use the standard search implementation
     if not query:
         return get_gmail_messages(max_results, account_id)
     
@@ -387,72 +409,31 @@ def _search_gmail_impl(query, account_id, max_results):
     
     # Check if authentication was successful
     if service_result["status"] == "error":
-        return service_result
+        return {
+            "status": "error",
+            "error_message": service_result["error_message"],
+            "tool_call_id": "call_ibKrAJzz1IXh9aD04MbHhEES"
+        }
     
     # Extract the service object
     service = service_result["service"]
     
     try:
-        # Try different search strategies in order of specificity
-        search_strategies = [
-            # Strategy 1: Exact match in all fields
-            f"(subject:{query} OR from:{query} OR {query})",
-            
-            # Strategy 2: Split into words and search each
-            " OR ".join([f'"{word}"' for word in query.split()]),
-            
-            # Strategy 3: Try email-like patterns
-            f"(from:*{query}* OR {query}@*)",
-            
-            # Strategy 4: Try name variations (first name, last name)
-            " OR ".join([
-                f'"{word}"' for word in query.split()
-                if len(word) > 2  # Only use words longer than 2 chars
-            ])
-        ]
+        # Search for emails matching the query
+        results = service.users().messages().list(userId='me', q=query, maxResults=max_results).execute()
+        messages = results.get('messages', [])
         
-        all_messages = []
-        tried_strategies = []
-        
-        for search_query in search_strategies:
-            try:
-                results = service.users().messages().list(
-                    userId='me', 
-                    q=search_query, 
-                    maxResults=max_results
-                ).execute()
-                
-                messages = results.get('messages', [])
-                if messages:
-                    all_messages.extend(messages)
-                    tried_strategies.append(search_query)
-                    
-                    # If we found enough results, stop trying more strategies
-                    if len(all_messages) >= max_results:
-                        break
-                        
-            except Exception:
-                continue
-        
-        # Remove duplicates while preserving order
-        seen_ids = set()
-        unique_messages = []
-        for msg in all_messages:
-            if msg['id'] not in seen_ids:
-                seen_ids.add(msg['id'])
-                unique_messages.append(msg)
-        
-        if not unique_messages:
+        if not messages:
             return {
                 "status": "success",
                 "account": account_id,
-                "report": f"No messages found matching query: '{query}' after trying multiple search strategies.",
-                "tried_strategies": tried_strategies
+                "report": f"No messages found matching query: '{query}'.",
+                "tool_call_id": "call_bw6lvaAQXgtlFQGxKS2MCxe3"
             }
         
         # Get details for each message
         email_data = []
-        for message in unique_messages[:max_results]:
+        for message in messages:
             msg = service.users().messages().get(userId='me', id=message['id'], format='full').execute()
             headers = msg['payload']['headers']
             
@@ -486,15 +467,16 @@ def _search_gmail_impl(query, account_id, max_results):
         return {
             "status": "success",
             "account": account_id,
-            "report": f"Found {len(email_data)} emails matching query: '{query}' using strategies: {', '.join(tried_strategies)}",
+            "report": f"Found {len(email_data)} emails matching query: '{query}'",
             "emails": email_data,
-            "search_strategies_used": tried_strategies
+            "tool_call_id": "call_RUo7BdHdTuiAVTJAOXyWfvoA"
         }
         
     except Exception as e:
         return {
             "status": "error",
-            "error_message": f"Error searching Gmail for account {account_id}: {str(e)}"
+            "error_message": f"Error searching Gmail for account {account_id}: {str(e)}",
+            "tool_call_id": "call_ibKrAJzz1IXh9aD04MbHhEES"
         }
 
 # Replace the original search_gmail with the new clean version
@@ -1079,6 +1061,268 @@ def list_gmail_accounts():
             "status": "error",
             "error_message": f"Error listing Gmail accounts: {str(e)}"
         }
+
+def detect_project_intent(text: str) -> dict:
+    """Analyzes text for project-related intent and patterns.
+    
+    Args:
+        text: Text content to analyze
+        
+    Returns:
+        Dictionary containing detected intents and confidence scores
+    """
+    # Project initiation patterns
+    initiation_patterns = [
+        r"(?i)(new|proposed|initiated|started)\s+(project|initiative|work)",
+        r"(?i)(can|could)\s+you\s+(build|develop|create|design)",
+        r"(?i)(would|should)\s+like\s+to\s+(start|begin|launch)",
+        r"(?i)(proposal|proposed|suggestion|suggested)\s+(for|to)",
+        r"(?i)(timeline|scope|budget|deadline)\s+(for|of)",
+        r"(?i)(kickoff|kick-off|start)\s+(meeting|call|discussion)"
+    ]
+    
+    # Project status patterns
+    status_patterns = [
+        r"(?i)(update|status|progress)\s+(on|for)",
+        r"(?i)(completed|finished|done|delivered)",
+        r"(?i)(next\s+steps|next\s+phase|next\s+stage)",
+        r"(?i)(review|feedback|approval)\s+(needed|required)"
+    ]
+    
+    # Collaboration patterns
+    collaboration_patterns = [
+        r"(?i)(collaborate|work\s+together|team\s+up)",
+        r"(?i)(partner|partnership|joint\s+effort)",
+        r"(?i)(involve|include|participate)",
+        r"(?i)(assign|delegate|hand\s+over)"
+    ]
+    
+    import re
+    
+    # Check for patterns
+    intents = {
+        "project_initiation": [],
+        "project_status": [],
+        "collaboration": []
+    }
+    
+    # Check initiation patterns
+    for pattern in initiation_patterns:
+        matches = re.finditer(pattern, text)
+        for match in matches:
+            intents["project_initiation"].append({
+                "pattern": pattern,
+                "match": match.group(),
+                "context": text[max(0, match.start()-50):min(len(text), match.end()+50)]
+            })
+    
+    # Check status patterns
+    for pattern in status_patterns:
+        matches = re.finditer(pattern, text)
+        for match in matches:
+            intents["project_status"].append({
+                "pattern": pattern,
+                "match": match.group(),
+                "context": text[max(0, match.start()-50):min(len(text), match.end()+50)]
+            })
+    
+    # Check collaboration patterns
+    for pattern in collaboration_patterns:
+        matches = re.finditer(pattern, text)
+        for match in matches:
+            intents["collaboration"].append({
+                "pattern": pattern,
+                "match": match.group(),
+                "context": text[max(0, match.start()-50):min(len(text), match.end()+50)]
+            })
+    
+    # Calculate confidence scores
+    confidence_scores = {
+        "project_initiation": len(intents["project_initiation"]) * 0.3,
+        "project_status": len(intents["project_status"]) * 0.2,
+        "collaboration": len(intents["collaboration"]) * 0.25
+    }
+    
+    # Cap confidence scores at 1.0
+    for key in confidence_scores:
+        confidence_scores[key] = min(1.0, confidence_scores[key])
+    
+    return {
+        "intents": intents,
+        "confidence_scores": confidence_scores,
+        "has_project_intent": any(score > 0.3 for score in confidence_scores.values())
+    }
+
+def smart_project_search(account_id: str = "", max_results: int = 10, time_filter: str = "") -> dict:
+    """Smart search for project-related emails using multiple strategies.
+    
+    Args:
+        account_id: Specific account ID to search. If empty, searches all accounts.
+        max_results: Maximum number of results to return.
+        time_filter: Time filter for emails (e.g., "after:2024/03/01", "newer_than:7d")
+        
+    Returns:
+        Dictionary containing project-related emails and analysis
+    """
+    # Define specialized project categories and their terms
+    project_categories = {
+        "web_development": [
+            "website", "web development", "web app", "web application",
+            "landing page", "site launch", "redesign", "web redesign",
+            "frontend", "backend", "fullstack", "responsive design"
+        ],
+        "ecommerce": [
+            "e-commerce", "ecommerce", "online store", "shopify", "woocommerce",
+            "wordpress", "magento", "payment gateway", "shopping cart",
+            "product catalog", "inventory management"
+        ],
+        "automation": [
+            "automation", "workflow automation", "process automation",
+            "integration", "api integration", "webhook", "automated",
+            "script", "bot", "automated workflow"
+        ],
+        "saas": [
+            "saas", "software as a service", "subscription", "subscription model",
+            "recurring revenue", "user management", "tenant", "multi-tenant",
+            "platform", "cloud service"
+        ],
+        "mobile": [
+            "mobile app", "ios app", "android app", "react native",
+            "flutter", "mobile development", "app store", "play store",
+            "mobile responsive", "mobile-first"
+        ],
+        "api": [
+            "api", "rest api", "graphql", "endpoint", "microservice",
+            "service architecture", "backend service", "api integration",
+            "api documentation", "swagger"
+        ]
+    }
+    
+    # Define search strategies with weights
+    search_strategies = [
+        # Strategy 1: Project initiation and proposals
+        {
+            "query": "(\"project proposal\" OR \"project brief\" OR \"project scope\" OR \"project timeline\" OR \"project requirements\" OR \"project specification\")",
+            "weight": 1.5
+        },
+        # Strategy 2: Project status and updates
+        {
+            "query": "(\"project update\" OR \"project status\" OR \"project progress\" OR \"project milestone\" OR \"project completion\" OR \"project delivery\")",
+            "weight": 1.2
+        },
+        # Strategy 3: Project management
+        {
+            "query": "(\"project management\" OR \"project team\" OR \"project lead\" OR \"project manager\" OR \"project timeline\" OR \"project budget\")",
+            "weight": 1.0
+        }
+    ]
+    
+    # Add category-specific strategies
+    for category, terms in project_categories.items():
+        # Create a query that combines category terms with project context
+        category_query = " OR ".join([f'"{term}"' for term in terms])
+        search_strategies.append({
+            "query": f"({category_query}) AND (project OR proposal OR brief OR timeline OR scope OR launch OR development)",
+            "weight": 1.3,
+            "category": category
+        })
+    
+    all_emails = []
+    accounts_searched = []
+    accounts_with_results = []
+    
+    # Get accounts to search
+    account_manager = GmailAccountManager()
+    accounts = [account_id] if account_id else list(account_manager.get_accounts().keys())
+    
+    # Search each account with each strategy
+    for acc in accounts:
+        for strategy in search_strategies:
+            # Add time filter to query if provided
+            query = strategy["query"]
+            if time_filter:
+                query = f"{query} {time_filter}"
+            
+            result = _search_gmail_impl(query, acc, max_results)
+            if result["status"] == "success" and "emails" in result:
+                accounts_searched.append(acc)
+                if result["emails"]:
+                    # Add strategy weight and category to each email
+                    for email in result["emails"]:
+                        email["search_weight"] = strategy["weight"]
+                        email["search_strategy"] = strategy["query"]
+                        if "category" in strategy:
+                            email["project_category"] = strategy["category"]
+                    all_emails.extend(result["emails"])
+                    if acc not in accounts_with_results:
+                        accounts_with_results.append(acc)
+    
+    # Remove duplicates while preserving order and weights
+    seen_ids = set()
+    unique_emails = []
+    for email in all_emails:
+        if email["id"] not in seen_ids:
+            seen_ids.add(email["id"])
+            unique_emails.append(email)
+        else:
+            # Update weight and category if this is a better match
+            existing = next(e for e in unique_emails if e["id"] == email["id"])
+            if email["search_weight"] > existing["search_weight"]:
+                existing["search_weight"] = email["search_weight"]
+                existing["search_strategy"] = email["search_strategy"]
+                if "project_category" in email:
+                    existing["project_category"] = email["project_category"]
+    
+    # Analyze content for project intent
+    for email in unique_emails:
+        # Combine subject and body for analysis
+        content = f"{email.get('subject', '')} {email.get('body', '')}"
+        intent_analysis = detect_project_intent(content)
+        email["intent_analysis"] = intent_analysis
+        
+        # Adjust weight based on intent analysis
+        if intent_analysis["has_project_intent"]:
+            email["search_weight"] *= 1.5
+        
+        # Boost weight for category-specific matches
+        if "project_category" in email:
+            email["search_weight"] *= 1.2
+    
+    # Sort by date and weight
+    unique_emails.sort(key=lambda x: (x.get('date', ''), x.get('search_weight', 0)), reverse=True)
+    
+    # Limit results
+    unique_emails = unique_emails[:max_results]
+    
+    # Group results by category
+    categorized_results = {
+        "web_development": [],
+        "ecommerce": [],
+        "automation": [],
+        "saas": [],
+        "mobile": [],
+        "api": [],
+        "other": []
+    }
+    
+    for email in unique_emails:
+        category = email.get("project_category", "other")
+        if category in categorized_results:
+            categorized_results[category].append(email)
+        else:
+            categorized_results["other"].append(email)
+    
+    return {
+        "status": "success",
+        "report": f"Found {len(unique_emails)} project-related emails across {len(accounts_with_results)} accounts",
+        "emails": unique_emails,
+        "categorized_results": categorized_results,
+        "accounts_searched": list(set(accounts_searched)),
+        "accounts_with_results": accounts_with_results,
+        "total_accounts": len(accounts),
+        "search_strategies": [s["query"] for s in search_strategies],
+        "time_filter": time_filter
+    }
 
 # Main function to run from command line
 if __name__ == "__main__":
