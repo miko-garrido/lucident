@@ -8,6 +8,5 @@ from typing import Any
 from .gmail_agent import gmail_agent
 from .slack_agent import slack_agent
 from .clickup_agent import clickup_agent
-from .basic_agent import basic_agent
 
-__all__: list[str] = ["gmail_agent", "slack_agent", "clickup_agent", "basic_agent"]
+__all__: list[str] = ["gmail_agent", "slack_agent", "clickup_agent"]

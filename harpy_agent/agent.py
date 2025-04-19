@@ -10,7 +10,6 @@ from config import Config
 from .sub_agents.gmail_agent import gmail_agent
 from .sub_agents.slack_agent import slack_agent
 from .sub_agents.clickup_agent import clickup_agent
-from .sub_agents.basic_agent import basic_agent
 from datetime import datetime
 from harpy_agent.tools.basic_tools import (
     get_current_time,
@@ -57,6 +56,6 @@ When a user asks a question related to project status, tasks, timelines, or comm
 Example Query: "What are my overdue tasks in ClickUp and any related emails in Gmail?"
 Example Response: "You have 2 overdue tasks in ClickUp: [Task 1 Name], [Task 2 Name]. In Gmail, I found 3 emails possibly related to these tasks: [Email Subject 1], [Email Subject 2], [Email Subject 3]."
 """),
-    sub_agents=[gmail_agent, slack_agent, clickup_agent, basic_agent],
+    sub_agents=[gmail_agent, slack_agent, clickup_agent],
     tools=[get_current_time, calculate, calculate_date]
 )

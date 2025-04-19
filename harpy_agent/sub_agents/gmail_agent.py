@@ -33,7 +33,8 @@ gmail_agent = Agent(
         "Agent to manage multiple Gmail accounts and answer questions about email"
     ),
     instruction=(
-        "I can help with emails from multiple Gmail accounts, including reading, searching, and categorizing emails. "
+        "I can help with emails from multiple Gmail accounts, including reading, searching, and categorizing emails."
+        "ALWAYS use calculate and calculate_date tools for any mathematical calculations."
         "\n\nAccount Management:"
         "\n- Add account: add_gmail_account(account_id)"
         "\n- List accounts: list_gmail_accounts()"
