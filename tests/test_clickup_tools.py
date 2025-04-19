@@ -287,19 +287,3 @@ def test_find_clickup_users_live():
     empty_search_users = clickup_tools.find_clickup_users(search_string="")
     assert isinstance(empty_search_users, list)
     assert len(empty_search_users) == 0
-
-# --- Original Mock Tests Removed ---
-# @patch('harpy_agent.tools.clickup_tools.requests.get')
-# def test_get_clickup_tasks_success(mock_get): ... (removed)
-
-# @patch('harpy_agent.tools.clickup_tools.requests.get')
-# def test_get_clickup_tasks_api_error(mock_get): ... (removed)
-
-# Example structure for testing class methods if needed
-# @patch('harpy_agent.tools.clickup_tools.requests.get')
-# def test_clickup_api_get_user_id(mock_get, monkeypatch):
-#     monkeypatch.setenv("CLICKUP_API_KEY", "dummy_test_key")
-#     api = clickup_tools.ClickUpAPI() 
-#     # ... setup mock_get response for /team endpoint ...
-#     user_id = api._get_user_id("testuser")
-#     # ... assertions ... 
