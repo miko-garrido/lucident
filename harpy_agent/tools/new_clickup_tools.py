@@ -160,9 +160,9 @@ def get_task_comments(task_id: str, start: Optional[int] = None, start_id: Optio
     Gets comments for a specific task.
     
     Args:
-        task_id: The ID of the task to get comments for.
-        start: The timestamp (Unix time in ms) to start fetching comments from (optional).
-        start_id: The comment ID to fetch comments after (optional).
+        task_id (str): The ID of the task to get comments for.
+        start (Optional[int]): The timestamp (Unix time in ms) to start fetching comments from (optional).
+        start_id (Optional[str]): The comment ID to fetch comments after (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of comments.
@@ -182,9 +182,9 @@ def get_chat_view_comments(view_id: str, start: Optional[int] = None, start_id: 
     Gets comments from a Chat view.
     
     Args:
-        view_id: The ID of the Chat view.
-        start: The timestamp (Unix time in ms) to start fetching comments from (optional).
-        start_id: The comment ID to fetch comments after (optional).
+        view_id (str): The ID of the Chat view.
+        start (Optional[int]): The timestamp (Unix time in ms) to start fetching comments from (optional).
+        start_id (Optional[str]): The comment ID to fetch comments after (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of comments for the chat view.
@@ -204,9 +204,9 @@ def get_list_comments(list_id: str, start: Optional[int] = None, start_id: Optio
     Gets comments for a specific list.
     
     Args:
-        list_id: The ID of the list.
-        start: The timestamp (Unix time in ms) to start fetching comments from (optional).
-        start_id: The comment ID to fetch comments after (optional).
+        list_id (str): The ID of the list.
+        start (Optional[int]): The timestamp (Unix time in ms) to start fetching comments from (optional).
+        start_id (Optional[str]): The comment ID to fetch comments after (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of comments for the list.
@@ -226,7 +226,7 @@ def get_threaded_comments(comment_id: str) -> Dict[str, Any]:
     Gets replies to a specific comment thread. Requires the comment ID of the parent comment.
     
     Args:
-        comment_id: The ID of the parent comment.
+        comment_id (str): The ID of the parent comment.
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of threaded replies.
@@ -242,7 +242,7 @@ def get_custom_task_types(team_id: str) -> Dict[str, Any]:
     Gets the Custom Task Types available in a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team).
 
     Returns:
         Dict[str, Any]: A dictionary containing the custom task types.
@@ -258,7 +258,7 @@ def get_list_custom_fields(list_id: str) -> Dict[str, Any]:
     Gets the Custom Fields available for a specific List.
     
     Args:
-        list_id: The ID of the List.
+        list_id (str): The ID of the List.
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of custom fields for the list.
@@ -273,7 +273,7 @@ def get_folder_available_custom_fields(folder_id: str) -> Dict[str, Any]:
     Gets the available Custom Fields for a Folder.
     
     Args:
-        folder_id: The ID of the Folder.
+        folder_id (str): The ID of the Folder.
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of custom fields for the folder.
@@ -288,7 +288,7 @@ def get_space_available_custom_fields(space_id: str) -> Dict[str, Any]:
     Gets the available Custom Fields for a Space.
     
     Args:
-        space_id: The ID of the Space.
+        space_id (str): The ID of the Space.
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of custom fields for the space.
@@ -303,7 +303,7 @@ def get_team_available_custom_fields(team_id: str) -> Dict[str, Any]:
     Gets the available Custom Fields for a Workspace (Team).
     
     Args:
-        team_id: The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of custom fields for the workspace.
@@ -323,16 +323,16 @@ def search_docs(team_id: str, query: str, include_content: Optional[bool] = None
     Searches for Docs within a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
-        query: The search query string.
-        include_content: Whether to include the content of the Docs (optional).
-        include_locations: Whether to include location information (optional).
-        owner_ids: Filter by owner user IDs (optional).
-        location_ids: Filter by location IDs (Space, Folder, List) (optional).
-        location_type: Filter by location type ('space', 'folder', 'list') (optional).
-        parent_ids: Filter by parent Doc IDs (optional).
-        doc_ids: Filter by specific Doc IDs (optional).
-        page_ids: Filter by specific Page IDs (optional).
+        team_id (str): The ID of the Workspace (Team).
+        query (str): The search query string.
+        include_content (Optional[bool]): Whether to include the content of the Docs (optional).
+        include_locations (Optional[bool]): Whether to include location information (optional).
+        owner_ids (Optional[List[int]]): Filter by owner user IDs (optional).
+        location_ids (Optional[List[int]]): Filter by location IDs (Space, Folder, List) (optional).
+        location_type (Optional[str]): Filter by location type ('space', 'folder', 'list') (optional).
+        parent_ids (Optional[List[int]]): Filter by parent Doc IDs (optional).
+        doc_ids (Optional[List[str]]): Filter by specific Doc IDs (optional).
+        page_ids (Optional[List[str]]): Filter by specific Page IDs (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the search results for Docs.
@@ -364,8 +364,8 @@ def get_doc(doc_id: str, include_content: Optional[bool] = None) -> Dict[str, An
     Gets details about a specific Doc.
     
     Args:
-        doc_id: The ID of the Doc.
-        include_content: Whether to include the content of the Doc (optional).
+        doc_id (str): The ID of the Doc.
+        include_content (Optional[bool]): Whether to include the content of the Doc (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the Doc details.
@@ -383,7 +383,7 @@ def get_doc_page_listing(doc_id: str) -> Dict[str, Any]:
     Gets a listing of pages within a Doc.
     
     Args:
-        doc_id: The ID of the Doc.
+        doc_id (str): The ID of the Doc.
 
     Returns:
         Dict[str, Any]: A dictionary containing the page listing for the Doc.
@@ -398,8 +398,8 @@ def get_doc_pages(doc_id: str, include_content: Optional[bool] = None) -> Dict[s
     Gets the pages within a Doc, optionally including their content.
     
     Args:
-        doc_id: The ID of the Doc.
-        include_content: Whether to include the content of the pages (optional).
+        doc_id (str): The ID of the Doc.
+        include_content (Optional[bool]): Whether to include the content of the pages (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the pages within the Doc.
@@ -417,8 +417,8 @@ def get_page(page_id: str, include_content: Optional[bool] = None) -> Dict[str, 
     Gets details about a specific page within a Doc.
     
     Args:
-        page_id: The ID of the page.
-        include_content: Whether to include the content of the page (optional).
+        page_id (str): The ID of the page.
+        include_content (Optional[bool]): Whether to include the content of the page (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the page details.
@@ -437,8 +437,8 @@ def get_folders(space_id: str, archived: Optional[bool] = False) -> Dict[str, An
     Gets Folders within a specific Space.
     
     Args:
-        space_id: The ID of the Space.
-        archived: Whether to include archived Folders (default: False).
+        space_id (str): The ID of the Space.
+        archived (Optional[bool]): Whether to include archived Folders (default: False).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of Folders.
@@ -454,7 +454,7 @@ def get_folder(folder_id: str) -> Dict[str, Any]:
     Gets details about a specific Folder.
     
     Args:
-        folder_id: The ID of the Folder.
+        folder_id (str): The ID of the Folder.
 
     Returns:
         Dict[str, Any]: A dictionary containing the Folder details.
@@ -470,8 +470,8 @@ def get_goals(team_id: str, include_completed: Optional[bool] = None) -> Dict[st
     Gets Goals from a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
-        include_completed: Whether to include completed Goals (optional).
+        team_id (str): The ID of the Workspace (Team).
+        include_completed (Optional[bool]): Whether to include completed Goals (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of Goals.
@@ -489,7 +489,7 @@ def get_goal(goal_id: str) -> Dict[str, Any]:
     Gets details about a specific Goal.
     
     Args:
-        goal_id: The ID of the Goal.
+        goal_id (str): The ID of the Goal.
 
     Returns:
         Dict[str, Any]: A dictionary containing the Goal details.
@@ -505,8 +505,8 @@ def get_guest(team_id: str, guest_id: int) -> Dict[str, Any]:
     Gets information about a specific Guest in a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
-        guest_id: The ID of the Guest user.
+        team_id (str): The ID of the Workspace (Team).
+        guest_id (int): The ID of the Guest user.
 
     Returns:
         Dict[str, Any]: A dictionary containing the Guest details.
@@ -524,8 +524,8 @@ def get_lists(folder_id: str, archived: Optional[bool] = False) -> Dict[str, Any
     Gets Lists within a specific Folder.
     
     Args:
-        folder_id: The ID of the Folder.
-        archived: Whether to include archived Lists (default: False).
+        folder_id (str): The ID of the Folder.
+        archived (Optional[bool]): Whether to include archived Lists (default: False).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of Lists in the Folder.
@@ -541,8 +541,8 @@ def get_folderless_lists(space_id: str, archived: Optional[bool] = False) -> Dic
     Gets Lists in a Space that are not contained within any Folder.
     
     Args:
-        space_id: The ID of the Space.
-        archived: Whether to include archived Lists (default: False).
+        space_id (str): The ID of the Space.
+        archived (Optional[bool]): Whether to include archived Lists (default: False).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of folderless Lists in the Space.
@@ -558,7 +558,7 @@ def get_list(list_id: str) -> Dict[str, Any]:
     Gets details about a specific List.
     
     Args:
-        list_id: The ID of the List.
+        list_id (str): The ID of the List.
 
     Returns:
         Dict[str, Any]: A dictionary containing the List details.
@@ -574,7 +574,7 @@ def get_task_members(task_id: str) -> List[Dict[str, Any]]:
     Gets members (users) assigned to or associated with a task.
     
     Args:
-        task_id: The ID of the task.
+        task_id (str): The ID of the task.
 
     Returns:
         List[Dict[str, Any]]: A list of dictionaries, each representing a member associated with the task.
@@ -591,7 +591,7 @@ def get_list_members(list_id: str) -> List[Dict[str, Any]]:
     Gets members (users) who have access to a specific List.
     
     Args:
-        list_id: The ID of the List.
+        list_id (str): The ID of the List.
 
     Returns:
         List[Dict[str, Any]]: A list of dictionaries, each representing a member with access to the list.
@@ -609,7 +609,7 @@ def get_custom_roles(team_id: str) -> Dict[str, Any]:
     Gets the custom roles available in a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of custom roles.
@@ -625,7 +625,7 @@ def get_shared_hierarchy(team_id: str) -> Dict[str, Any]:
     Gets the shared hierarchy for the authorized user in a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team).
 
     Returns:
         Dict[str, Any]: A dictionary containing the shared hierarchy details.
@@ -641,8 +641,8 @@ def get_spaces(team_id: str, archived: Optional[bool] = False) -> Dict[str, Any]
     Gets Spaces within a specific Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
-        archived: Whether to include archived Spaces (default: False).
+        team_id (str): The ID of the Workspace (Team).
+        archived (Optional[bool]): Whether to include archived Spaces (default: False).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of Spaces.
@@ -658,7 +658,7 @@ def get_space(space_id: str) -> Dict[str, Any]:
     Gets details about a specific Space.
     
     Args:
-        space_id: The ID of the Space.
+        space_id (str): The ID of the Space.
 
     Returns:
         Dict[str, Any]: A dictionary containing the Space details.
@@ -674,7 +674,7 @@ def get_space_tags(space_id: str) -> Dict[str, Any]:
     Gets Tags available in a specific Space.
     
     Args:
-        space_id: The ID of the Space.
+        space_id (str): The ID of the Space.
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of tags for the Space.
@@ -704,32 +704,32 @@ def get_tasks(list_id: str, archived: Optional[bool] = False,
     Gets tasks from a specific List, with extensive filtering options.
     
     Args:
-        list_id: The ID of the List to get tasks from.
-        archived: Whether to include archived tasks (default: False).
-        include_markdown_description: Return description in Markdown format (optional).
-        page: Page number for pagination (optional).
-        order_by: Field to order tasks by (e.g., 'due_date', 'priority') (optional).
-        reverse: Reverse the order of tasks (optional).
-        subtasks: Include subtasks (true), exclude subtasks (false), or include both tasks and subtasks ('true_all') (optional).
-        space_ids: Filter by Space IDs (optional).
-        project_ids: Filter by Folder IDs (previously Projects) (optional).
-        list_ids: Filter by List IDs (optional).
-        statuses: Filter by task statuses (case-insensitive) (optional).
-        include_closed: Include closed tasks (optional).
-        assignees: Filter by assignee user IDs (optional).
-        tags: Filter by tag names (optional).
-        due_date_gt: Filter by due date greater than (Unix time in ms) (optional).
-        due_date_lt: Filter by due date less than (Unix time in ms) (optional).
-        date_created_gt: Filter by creation date greater than (Unix time in ms) (optional).
-        date_created_lt: Filter by creation date less than (Unix time in ms) (optional).
-        date_updated_gt: Filter by update date greater than (Unix time in ms) (optional).
-        date_updated_lt: Filter by update date less than (Unix time in ms) (optional).
-        date_done_gt: Filter by completion date greater than (Unix time in ms) (optional).
-        date_done_lt: Filter by completion date less than (Unix time in ms) (optional).
-        custom_fields: Filter by custom fields (JSON string) (optional). Example: '[{"field_id":"...", "operator":"=", "value":"..."}]'
-        custom_items: Filter by Custom Task Types (provide IDs) (optional).
-        parent: Filter by parent task ID (optional).
-        include_subtasks: Deprecated alias for `subtasks` (optional).
+        list_id (str): The ID of the List to get tasks from.
+        archived (Optional[bool]): Whether to include archived tasks (default: False).
+        include_markdown_description (Optional[bool]): Return description in Markdown format (optional).
+        page (Optional[int]): Page number for pagination (optional).
+        order_by (Optional[str]): Field to order tasks by (e.g., 'due_date', 'priority') (optional).
+        reverse (Optional[bool]): Reverse the order of tasks (optional).
+        subtasks (Optional[bool]): Include subtasks (true), exclude subtasks (false), or include both tasks and subtasks ('true_all') (optional).
+        space_ids (Optional[List[str]]): Filter by Space IDs (optional).
+        project_ids (Optional[List[str]]): Filter by Folder IDs (previously Projects) (optional).
+        list_ids (Optional[List[str]]): Filter by List IDs (optional).
+        statuses (Optional[List[str]]): Filter by task statuses (case-insensitive) (optional).
+        include_closed (Optional[bool]): Include closed tasks (optional).
+        assignees (Optional[List[str]]): Filter by assignee user IDs (optional).
+        tags (Optional[List[str]]): Filter by tag names (optional).
+        due_date_gt (Optional[int]): Filter by due date greater than (Unix time in ms) (optional).
+        due_date_lt (Optional[int]): Filter by due date less than (Unix time in ms) (optional).
+        date_created_gt (Optional[int]): Filter by creation date greater than (Unix time in ms) (optional).
+        date_created_lt (Optional[int]): Filter by creation date less than (Unix time in ms) (optional).
+        date_updated_gt (Optional[int]): Filter by update date greater than (Unix time in ms) (optional).
+        date_updated_lt (Optional[int]): Filter by update date less than (Unix time in ms) (optional).
+        date_done_gt (Optional[int]): Filter by completion date greater than (Unix time in ms) (optional).
+        date_done_lt (Optional[int]): Filter by completion date less than (Unix time in ms) (optional).
+        custom_fields (Optional[str]): Filter by custom fields (JSON string) (optional). Example: '[{"field_id":"...", "operator":"=", "value":"..."}]'
+        custom_items (Optional[List[int]]): Filter by Custom Task Types (provide IDs) (optional).
+        parent (Optional[str]): Filter by parent task ID (optional).
+        include_subtasks (Optional[bool]): Deprecated alias for `subtasks` (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of tasks matching the criteria.
@@ -797,11 +797,11 @@ def get_task(task_id: str, include_subtasks: Optional[bool] = None,
     Gets details about a specific task.
     
     Args:
-        task_id: The ID of the task (can be the canonical ID or custom task ID).
-        include_subtasks: Include subtasks in the response (optional).
-        include_markdown_description: Return description in Markdown format (optional).
-        custom_task_ids: If true, treats task_id as a custom task ID. Requires team_id. (optional)
-        team_id: The Workspace (Team) ID, required if custom_task_ids is true. (optional)
+        task_id (str): The ID of the task (can be the canonical ID or custom task ID).
+        include_subtasks (Optional[bool]): Include subtasks in the response (optional).
+        include_markdown_description (Optional[bool]): Return description in Markdown format (optional).
+        custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires team_id. (optional)
+        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. (optional)
 
     Returns:
         Dict[str, Any]: A dictionary containing the task details.
@@ -846,30 +846,30 @@ def get_filtered_team_tasks(team_id: str, page: Optional[int] = None,
     Gets tasks for a Workspace (Team), filtered by various criteria. Similar to get_tasks but workspace-wide.
     
     Args:
-        team_id: The ID of the Workspace (Team).
-        page: Page number for pagination (optional).
-        order_by: Field to order tasks by (e.g., 'due_date', 'priority') (optional).
-        reverse: Reverse the order of tasks (optional).
-        subtasks: Include subtasks (true), exclude subtasks (false), or include both tasks and subtasks ('true_all') (optional).
-        space_ids: Filter by Space IDs (optional).
-        project_ids: Filter by Folder IDs (previously Projects) (optional).
-        list_ids: Filter by List IDs (optional).
-        statuses: Filter by task statuses (case-insensitive) (optional).
-        include_closed: Include closed tasks (optional).
-        assignees: Filter by assignee user IDs (optional).
-        tags: Filter by tag names (optional).
-        due_date_gt: Filter by due date greater than (Unix time in ms) (optional).
-        due_date_lt: Filter by due date less than (Unix time in ms) (optional).
-        date_created_gt: Filter by creation date greater than (Unix time in ms) (optional).
-        date_created_lt: Filter by creation date less than (Unix time in ms) (optional).
-        date_updated_gt: Filter by update date greater than (Unix time in ms) (optional).
-        date_updated_lt: Filter by update date less than (Unix time in ms) (optional).
-        date_done_gt: Filter by completion date greater than (Unix time in ms) (optional).
-        date_done_lt: Filter by completion date less than (Unix time in ms) (optional).
-        custom_fields: Filter by custom fields (JSON string) (optional). Example: '[{"field_id":"...", "operator":"=", "value":"..."}]'
-        custom_items: Filter by Custom Task Types (provide IDs) (optional).
-        parent: Filter by parent task ID (optional).
-        include_markdown_description: Return description in Markdown format (optional).
+        team_id (str): The ID of the Workspace (Team).
+        page (Optional[int]): Page number for pagination (optional).
+        order_by (Optional[str]): Field to order tasks by (e.g., 'due_date', 'priority') (optional).
+        reverse (Optional[bool]): Reverse the order of tasks (optional).
+        subtasks (Optional[bool]): Include subtasks (true), exclude subtasks (false), or include both tasks and subtasks ('true_all') (optional).
+        space_ids (Optional[List[str]]): Filter by Space IDs (optional).
+        project_ids (Optional[List[str]]): Filter by Folder IDs (previously Projects) (optional).
+        list_ids (Optional[List[str]]): Filter by List IDs (optional).
+        statuses (Optional[List[str]]): Filter by task statuses (case-insensitive) (optional).
+        include_closed (Optional[bool]): Include closed tasks (optional).
+        assignees (Optional[List[str]]): Filter by assignee user IDs (optional).
+        tags (Optional[List[str]]): Filter by tag names (optional).
+        due_date_gt (Optional[int]): Filter by due date greater than (Unix time in ms) (optional).
+        due_date_lt (Optional[int]): Filter by due date less than (Unix time in ms) (optional).
+        date_created_gt (Optional[int]): Filter by creation date greater than (Unix time in ms) (optional).
+        date_created_lt (Optional[int]): Filter by creation date less than (Unix time in ms) (optional).
+        date_updated_gt (Optional[int]): Filter by update date greater than (Unix time in ms) (optional).
+        date_updated_lt (Optional[int]): Filter by update date less than (Unix time in ms) (optional).
+        date_done_gt (Optional[int]): Filter by completion date greater than (Unix time in ms) (optional).
+        date_done_lt (Optional[int]): Filter by completion date less than (Unix time in ms) (optional).
+        custom_fields (Optional[str]): Filter by custom fields (JSON string) (optional). Example: '[{"field_id":"...", "operator":"=", "value":"..."}]'
+        custom_items (Optional[List[int]]): Filter by Custom Task Types (provide IDs) (optional).
+        parent (Optional[str]): Filter by parent task ID (optional).
+        include_markdown_description (Optional[bool]): Return description in Markdown format (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of tasks matching the criteria for the workspace.
@@ -932,9 +932,9 @@ def get_task_time_in_status(task_id: str, custom_task_ids: Optional[bool] = None
     Gets the time spent by a task in each status.
     
     Args:
-        task_id: The ID of the task (can be the canonical ID or custom task ID).
-        custom_task_ids: If true, treats task_id as a custom task ID. Requires team_id. (optional)
-        team_id: The Workspace (Team) ID, required if custom_task_ids is true. (optional)
+        task_id (str): The ID of the task (can be the canonical ID or custom task ID).
+        custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires team_id. (optional)
+        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. (optional)
 
     Returns:
         Dict[str, Any]: A dictionary containing the time in status details for the task.
@@ -959,9 +959,9 @@ def get_bulk_tasks_time_in_status(task_ids: List[str], custom_task_ids: Optional
     Gets the time spent in status for multiple tasks.
     
     Args:
-        task_ids: A list of task IDs (canonical or custom).
-        custom_task_ids: If true, treats task_ids as custom task IDs. Requires team_id. (optional)
-        team_id: The Workspace (Team) ID, required if custom_task_ids is true. (optional)
+        task_ids (List[str]): A list of task IDs (canonical or custom).
+        custom_task_ids (Optional[bool]): If true, treats task_ids as custom task IDs. Requires team_id. (optional)
+        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. (optional)
 
     Returns:
         Dict[str, Any]: A dictionary containing the time in status details for the specified tasks.
@@ -988,9 +988,9 @@ def get_task_templates(team_id: str, page: int, space_id: Optional[int] = None) 
     Gets task templates for a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
-        page: Page number for pagination (templates are returned 100 at a time).
-        space_id: Optional Space ID to filter templates. If provided, only templates available
+        team_id (str): The ID of the Workspace (Team).
+        page (int): Page number for pagination (templates are returned 100 at a time).
+        space_id (Optional[int]): Optional Space ID to filter templates. If provided, only templates available
                   to the specific Space are returned. Otherwise, Workspace-level templates are returned.
 
     Returns:
@@ -1010,7 +1010,7 @@ def get_workspace_seats(team_id: str) -> Dict[str, Any]:
     Gets the number of members and guests in a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team).
 
     Returns:
         Dict[str, Any]: A dictionary containing the workspace seat information.
@@ -1025,7 +1025,7 @@ def get_workspace_plan(team_id: str) -> Dict[str, Any]:
     Gets the subscription plan details for a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team).
 
     Returns:
         Dict[str, Any]: A dictionary containing the workspace plan details.
@@ -1041,9 +1041,9 @@ def get_user_groups(team_id: Optional[str] = None, group_ids: Optional[str] = No
     Gets user groups (Teams for permissions) in the Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team). Docs say optional, but usually needed?
+        team_id (Optional[str]): The ID of the Workspace (Team). Docs say optional, but usually needed?
                  Let's make it optional as per docs.
-        group_ids: Comma-separated list of group IDs to filter by (optional).
+        group_ids (Optional[str]): Comma-separated list of group IDs to filter by (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of user groups.
@@ -1071,18 +1071,18 @@ def get_time_entries(team_id: str, start_date: Optional[int] = None,
     Gets time entries within a date range for a Workspace (Team).
     
     Args:
-        team_id: The ID of the Workspace (Team).
-        start_date: Start timestamp (Unix time in ms) (optional).
-        end_date: End timestamp (Unix time in ms) (optional).
-        assignee: Filter by user ID(s) (comma-separated string or list) (optional).
-        include_task_tags: Include task tags in the response (optional).
-        include_location_names: Include Folder and List names (optional).
-        space_id: Filter by Space ID (optional).
-        folder_id: Filter by Folder ID (optional).
-        list_id: Filter by List ID (optional).
-        task_id: Filter by Task ID (canonical or custom) (optional).
-        custom_task_ids: If true, treats task_id as a custom task ID. Requires task_team_id. (optional)
-        task_team_id: The Workspace (Team) ID for the custom task ID lookup. Required if custom_task_ids is true and task_id is provided. (optional)
+        team_id (str): The ID of the Workspace (Team).
+        start_date (Optional[int]): Start timestamp (Unix time in ms) (optional).
+        end_date (Optional[int]): End timestamp (Unix time in ms) (optional).
+        assignee (Optional[str]): Filter by user ID(s) (comma-separated string or list) (optional).
+        include_task_tags (Optional[bool]): Include task tags in the response (optional).
+        include_location_names (Optional[bool]): Include Folder and List names (optional).
+        space_id (Optional[str]): Filter by Space ID (optional).
+        folder_id (Optional[str]): Filter by Folder ID (optional).
+        list_id (Optional[str]): Filter by List ID (optional).
+        task_id (Optional[str]): Filter by Task ID (canonical or custom) (optional).
+        custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires task_team_id. (optional)
+        task_team_id (Optional[str]): The Workspace (Team) ID for the custom task ID lookup. Required if custom_task_ids is true and task_id is provided. (optional)
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of time entries matching the criteria.
@@ -1124,10 +1124,10 @@ def get_singular_time_entry(team_id: str, timer_id: str, include_task_tags: Opti
     Gets details for a specific time entry.
     
     Args:
-        team_id: The ID of the Workspace (Team).
-        timer_id: The ID of the time entry (timer_id).
-        include_task_tags: Include task tags in the response (optional).
-        include_location_names: Include Folder and List names (optional).
+        team_id (str): The ID of the Workspace (Team).
+        timer_id (str): The ID of the time entry (timer_id).
+        include_task_tags (Optional[bool]): Include task tags in the response (optional).
+        include_location_names (Optional[bool]): Include Folder and List names (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the details of the specified time entry.
@@ -1147,8 +1147,8 @@ def get_time_entry_history(team_id: str, timer_id: str) -> Dict[str, Any]:
     Gets the history of changes for a specific time entry.
     
     Args:
-        team_id: The ID of the Workspace (Team).
-        timer_id: The ID of the time entry.
+        team_id (str): The ID of the Workspace (Team).
+        timer_id (str): The ID of the time entry.
 
     Returns:
         Dict[str, Any]: A dictionary containing the history of the specified time entry.
@@ -1163,7 +1163,7 @@ def get_running_time_entry(team_id: str) -> Dict[str, Any]:
     Gets the currently running time entry for the authorized user in a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team).
 
     Returns:
         Dict[str, Any]: A dictionary containing the details of the running time entry, or an empty dict if none.
@@ -1178,7 +1178,7 @@ def get_all_time_entry_tags(team_id: str) -> Dict[str, Any]:
     Gets all tags used in time entries for a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of all time entry tags.
@@ -1195,9 +1195,9 @@ def get_task_tracked_time_legacy(task_id: str, team_id: Optional[str] = None, cu
     Legacy endpoint to get tracked time for a specific task.
     
     Args:
-        task_id: The ID of the task (canonical or custom).
-        team_id: Required if custom_task_ids is true.
-        custom_task_ids: Set to true if task_id is a custom task ID.
+        task_id (str): The ID of the task (canonical or custom).
+        team_id (Optional[str]): Required if custom_task_ids is true.
+        custom_task_ids (Optional[bool]): Set to true if task_id is a custom task ID.
 
     Returns:
         Dict[str, Any]: A dictionary containing the tracked time details for the task.
@@ -1220,7 +1220,7 @@ def get_list_tracked_time_legacy(list_id: str) -> Dict[str, Any]:
     Legacy endpoint to get tracked time for all tasks within a list.
     
     Args:
-        list_id: The ID of the list.
+        list_id (str): The ID of the list.
 
     Returns:
         Dict[str, Any]: A dictionary containing the tracked time details for the list.
@@ -1236,8 +1236,8 @@ def get_user(team_id: str, user_id: int) -> Dict[str, Any]:
     Gets information about a specific user in a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
-        user_id: The ID of the user.
+        team_id (str): The ID of the Workspace (Team).
+        user_id (int): The ID of the user.
 
     Returns:
         Dict[str, Any]: A dictionary containing the user details.
@@ -1254,7 +1254,7 @@ def get_team_views(team_id: str) -> Dict[str, Any]:
     Gets "Everything" level views (Workspace views).
     
     Args:
-        team_id: The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of Workspace views.
@@ -1269,7 +1269,7 @@ def get_space_views(space_id: str) -> Dict[str, Any]:
     Gets views available in a specific Space.
     
     Args:
-        space_id: The ID of the Space.
+        space_id (str): The ID of the Space.
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of Space views.
@@ -1284,7 +1284,7 @@ def get_folder_views(folder_id: str) -> Dict[str, Any]:
     Gets views available in a specific Folder.
     
     Args:
-        folder_id: The ID of the Folder.
+        folder_id (str): The ID of the Folder.
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of Folder views.
@@ -1299,7 +1299,7 @@ def get_list_views(list_id: str) -> Dict[str, Any]:
     Gets views available in a specific List.
     
     Args:
-        list_id: The ID of the List.
+        list_id (str): The ID of the List.
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of List views.
@@ -1314,7 +1314,7 @@ def get_view(view_id: str) -> Dict[str, Any]:
     Gets details about a specific view.
     
     Args:
-        view_id: The ID of the view.
+        view_id (str): The ID of the view.
 
     Returns:
         Dict[str, Any]: A dictionary containing the view details.
@@ -1329,9 +1329,9 @@ def get_view_tasks(view_id: str, page: Optional[int] = 0, include_closed: Option
     Gets tasks that are visible in a specific view.
     
     Args:
-        view_id: The ID of the view.
-        page: Page number for pagination (starts at 0) (optional).
-        include_closed: Include closed tasks filter override (optional).
+        view_id (str): The ID of the view.
+        page (Optional[int]): Page number for pagination (starts at 0) (optional).
+        include_closed (Optional[bool]): Include closed tasks filter override (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of tasks in the view.
@@ -1352,7 +1352,7 @@ def get_webhooks(team_id: str) -> Dict[str, Any]:
     Gets webhooks registered for a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of webhooks.
@@ -1371,13 +1371,13 @@ def get_chat_channels(team_id: str, with_members: Optional[bool] = None,
     Retrieves chat channels for a Workspace.
     
     Args:
-        team_id: The ID of the Workspace (Team).
-        with_members: Include channel member list (optional).
-        with_last_message: Include the last message sent (optional).
-        types: Filter by channel types ('location', 'direct', 'group') (optional).
-        filter_unread: Only return channels with unread messages (optional).
-        filter_mentions: Only return channels with mentions (optional).
-        continuation: Pagination token from previous response (optional).
+        team_id (str): The ID of the Workspace (Team).
+        with_members (Optional[bool]): Include channel member list (optional).
+        with_last_message (Optional[bool]): Include the last message sent (optional).
+        types (Optional[List[str]]): Filter by channel types ('location', 'direct', 'group') (optional).
+        filter_unread (Optional[bool]): Only return channels with unread messages (optional).
+        filter_mentions (Optional[bool]): Only return channels with mentions (optional).
+        continuation (Optional[str]): Pagination token from previous response (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of chat channels.
@@ -1406,9 +1406,9 @@ def get_chat_channel(channel_id: str, with_members: Optional[bool] = None,
     Gets details for a specific chat channel.
     
     Args:
-        channel_id: The ID of the chat channel.
-        with_members: Include channel member list (optional).
-        with_last_message: Include the last message sent (optional).
+        channel_id (str): The ID of the chat channel.
+        with_members (Optional[bool]): Include channel member list (optional).
+        with_last_message (Optional[bool]): Include the last message sent (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the chat channel details.
@@ -1428,8 +1428,8 @@ def get_chat_channel_followers(channel_id: str, continuation: Optional[str] = No
     Gets the followers of a specific chat channel.
     
     Args:
-        channel_id: The ID of the chat channel.
-        continuation: Pagination token from previous response (optional).
+        channel_id (str): The ID of the chat channel.
+        continuation (Optional[str]): Pagination token from previous response (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of channel followers.
@@ -1447,8 +1447,8 @@ def get_chat_channel_members(channel_id: str, continuation: Optional[str] = None
     Gets the members of a specific chat channel.
     
     Args:
-        channel_id: The ID of the chat channel.
-        continuation: Pagination token from previous response (optional).
+        channel_id (str): The ID of the chat channel.
+        continuation (Optional[str]): Pagination token from previous response (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of channel members.
@@ -1469,14 +1469,14 @@ def get_chat_messages(channel_id: str, before_message_id: Optional[str] = None,
     Retrieves messages from a specific chat channel.
     
     Args:
-        channel_id: The ID of the chat channel.
-        before_message_id: Get messages before this ID (optional).
-        after_message_id: Get messages after this ID (optional).
-        include_deleted: Include deleted messages (optional).
-        include_reactions: Include reactions for each message (optional).
-        include_replies: Include reply details for each message (optional).
-        reverse: Retrieve messages in reverse chronological order (optional).
-        limit: Number of messages to retrieve (max 100) (optional).
+        channel_id (str): The ID of the chat channel.
+        before_message_id (Optional[str]): Get messages before this ID (optional).
+        after_message_id (Optional[str]): Get messages after this ID (optional).
+        include_deleted (Optional[bool]): Include deleted messages (optional).
+        include_reactions (Optional[bool]): Include reactions for each message (optional).
+        include_replies (Optional[bool]): Include reply details for each message (optional).
+        reverse (Optional[bool]): Retrieve messages in reverse chronological order (optional).
+        limit (Optional[int]): Number of messages to retrieve (max 100) (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of chat messages.
@@ -1507,9 +1507,9 @@ def get_message_reactions(message_id: str, user_id: Optional[int] = None,
     Gets reactions for a specific chat message.
     
     Args:
-        message_id: The ID of the chat message.
-        user_id: Filter reactions by a specific user ID (optional).
-        continuation: Pagination token from previous response (optional).
+        message_id (str): The ID of the chat message.
+        user_id (Optional[int]): Filter reactions by a specific user ID (optional).
+        continuation (Optional[str]): Pagination token from previous response (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of reactions for the message.
@@ -1532,13 +1532,13 @@ def get_message_replies(message_id: str, include_deleted: Optional[bool] = None,
     Retrieves replies to a specific chat message.
     
     Args:
-        message_id: The ID of the parent chat message.
-        include_deleted: Include deleted replies (optional).
-        include_reactions: Include reactions for each reply (optional).
-        include_replies: Include nested reply details (optional).
-        reverse: Retrieve replies in reverse chronological order (optional).
-        limit: Number of replies to retrieve (max 100) (optional).
-        continuation: Pagination token from previous response (optional).
+        message_id (str): The ID of the parent chat message.
+        include_deleted (Optional[bool]): Include deleted replies (optional).
+        include_reactions (Optional[bool]): Include reactions for each reply (optional).
+        include_replies (Optional[bool]): Include nested reply details (optional).
+        reverse (Optional[bool]): Retrieve replies in reverse chronological order (optional).
+        limit (Optional[int]): Number of replies to retrieve (max 100) (optional).
+        continuation (Optional[str]): Pagination token from previous response (optional).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of replies for the message.
@@ -1566,7 +1566,7 @@ def get_tagged_users_for_message(message_id: str) -> Dict[str, Any]:
     Gets users tagged (mentioned) in a specific chat message.
     
     Args:
-        message_id: The ID of the chat message.
+        message_id (str): The ID of the chat message.
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of tagged users.
