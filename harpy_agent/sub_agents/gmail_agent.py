@@ -26,6 +26,7 @@ from harpy_agent.tools.basic_tools import (
     calculate_date
 )
 
+# Create the agent instance
 gmail_agent = Agent(
     name="gmail_agent",
     model=LiteLlm(model=AGENT_MODEL),
@@ -70,8 +71,9 @@ gmail_agent = Agent(
         calculate_date
     ]
 )
-    
-#     return agent
+
+# Export the agent
+__all__ = ['gmail_agent']
 
 # if __name__ == "__main__":
 #     # First authenticate

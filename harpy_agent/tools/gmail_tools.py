@@ -347,24 +347,38 @@ def search_gmail_with_query(query: str = "", account_id: str = "", max_results: 
             "accounts_searched": [account_id]
         }
     
-    # Otherwise search all accounts sequentially
-    results = []
+    # Otherwise search all accounts sequentially and combine results
+    all_emails = []
+    accounts_searched = []
+    accounts_with_results = []
     accounts = list(account_manager.get_accounts().keys())
     
     for acc in accounts:
         result = _search_gmail_impl(query, acc, max_results)
         if result["status"] == "success":
-            results.append(result)
+            accounts_searched.append(acc)
+            if "emails" in result and result["emails"]:
+                all_emails.extend(result["emails"])
+                accounts_with_results.append(acc)
+    
+    # Sort emails by date (most recent first)
+    all_emails.sort(key=lambda x: x.get('date', ''), reverse=True)
+    
+    # Limit total results to max_results
+    all_emails = all_emails[:max_results]
     
     return {
         "status": "success",
-        "results": results,
-        "accounts_searched": accounts
+        "report": f"Found {len(all_emails)} emails matching query: '{query}' across {len(accounts_with_results)} accounts",
+        "emails": all_emails,
+        "accounts_searched": accounts_searched,
+        "accounts_with_results": accounts_with_results,
+        "total_accounts": len(accounts)
     }
 
 # Rename original function to implementation
 def _search_gmail_impl(query, account_id, max_results):
-    """Internal implementation of Gmail search.
+    """Internal implementation of Gmail search with smart fallback strategies.
     
     This is used by both the search_gmail and search_gmail_with_query functions.
     """
@@ -379,20 +393,66 @@ def _search_gmail_impl(query, account_id, max_results):
     service = service_result["service"]
     
     try:
-        # Search for emails matching the query
-        results = service.users().messages().list(userId='me', q=query, maxResults=max_results).execute()
-        messages = results.get('messages', [])
+        # Try different search strategies in order of specificity
+        search_strategies = [
+            # Strategy 1: Exact match in all fields
+            f"(subject:{query} OR from:{query} OR {query})",
+            
+            # Strategy 2: Split into words and search each
+            " OR ".join([f'"{word}"' for word in query.split()]),
+            
+            # Strategy 3: Try email-like patterns
+            f"(from:*{query}* OR {query}@*)",
+            
+            # Strategy 4: Try name variations (first name, last name)
+            " OR ".join([
+                f'"{word}"' for word in query.split()
+                if len(word) > 2  # Only use words longer than 2 chars
+            ])
+        ]
         
-        if not messages:
+        all_messages = []
+        tried_strategies = []
+        
+        for search_query in search_strategies:
+            try:
+                results = service.users().messages().list(
+                    userId='me', 
+                    q=search_query, 
+                    maxResults=max_results
+                ).execute()
+                
+                messages = results.get('messages', [])
+                if messages:
+                    all_messages.extend(messages)
+                    tried_strategies.append(search_query)
+                    
+                    # If we found enough results, stop trying more strategies
+                    if len(all_messages) >= max_results:
+                        break
+                        
+            except Exception:
+                continue
+        
+        # Remove duplicates while preserving order
+        seen_ids = set()
+        unique_messages = []
+        for msg in all_messages:
+            if msg['id'] not in seen_ids:
+                seen_ids.add(msg['id'])
+                unique_messages.append(msg)
+        
+        if not unique_messages:
             return {
                 "status": "success",
                 "account": account_id,
-                "report": f"No messages found matching query: '{query}'."
+                "report": f"No messages found matching query: '{query}' after trying multiple search strategies.",
+                "tried_strategies": tried_strategies
             }
         
         # Get details for each message
         email_data = []
-        for message in messages:
+        for message in unique_messages[:max_results]:
             msg = service.users().messages().get(userId='me', id=message['id'], format='full').execute()
             headers = msg['payload']['headers']
             
@@ -406,7 +466,6 @@ def _search_gmail_impl(query, account_id, max_results):
             if 'parts' in msg['payload']:
                 for part in msg['payload']['parts']:
                     if part['mimeType'] == 'text/plain':
-                        # Decode the base64 encoded message
                         body_data = part['body'].get('data', '')
                         if body_data:
                             body = base64.urlsafe_b64decode(body_data).decode('utf-8')
@@ -421,14 +480,15 @@ def _search_gmail_impl(query, account_id, max_results):
                 'from': sender,
                 'date': date,
                 'snippet': msg.get('snippet', ''),
-                'body': body[:500] + ('...' if len(body) > 500 else '')  # Truncate long messages
+                'body': body[:500] + ('...' if len(body) > 500 else '')
             })
         
         return {
             "status": "success",
             "account": account_id,
-            "report": f"Found {len(email_data)} emails matching query: '{query}'",
-            "emails": email_data
+            "report": f"Found {len(email_data)} emails matching query: '{query}' using strategies: {', '.join(tried_strategies)}",
+            "emails": email_data,
+            "search_strategies_used": tried_strategies
         }
         
     except Exception as e:
@@ -440,12 +500,13 @@ def _search_gmail_impl(query, account_id, max_results):
 # Replace the original search_gmail with the new clean version
 search_gmail = search_gmail_with_query
 
-def categorized_search_gmail(category: str, max_results: int = 10) -> dict:
+def categorized_search_gmail(category: str, account_id: str = "", max_results: int = 10) -> dict:
     """Searches Gmail for specific emails based on predefined categories.
     
     Args:
         category: Category to search for. Valid values: 'people', 'projects', 'tasks', 'attachments', 'meetings'
-        max_results (int, optional): Maximum number of emails to retrieve. Defaults to 10.
+        account_id: Specific account ID to search. If empty, searches all accounts.
+        max_results: Maximum number of results to return.
         
     Returns:
         Result containing matching emails
@@ -497,20 +558,51 @@ def categorized_search_gmail(category: str, max_results: int = 10) -> dict:
         # If no specific tag, combine all queries for the category
         query = " OR ".join([f"({q})" for q in category_queries.values()])
     
-    # Use the implementation directly
-    results = _search_gmail_impl(query, "default", max_results)
+    # Use the implementation directly with account_id support
+    if account_id:
+        result = _search_gmail_impl(query, account_id, max_results)
+    else:
+        # Search across all accounts
+        account_manager = GmailAccountManager()
+        all_emails = []
+        accounts_searched = []
+        accounts_with_results = []
+        accounts = list(account_manager.get_accounts().keys())
+        
+        for acc in accounts:
+            result = _search_gmail_impl(query, acc, max_results)
+            if result["status"] == "success":
+                accounts_searched.append(acc)
+                if "emails" in result and result["emails"]:
+                    all_emails.extend(result["emails"])
+                    accounts_with_results.append(acc)
+        
+        # Sort emails by date (most recent first)
+        all_emails.sort(key=lambda x: x.get('date', ''), reverse=True)
+        
+        # Limit total results to max_results
+        all_emails = all_emails[:max_results]
+        
+        result = {
+            "status": "success",
+            "report": f"Found {len(all_emails)} emails in category '{category}' across {len(accounts_with_results)} accounts",
+            "emails": all_emails,
+            "accounts_searched": accounts_searched,
+            "accounts_with_results": accounts_with_results,
+            "total_accounts": len(accounts)
+        }
     
     # Add categorization info to the results
-    if results["status"] == "success" and "emails" in results:
+    if result["status"] == "success" and "emails" in result:
         if tag:
-            results["category"] = category.lower()
-            results["tag"] = tag.lower()
-            results["search_criteria"] = query
+            result["category"] = category.lower()
+            result["tag"] = tag.lower()
+            result["search_criteria"] = query
         else:
-            results["category"] = category.lower()
-            results["search_criteria"] = query
+            result["category"] = category.lower()
+            result["search_criteria"] = query
     
-    return results
+    return result
 
 def analyze_email_content(email_id: str) -> dict:
     """Analyzes the content of a specific email to extract relevant information.

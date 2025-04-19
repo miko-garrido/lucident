@@ -35,6 +35,7 @@ session = session_service.create_session(
 
 load_dotenv()
 
+# Create root agent with sub-agents
 root_agent = Agent(
     name="harpy_agent",
     model=LiteLlm(model=AGENT_MODEL),
@@ -59,3 +60,6 @@ Example Response: "You have 2 overdue tasks in ClickUp: [Task 1 Name], [Task 2 N
     sub_agents=[gmail_agent, slack_agent, clickup_agent],
     tools=[get_current_time, calculate, calculate_date]
 )
+
+# Export root_agent
+__all__ = ['root_agent']
