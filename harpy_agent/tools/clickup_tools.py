@@ -25,7 +25,8 @@ class ClickUpAPI:
             # Raise ValueError instead of ClickUpConfigError
              raise ValueError("CLICKUP_WORKSPACE_ID not found in environment variables and no default provided")
             
-        self.base_url = "https://api.clickup.com/api/v2"
+        # Set base URL without version
+        self.base_url = "https://api.clickup.com/api" 
         self.headers = {
             "Authorization": self.api_key,
             "Content-Type": "application/json"
@@ -151,7 +152,7 @@ def get_task_comments(task_id: str, start: Optional[int] = None, start_id: Optio
     """
     # Reference: https://developer.clickup.com/reference/gettaskcomments
     api = ClickUpAPI()
-    endpoint = f"/task/{task_id}/comment"
+    endpoint = f"/v2/task/{task_id}/comment"
     params = {}
     if start is not None:
         params["start"] = start
@@ -173,7 +174,7 @@ def get_chat_view_comments(view_id: str, start: Optional[int] = None, start_id: 
     """
     # Reference: https://developer.clickup.com/reference/getchatviewcomments
     api = ClickUpAPI()
-    endpoint = f"/view/{view_id}/comment"
+    endpoint = f"/v2/view/{view_id}/comment"
     params = {}
     if start is not None:
         params["start"] = start
@@ -195,7 +196,7 @@ def get_list_comments(list_id: str, start: Optional[int] = None, start_id: Optio
     """
     # Reference: https://developer.clickup.com/reference/getlistcomments
     api = ClickUpAPI()
-    endpoint = f"/list/{list_id}/comment"
+    endpoint = f"/v2/list/{list_id}/comment"
     params = {}
     if start is not None:
         params["start"] = start
@@ -215,7 +216,7 @@ def get_threaded_comments(comment_id: str) -> Union[Dict[str, Any], List[Dict[st
     """
     # Reference: https://developer.clickup.com/reference/getthreadedcomments
     api = ClickUpAPI()
-    endpoint = f"/comment/{comment_id}/comments"
+    endpoint = f"/v2/comment/{comment_id}/comments"
     return api._make_request("GET", endpoint)
 
 # --- Custom Task Types ---
@@ -231,7 +232,7 @@ def get_custom_task_types(team_id: str) -> Union[Dict[str, Any], List[Dict[str, 
     """
     # Reference: https://developer.clickup.com/reference/getcustomitems
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/custom_item"
+    endpoint = f"/v2/team/{team_id}/custom_item"
     return api._make_request("GET", endpoint)
 
 # --- Custom Fields ---
@@ -247,7 +248,7 @@ def get_list_custom_fields(list_id: str) -> Union[Dict[str, Any], List[Dict[str,
     """
     # Reference: https://developer.clickup.com/reference/getaccessiblecustomfields
     api = ClickUpAPI()
-    endpoint = f"/list/{list_id}/field"
+    endpoint = f"/v2/list/{list_id}/field"
     return api._make_request("GET", endpoint)
 
 def get_folder_available_custom_fields(folder_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
@@ -262,7 +263,7 @@ def get_folder_available_custom_fields(folder_id: str) -> Union[Dict[str, Any], 
     """
     # Reference: https://developer.clickup.com/reference/getfolderavailablefields
     api = ClickUpAPI()
-    endpoint = f"/folder/{folder_id}/field"
+    endpoint = f"/v2/folder/{folder_id}/field"
     return api._make_request("GET", endpoint)
 
 def get_space_available_custom_fields(space_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
@@ -277,7 +278,7 @@ def get_space_available_custom_fields(space_id: str) -> Union[Dict[str, Any], Li
     """
     # Reference: https://developer.clickup.com/reference/getspaceavailablefields
     api = ClickUpAPI()
-    endpoint = f"/space/{space_id}/field"
+    endpoint = f"/v2/space/{space_id}/field"
     return api._make_request("GET", endpoint)
 
 def get_team_available_custom_fields(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
@@ -292,7 +293,7 @@ def get_team_available_custom_fields(team_id: str) -> Union[Dict[str, Any], List
     """
     # Reference: https://developer.clickup.com/reference/getteamavailablefields
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/field"
+    endpoint = f"/v2/team/{team_id}/field"
     return api._make_request("GET", endpoint)
 
 # --- Docs ---
@@ -319,14 +320,17 @@ def search_docs(team_id: str, query: str, include_content: Optional[bool] = None
     Returns:
         Dict[str, Any]: A dictionary containing the search results for Docs.
     """
-    # Reference: https://developer.clickup.com/reference/searchdocs
+    # Reference: https://developer.clickup.com/reference/searchdocs 
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/docs"
+    # Using V3 endpoint structure
+    endpoint = f"/v3/workspaces/{team_id}/docs/search" # Switched to /v3 
     params = {"query": query}
     if include_content is not None:
         params["include_content"] = str(include_content).lower()
     if include_locations is not None:
         params["include_locations"] = str(include_locations).lower()
+    # V3 might handle array parameters differently (e.g., comma-separated strings? Check docs)
+    # Assuming they still work with [] for now, but may need adjustment.
     if owner_ids:
         params["owner_ids[]"] = owner_ids
     if location_ids:
@@ -341,11 +345,12 @@ def search_docs(team_id: str, query: str, include_content: Optional[bool] = None
         params["page_ids[]"] = page_ids
     return api._make_request("GET", endpoint, params=params)
 
-def get_doc(doc_id: str, include_content: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_doc(workspace_id: str, doc_id: str, include_content: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details about a specific Doc.
     
     Args:
+        workspace_id (str): The ID of the Workspace (Team).
         doc_id (str): The ID of the Doc.
         include_content (Optional[bool]): Whether to include the content of the Doc (optional).
 
@@ -354,17 +359,18 @@ def get_doc(doc_id: str, include_content: Optional[bool] = None) -> Union[Dict[s
     """
     # Reference: https://developer.clickup.com/reference/getdoc
     api = ClickUpAPI()
-    endpoint = f"/doc/{doc_id}"
+    endpoint = f"/v3/workspaces/{workspace_id}/docs/{doc_id}" # Switched to /v3 
     params = {}
     if include_content is not None:
         params["include_content"] = str(include_content).lower()
     return api._make_request("GET", endpoint, params=params)
 
-def get_doc_page_listing(doc_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_doc_page_listing(workspace_id: str, doc_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets a listing of pages within a Doc.
     
     Args:
+        workspace_id (str): The ID of the Workspace (Team).
         doc_id (str): The ID of the Doc.
 
     Returns:
@@ -372,14 +378,15 @@ def get_doc_page_listing(doc_id: str) -> Union[Dict[str, Any], List[Dict[str, An
     """
     # Reference: https://developer.clickup.com/reference/getdocpagelisting
     api = ClickUpAPI()
-    endpoint = f"/doc/{doc_id}/pages/listing"
+    endpoint = f"/v3/workspaces/{workspace_id}/docs/{doc_id}/pages" # Switched to /v3
     return api._make_request("GET", endpoint)
 
-def get_doc_pages(doc_id: str, include_content: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_doc_pages(workspace_id: str, doc_id: str, include_content: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the pages within a Doc, optionally including their content.
     
     Args:
+        workspace_id (str): The ID of the Workspace (Team).
         doc_id (str): The ID of the Doc.
         include_content (Optional[bool]): Whether to include the content of the pages (optional).
 
@@ -388,17 +395,19 @@ def get_doc_pages(doc_id: str, include_content: Optional[bool] = None) -> Union[
     """
     # Reference: https://developer.clickup.com/reference/getdocpages
     api = ClickUpAPI()
-    endpoint = f"/doc/{doc_id}/pages"
+    # Endpoint is the same as get_doc_page_listing in V3, content controlled by param
+    endpoint = f"/v3/workspaces/{workspace_id}/docs/{doc_id}/pages" # Switched to /v3
     params = {}
     if include_content is not None:
         params["include_content"] = str(include_content).lower()
     return api._make_request("GET", endpoint, params=params)
 
-def get_page(page_id: str, include_content: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_page(workspace_id: str, page_id: str, include_content: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details about a specific page within a Doc.
     
     Args:
+        workspace_id (str): The ID of the Workspace (Team).
         page_id (str): The ID of the page.
         include_content (Optional[bool]): Whether to include the content of the page (optional).
 
@@ -407,7 +416,7 @@ def get_page(page_id: str, include_content: Optional[bool] = None) -> Union[Dict
     """
     # Reference: https://developer.clickup.com/reference/getpage
     api = ClickUpAPI()
-    endpoint = f"/page/{page_id}"
+    endpoint = f"/v3/workspaces/{workspace_id}/pages/{page_id}" # Switched to /v3
     params = {}
     if include_content is not None:
         params["include_content"] = str(include_content).lower()
@@ -427,7 +436,7 @@ def get_folders(space_id: str, archived: Optional[bool] = False) -> Union[Dict[s
     """
     # Reference: https://developer.clickup.com/reference/getfolders
     api = ClickUpAPI()
-    endpoint = f"/space/{space_id}/folder"
+    endpoint = f"/v2/space/{space_id}/folder"
     params = {"archived": str(archived).lower()}
     return api._make_request("GET", endpoint, params=params)
 
@@ -443,7 +452,7 @@ def get_folder(folder_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     # Reference: https://developer.clickup.com/reference/getfolder
     api = ClickUpAPI()
-    endpoint = f"/folder/{folder_id}"
+    endpoint = f"/v2/folder/{folder_id}"
     return api._make_request("GET", endpoint)
 
 # --- Goals ---
@@ -460,7 +469,7 @@ def get_goals(team_id: str, include_completed: Optional[bool] = None) -> Union[D
     """
     # Reference: https://developer.clickup.com/reference/getgoals
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/goal"
+    endpoint = f"/v2/team/{team_id}/goal"
     params = {}
     if include_completed is not None:
         params["include_completed"] = str(include_completed).lower()
@@ -478,7 +487,7 @@ def get_goal(goal_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     # Reference: https://developer.clickup.com/reference/getgoal
     api = ClickUpAPI()
-    endpoint = f"/goal/{goal_id}"
+    endpoint = f"/v2/goal/{goal_id}"
     return api._make_request("GET", endpoint)
 
 # --- Guests ---
@@ -495,7 +504,7 @@ def get_guest(team_id: str, guest_id: int) -> Union[Dict[str, Any], List[Dict[st
     """
     # Reference: https://developer.clickup.com/reference/getguest
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/guest/{guest_id}"
+    endpoint = f"/v2/team/{team_id}/guest/{guest_id}"
     return api._make_request("GET", endpoint)
 
 # --- Lists ---
@@ -512,7 +521,7 @@ def get_lists(folder_id: str, archived: Optional[bool] = False) -> Union[Dict[st
     """
     # Reference: https://developer.clickup.com/reference/getlists
     api = ClickUpAPI()
-    endpoint = f"/folder/{folder_id}/list"
+    endpoint = f"/v2/folder/{folder_id}/list"
     params = {"archived": str(archived).lower()}
     return api._make_request("GET", endpoint, params=params)
 
@@ -529,7 +538,7 @@ def get_folderless_lists(space_id: str, archived: Optional[bool] = False) -> Uni
     """
     # Reference: https://developer.clickup.com/reference/getfolderlesslists
     api = ClickUpAPI()
-    endpoint = f"/space/{space_id}/list"
+    endpoint = f"/v2/space/{space_id}/list"
     params = {"archived": str(archived).lower()}
     return api._make_request("GET", endpoint, params=params)
 
@@ -545,7 +554,7 @@ def get_list(list_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     # Reference: https://developer.clickup.com/reference/getlist
     api = ClickUpAPI()
-    endpoint = f"/list/{list_id}"
+    endpoint = f"/v2/list/{list_id}"
     return api._make_request("GET", endpoint)
 
 # --- Members ---
@@ -561,7 +570,7 @@ def get_task_members(task_id: str) -> Union[List[Dict[str, Any]], Dict[str, Any]
     """
     # Reference: https://developer.clickup.com/reference/gettaskmembers
     api = ClickUpAPI()
-    endpoint = f"/task/{task_id}/member"
+    endpoint = f"/v2/task/{task_id}/member"
     response = api._make_request("GET", endpoint)
     # Check for error dict before accessing 'members'
     if isinstance(response, dict) and "error_code" in response:
@@ -580,7 +589,7 @@ def get_list_members(list_id: str) -> Union[List[Dict[str, Any]], Dict[str, Any]
     """
     # Reference: https://developer.clickup.com/reference/getlistmembers
     api = ClickUpAPI()
-    endpoint = f"/list/{list_id}/member"
+    endpoint = f"/v2/list/{list_id}/member"
     response = api._make_request("GET", endpoint)
     # Check for error dict before accessing 'members'
     if isinstance(response, dict) and "error_code" in response:
@@ -600,7 +609,7 @@ def get_shared_hierarchy(team_id: str) -> Union[Dict[str, Any], List[Dict[str, A
     """
     # Reference: https://developer.clickup.com/reference/sharedhierarchy
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/shared"
+    endpoint = f"/v2/team/{team_id}/shared"
     return api._make_request("GET", endpoint)
 
 # --- Spaces ---
@@ -617,7 +626,7 @@ def get_spaces(team_id: str, archived: Optional[bool] = False) -> Union[Dict[str
     """
     # Reference: https://developer.clickup.com/reference/getspaces
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/space"
+    endpoint = f"/v2/team/{team_id}/space"
     params = {"archived": str(archived).lower()}
     return api._make_request("GET", endpoint, params=params)
 
@@ -633,7 +642,7 @@ def get_space(space_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     # Reference: https://developer.clickup.com/reference/getspace
     api = ClickUpAPI()
-    endpoint = f"/space/{space_id}"
+    endpoint = f"/v2/space/{space_id}"
     return api._make_request("GET", endpoint)
 
 # --- Tags ---
@@ -649,7 +658,7 @@ def get_space_tags(space_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]
     """
     # Reference: https://developer.clickup.com/reference/getspacetags
     api = ClickUpAPI()
-    endpoint = f"/space/{space_id}/tag"
+    endpoint = f"/v2/space/{space_id}/tag"
     return api._make_request("GET", endpoint)
 
 # --- Tasks ---
@@ -704,7 +713,7 @@ def get_tasks(list_id: str, archived: Optional[bool] = False,
     """
     # Reference: https://developer.clickup.com/reference/gettasks
     api = ClickUpAPI()
-    endpoint = f"/list/{list_id}/task"
+    endpoint = f"/v2/list/{list_id}/task"
     params = {"archived": str(archived).lower()}
     if include_markdown_description is not None:
         params["include_markdown_description"] = str(include_markdown_description).lower()
@@ -782,7 +791,7 @@ def get_task(task_id: str, include_subtasks: Optional[bool] = None,
     if include_markdown_description is not None:
         params["include_markdown_description"] = str(include_markdown_description).lower()
 
-    endpoint = f"/task/{task_id}"
+    endpoint = f"/v2/task/{task_id}"
 
     if custom_task_ids:
         if not team_id:
@@ -841,7 +850,7 @@ def get_filtered_team_tasks(team_id: str, page: Optional[int] = None,
     """
     # Reference: https://developer.clickup.com/reference/getfilteredteamtasks
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/task"
+    endpoint = f"/v2/team/{team_id}/task"
     params = {}
     if page is not None:
         params["page"] = page
@@ -906,7 +915,7 @@ def get_task_time_in_status(task_id: str, custom_task_ids: Optional[bool] = None
     """
     # Reference: https://developer.clickup.com/reference/gettaskstimeinstatus
     api = ClickUpAPI()
-    endpoint = f"/task/{task_id}/time_in_status"
+    endpoint = f"/v2/task/{task_id}/time_in_status"
     params = {}
     if custom_task_ids:
         if not team_id:
@@ -931,7 +940,7 @@ def get_bulk_tasks_time_in_status(task_ids: List[str], custom_task_ids: Optional
     """
     # Reference: https://developer.clickup.com/reference/getbulktaskstimeinstatus
     api = ClickUpAPI()
-    endpoint = "/task/bulk_time_in_status/task_ids"
+    endpoint = "/v2/task/bulk_time_in_status/task_ids"
     params = {"task_ids": task_ids}
     if custom_task_ids:
          if not team_id:
@@ -958,7 +967,7 @@ def get_task_templates(team_id: str, page: int, space_id: Optional[int] = None) 
     """
     # Reference: https://developer.clickup.com/reference/gettasktemplates
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/template"
+    endpoint = f"/v2/team/{team_id}/template"
     params: Dict[str, Any] = {"page": page}
     if space_id is not None:
         params["space_id"] = space_id
@@ -994,7 +1003,7 @@ def get_time_entries(team_id: str, start_date: Optional[int] = None,
     """
     # Reference: https://developer.clickup.com/reference/gettimeentrieswithinadaterange
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/time_entries"
+    endpoint = f"/v2/team/{team_id}/time_entries"
     params: Dict[str, Any] = {}
     if start_date is not None:
         params["start_date"] = start_date
@@ -1039,7 +1048,7 @@ def get_singular_time_entry(team_id: str, timer_id: str, include_task_tags: Opti
     """
     # Reference: https://developer.clickup.com/reference/getsingulartimeentry
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/time_entries/{timer_id}"
+    endpoint = f"/v2/team/{team_id}/time_entries/{timer_id}"
     params = {}
     if include_task_tags is not None:
         params["include_task_tags"] = str(include_task_tags).lower()
@@ -1060,7 +1069,7 @@ def get_time_entry_history(team_id: str, timer_id: str) -> Union[Dict[str, Any],
     """
     # Reference: https://developer.clickup.com/reference/gettimeentryhistory
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/time_entries/{timer_id}/history"
+    endpoint = f"/v2/team/{team_id}/time_entries/{timer_id}/history"
     return api._make_request("GET", endpoint)
 
 def get_running_time_entry(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
@@ -1075,7 +1084,7 @@ def get_running_time_entry(team_id: str) -> Union[Dict[str, Any], List[Dict[str,
     """
     # Reference: https://developer.clickup.com/reference/getrunningtimeentry
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/time_entries/current"
+    endpoint = f"/v2/team/{team_id}/time_entries/current"
     return api._make_request("GET", endpoint)
 
 def get_all_time_entry_tags(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
@@ -1090,7 +1099,7 @@ def get_all_time_entry_tags(team_id: str) -> Union[Dict[str, Any], List[Dict[str
     """
     # Reference: https://developer.clickup.com/reference/getalltagsfromtimeentries
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/time_entries/tags"
+    endpoint = f"/v2/team/{team_id}/time_entries/tags"
     return api._make_request("GET", endpoint)
 
 # --- Users ---
@@ -1107,7 +1116,7 @@ def get_user(team_id: str, user_id: int) -> Union[Dict[str, Any], List[Dict[str,
     """
     # Reference: https://developer.clickup.com/reference/getuser
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/user/{user_id}"
+    endpoint = f"/v2/team/{team_id}/user/{user_id}"
     return api._make_request("GET", endpoint)
 
 # --- Views ---
@@ -1123,7 +1132,7 @@ def get_team_views(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     # Reference: https://developer.clickup.com/reference/getteamviews
     api = ClickUpAPI()
-    endpoint = f"/team/{team_id}/view"
+    endpoint = f"/v2/team/{team_id}/view"
     return api._make_request("GET", endpoint)
 
 def get_space_views(space_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
@@ -1138,7 +1147,7 @@ def get_space_views(space_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]
     """
     # Reference: https://developer.clickup.com/reference/getspaceviews
     api = ClickUpAPI()
-    endpoint = f"/space/{space_id}/view"
+    endpoint = f"/v2/space/{space_id}/view"
     return api._make_request("GET", endpoint)
 
 def get_folder_views(folder_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
@@ -1153,7 +1162,7 @@ def get_folder_views(folder_id: str) -> Union[Dict[str, Any], List[Dict[str, Any
     """
     # Reference: https://developer.clickup.com/reference/getfolderviews
     api = ClickUpAPI()
-    endpoint = f"/folder/{folder_id}/view"
+    endpoint = f"/v2/folder/{folder_id}/view"
     return api._make_request("GET", endpoint)
 
 def get_list_views(list_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
@@ -1168,7 +1177,7 @@ def get_list_views(list_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     # Reference: https://developer.clickup.com/reference/getlistviews
     api = ClickUpAPI()
-    endpoint = f"/list/{list_id}/view"
+    endpoint = f"/v2/list/{list_id}/view"
     return api._make_request("GET", endpoint)
 
 def get_view(view_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
@@ -1183,7 +1192,7 @@ def get_view(view_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     # Reference: https://developer.clickup.com/reference/getview
     api = ClickUpAPI()
-    endpoint = f"/view/{view_id}"
+    endpoint = f"/v2/view/{view_id}"
     return api._make_request("GET", endpoint)
 
 def get_view_tasks(view_id: str, page: Optional[int] = 0, include_closed: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
@@ -1200,7 +1209,7 @@ def get_view_tasks(view_id: str, page: Optional[int] = 0, include_closed: Option
     """
     # Reference: https://developer.clickup.com/reference/getviewtasks
     api = ClickUpAPI()
-    endpoint = f"/view/{view_id}/task"
+    endpoint = f"/v2/view/{view_id}/task"
     params = {}
     if page is not None: # API default is 0
          params["page"] = page
@@ -1230,7 +1239,7 @@ def get_chat_channels(team_id: str, with_members: Optional[bool] = None,
     """
     # Reference: https://developer.clickup.com/reference/getchatchannels
     api = ClickUpAPI()
-    endpoint = "/channel"
+    endpoint = "/v2/channel"
     params = {"team_id": team_id}
     if with_members is not None:
         params["with_members"] = str(with_members).lower()
@@ -1261,7 +1270,7 @@ def get_chat_channel(channel_id: str, with_members: Optional[bool] = None,
     """
     # Reference: https://developer.clickup.com/reference/getchatchannel
     api = ClickUpAPI()
-    endpoint = f"/channel/{channel_id}"
+    endpoint = f"/v2/channel/{channel_id}"
     params = {}
     if with_members is not None:
         params["with_members"] = str(with_members).lower()
@@ -1282,7 +1291,7 @@ def get_chat_channel_followers(channel_id: str, continuation: Optional[str] = No
     """
     # Reference: https://developer.clickup.com/reference/getchatchannelfollowers
     api = ClickUpAPI()
-    endpoint = f"/channel/{channel_id}/follower"
+    endpoint = f"/v2/channel/{channel_id}/follower"
     params = {}
     if continuation:
         params["continuation"] = continuation
@@ -1301,7 +1310,7 @@ def get_chat_channel_members(channel_id: str, continuation: Optional[str] = None
     """
     # Reference: https://developer.clickup.com/reference/getchatchannelmembers
     api = ClickUpAPI()
-    endpoint = f"/channel/{channel_id}/member"
+    endpoint = f"/v2/channel/{channel_id}/member"
     params = {}
     if continuation:
         params["continuation"] = continuation
@@ -1329,7 +1338,7 @@ def get_chat_messages(channel_id: str, before_message_id: Optional[str] = None,
     """
     # Reference: https://developer.clickup.com/reference/getchatmessages
     api = ClickUpAPI()
-    endpoint = f"/channel/{channel_id}/message"
+    endpoint = f"/v2/channel/{channel_id}/message"
     params: Dict[str, Any] = {}
     if before_message_id:
         params["before_message_id"] = before_message_id
@@ -1362,7 +1371,7 @@ def get_message_reactions(message_id: str, user_id: Optional[int] = None,
     """
     # Reference: https://developer.clickup.com/reference/getchatmessagereactions
     api = ClickUpAPI()
-    endpoint = f"/message/{message_id}/reaction"
+    endpoint = f"/v2/message/{message_id}/reaction"
     params = {}
     if user_id is not None:
         params["user_id"] = user_id
@@ -1391,7 +1400,7 @@ def get_message_replies(message_id: str, include_deleted: Optional[bool] = None,
     """
     # Reference: https://developer.clickup.com/reference/getchatmessagereplies
     api = ClickUpAPI()
-    endpoint = f"/message/{message_id}/reply"
+    endpoint = f"/v2/message/{message_id}/reply"
     params: Dict[str, Any] = {}
     if include_deleted is not None:
         params["include_deleted"] = str(include_deleted).lower()
@@ -1419,5 +1428,5 @@ def get_tagged_users_for_message(message_id: str) -> Union[Dict[str, Any], List[
     """
     # Reference: https://developer.clickup.com/reference/getchatmessagetaggedusers
     api = ClickUpAPI()
-    endpoint = f"/message/{message_id}/tagged_user"
+    endpoint = f"/v2/message/{message_id}/tagged_user"
     return api._make_request("GET", endpoint)
