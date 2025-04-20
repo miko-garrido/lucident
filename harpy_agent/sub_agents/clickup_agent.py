@@ -4,12 +4,22 @@ from google.genai import types # For creating message Content/Parts
 from dotenv import load_dotenv  
 from config import Config
 from ..tools.clickup_tools import (
-    get_clickup_tasks, get_clickup_task_details, get_clickup_comments,
-    get_clickup_user_tasks, get_clickup_time_entries, 
-    get_clickup_list_members, get_clickup_task_members, get_clickup_subtasks,
-    get_clickup_teams, get_clickup_team_members,
-    get_clickup_spaces, get_clickup_folders, get_clickup_lists,
-    find_clickup_users
+    get_task_comments, get_chat_view_comments, get_list_comments,
+    get_threaded_comments, get_custom_task_types, get_list_custom_fields,
+    get_folder_available_custom_fields, get_space_available_custom_fields,
+    get_team_available_custom_fields, search_docs, get_doc, get_doc_page_listing,
+    get_doc_pages, get_page, get_folders, get_folder, get_goals, get_goal,
+    get_guest, get_lists, get_folderless_lists, get_list, get_task_members,
+    get_list_members, get_shared_hierarchy, get_spaces, get_space,
+    get_space_tags, get_tasks, get_task, get_filtered_team_tasks,
+    get_task_time_in_status, get_bulk_tasks_time_in_status,
+    get_task_templates, get_time_entries, get_singular_time_entry,
+    get_time_entry_history, get_running_time_entry, get_all_time_entry_tags,
+    get_user, get_team_views, get_space_views, get_folder_views,
+    get_list_views, get_view, get_view_tasks, get_chat_channels,
+    get_chat_channel, get_chat_channel_followers, get_chat_channel_members,
+    get_chat_messages, get_message_reactions, get_message_replies,
+    get_tagged_users_for_message
 )
 from harpy_agent.tools.basic_tools import (
     get_current_time,
@@ -41,11 +51,21 @@ clickup_agent = Agent(
             "Can create, update, delete, and query various ClickUp entities."
         ),
         tools=[
-            get_clickup_tasks, get_clickup_task_details, get_clickup_comments,
-            get_clickup_user_tasks, get_clickup_time_entries, 
-            get_clickup_list_members, get_clickup_task_members, get_clickup_subtasks,
-            get_clickup_teams, get_clickup_team_members,
-            get_clickup_spaces, get_clickup_folders, get_clickup_lists,
-            find_clickup_users, get_current_time, calculate, calculate_date
+            get_task_comments, get_chat_view_comments, get_list_comments,
+            get_threaded_comments, get_custom_task_types, get_list_custom_fields,
+            get_folder_available_custom_fields, get_space_available_custom_fields,
+            get_team_available_custom_fields, search_docs, get_doc, get_doc_page_listing,
+            get_doc_pages, get_page, get_folders, get_folder, get_goals, get_goal,
+            get_guest, get_lists, get_folderless_lists, get_list, get_task_members,
+            get_list_members, get_shared_hierarchy, get_spaces, get_space,
+            get_space_tags, get_tasks, get_task, get_filtered_team_tasks,
+            get_task_time_in_status, get_bulk_tasks_time_in_status,
+            get_task_templates, get_time_entries, get_singular_time_entry,
+            get_time_entry_history, get_running_time_entry, get_all_time_entry_tags,
+            get_user, get_team_views, get_space_views, get_folder_views,
+            get_list_views, get_view, get_view_tasks, get_chat_channels,
+            get_chat_channel, get_chat_channel_followers, get_chat_channel_members,
+            get_chat_messages, get_message_reactions, get_message_replies,
+            get_tagged_users_for_message, get_current_time, calculate, calculate_date
         ],
     )
