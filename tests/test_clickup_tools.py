@@ -38,8 +38,8 @@ TEST_TASK_ID = "86ertcmf5"
 TEST_TASK_WITH_COMMENTS_ID = "86ertcmf5" # Task known to have comments
 TEST_PARENT_TASK_ID = "86et65e20" # Task known to have subtasks
 TEST_COMMENT_ID = "90180108845811" # For get_threaded_comments
-TEST_USERNAME = "miko@dorxata.com" # For _get_user_id tests (indirectly used)
-TEST_USER_ID = 18765432 # Replace with a real user ID (integer) for get_user
+TEST_USERNAME = "josh@dorxata.com" # For _get_user_id tests (indirectly used)
+TEST_USER_ID = 3833265 # Replace with a real user ID (integer) for get_user
 TEST_TEAM_ID = "3723297" # Your Workspace/Team ID
 TEST_SPACE_ID = "43795741"
 TEST_FOLDER_ID = "90184491751"
@@ -47,8 +47,8 @@ TEST_VIEW_ID = "Y6-42119681-1"
 TEST_DOC_ID = "3hm11-2595"
 TEST_PAGE_ID = "3hm11-9105"
 TEST_GOAL_ID = "1"
-TEST_GUEST_ID = 9876543 # Replace with a real guest ID (integer) if applicable
-TEST_TIMER_ID = "YOUR_REAL_TIMER_ID" # For time entry history/details
+TEST_GUEST_ID = 3455671 # Replace with a real guest ID (integer) if applicable
+TEST_TIMER_ID = "4492931707339476846" # For time entry history/details
 TEST_CHANNEL_ID = "3hm11-57378"
 TEST_MESSAGE_ID = "80180002933247"
 
@@ -390,7 +390,7 @@ def test_find_clickup_users_live():
 # Adapted test for user tasks using get_filtered_team_tasks
 def test_get_filtered_team_tasks_for_user_live():
     """Test get_filtered_team_tasks retrieves tasks for a specific user ID."""
-    if not TEST_USER_ID or TEST_USER_ID == 18765432: # Check if placeholder is used
+    if not TEST_USER_ID or TEST_USER_ID == 3833265: # Check if placeholder is used (updated ID)
         pytest.skip("TEST_USER_ID not set to a real value.")
     if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
         pytest.skip("TEST_TEAM_ID not set.")
@@ -591,7 +591,7 @@ def test_get_user_live():
     """Test get_user retrieves details for a specific user."""
     if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
         pytest.skip("TEST_TEAM_ID not set.")
-    if not TEST_USER_ID or TEST_USER_ID == 18765432: # Placeholder ID
+    if not TEST_USER_ID or TEST_USER_ID == 3833265: # Placeholder ID (updated ID)
         pytest.skip("TEST_USER_ID not set to a real value.")
 
     rate_limit_delay()
@@ -871,7 +871,7 @@ def test_get_guest_live():
     """Test get_guest retrieves information about a specific guest user."""
     if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
         pytest.skip("TEST_TEAM_ID not set.")
-    if not TEST_GUEST_ID or TEST_GUEST_ID == 9876543: # Placeholder ID
+    if not TEST_GUEST_ID or TEST_GUEST_ID == 3455671: # Placeholder ID
         pytest.skip("TEST_GUEST_ID not set to a real value.")
 
     rate_limit_delay()
