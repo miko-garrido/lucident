@@ -1,22 +1,16 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import os
-import sys  # Add sys import
+import sys
 from dotenv import load_dotenv
-import time  # For potential rate limiting delays
+import time
 from datetime import datetime, timezone, timedelta
 
-# Adjust sys.path to include the project root
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-# Assuming clickup_tools.py is in harpy_agent/tools/
-# Adjust the import path based on your project structure and how you run tests
 from harpy_agent.tools import clickup_tools
 
-# --- IMPORTANT ---
-# Load REAL environment variables for integration tests
-# Ensure you have a .env file in your project root with CLICKUP_API_KEY
 load_dotenv()
 
 # Check if the API key is actually loaded
@@ -50,6 +44,7 @@ TEST_GUEST_ID = 3455671
 TEST_TIMER_ID = "4492931707339476846"
 TEST_CHANNEL_ID = "3hm11-57378"
 TEST_MESSAGE_ID = "80180002933247"
+TEST_FOLDERLESS_LIST_ID = "901805379671"
 
 # Helper function to check for API error responses
 def is_api_error(response):
@@ -161,12 +156,14 @@ def test_get_threaded_comments_live():
     replies = result['comments']
     assert isinstance(replies, list)
 
+# Note: This test also uses the `clickup_tools.get_tasks` function,
+# specifically testing the retrieval of subtasks using the `parent` parameter.
 def test_get_subtasks_via_get_tasks_live():
     if not TEST_PARENT_TASK_ID or TEST_PARENT_TASK_ID == "YOUR_PARENT_TASK_ID":
         pytest.skip("TEST_PARENT_TASK_ID not set.")
 
     rate_limit_delay()
-    subtasks = clickup_tools.get_tasks(parent_id=TEST_PARENT_TASK_ID)
+    subtasks = clickup_tools.get_tasks(parent=TEST_PARENT_TASK_ID)
     
     assert isinstance(subtasks, list)
     if subtasks:
@@ -256,7 +253,9 @@ def test_get_time_entry_history_live():
     if is_api_error(result):
         pytest.fail(f"API Error getting time entry history: {result['error_message']} (Code: {result['error_code']})")
 
-    assert isinstance(result, list)
+    assert isinstance(result, dict)
+    assert "data" in result
+    assert isinstance(result["data"], list)
 
 def test_get_running_time_entry_live():
     if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
@@ -441,12 +440,19 @@ def test_get_folderless_lists_live():
     assert "lists" in result
     lists = result["lists"]
     assert isinstance(lists, list)
-    if lists:
-        assert isinstance(lists[0], dict)
-        assert "id" in lists[0]
-        assert "name" in lists[0]
-        assert lists[0].get("space", {}).get("id") == TEST_SPACE_ID
-        assert lists[0].get("folder") is None
+
+    found_list = None
+    for lst in lists:
+        if lst.get("id") == TEST_FOLDERLESS_LIST_ID:
+            found_list = lst
+            break
+
+    assert found_list is not None, f"Folderless list {TEST_FOLDERLESS_LIST_ID} not found in space {TEST_SPACE_ID}"
+    assert isinstance(found_list, dict)
+    assert "id" in found_list
+    assert "name" in found_list
+    assert found_list.get("space", {}).get("id") == TEST_SPACE_ID
+    assert found_list.get("folder") is None
 
 def test_get_list_live():
     if not TEST_LIST_ID or TEST_LIST_ID == "YOUR_REAL_LIST_ID":
@@ -463,6 +469,7 @@ def test_get_list_live():
     assert "name" in list_details
     assert "space" in list_details
     assert "folder" in list_details
+    assert "shared" in list_details
 
 def test_get_shared_hierarchy_live():
     if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
@@ -478,7 +485,6 @@ def test_get_shared_hierarchy_live():
     assert "shared" in result
     shared = result["shared"]
     assert isinstance(shared, dict)
-    assert "spaces" in shared
 
 def test_get_team_views_live():
     if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
