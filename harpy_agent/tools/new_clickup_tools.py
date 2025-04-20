@@ -140,8 +140,16 @@ class ClickUpAPI:
 def get_task_comments(task_id: str, start: Optional[int] = None, start_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets comments for a specific task.
-    Returns a dictionary containing the list of comments or an error dictionary.
+    
+    Args:
+        task_id (str): The ID of the task to get comments for.
+        start (Optional[int]): The timestamp (Unix time in ms) to start fetching comments from (optional).
+        start_id (Optional[str]): The comment ID to fetch comments after (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of comments.
     """
+    # Reference: https://developer.clickup.com/reference/gettaskcomments
     api = ClickUpAPI()
     endpoint = f"/task/{task_id}/comment"
     params = {}
@@ -154,8 +162,16 @@ def get_task_comments(task_id: str, start: Optional[int] = None, start_id: Optio
 def get_chat_view_comments(view_id: str, start: Optional[int] = None, start_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets comments from a Chat view.
-    Returns a dictionary containing the list of comments or an error dictionary.
+    
+    Args:
+        view_id (str): The ID of the Chat view.
+        start (Optional[int]): The timestamp (Unix time in ms) to start fetching comments from (optional).
+        start_id (Optional[str]): The comment ID to fetch comments after (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of comments for the chat view.
     """
+    # Reference: https://developer.clickup.com/reference/getchatviewcomments
     api = ClickUpAPI()
     endpoint = f"/view/{view_id}/comment"
     params = {}
@@ -168,8 +184,16 @@ def get_chat_view_comments(view_id: str, start: Optional[int] = None, start_id: 
 def get_list_comments(list_id: str, start: Optional[int] = None, start_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets comments for a specific list.
-    Returns a dictionary containing the list of comments or an error dictionary.
+    
+    Args:
+        list_id (str): The ID of the list.
+        start (Optional[int]): The timestamp (Unix time in ms) to start fetching comments from (optional).
+        start_id (Optional[str]): The comment ID to fetch comments after (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of comments for the list.
     """
+    # Reference: https://developer.clickup.com/reference/getlistcomments
     api = ClickUpAPI()
     endpoint = f"/list/{list_id}/comment"
     params = {}
@@ -181,9 +205,15 @@ def get_list_comments(list_id: str, start: Optional[int] = None, start_id: Optio
 
 def get_threaded_comments(comment_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
-    Gets replies to a specific comment thread.
-    Returns a dictionary containing the list of threaded replies or an error dictionary.
+    Gets replies to a specific comment thread. Requires the comment ID of the parent comment.
+    
+    Args:
+        comment_id (str): The ID of the parent comment.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of threaded replies.
     """
+    # Reference: https://developer.clickup.com/reference/getthreadedcomments
     api = ClickUpAPI()
     endpoint = f"/comment/{comment_id}/comments"
     return api._make_request("GET", endpoint)
@@ -192,8 +222,14 @@ def get_threaded_comments(comment_id: str) -> Union[Dict[str, Any], List[Dict[st
 def get_custom_task_types(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the Custom Task Types available in a Workspace.
-    Returns a dictionary containing the custom task types or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the custom task types.
     """
+    # Reference: https://developer.clickup.com/reference/getcustomitems
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/custom_item"
     return api._make_request("GET", endpoint)
@@ -202,8 +238,14 @@ def get_custom_task_types(team_id: str) -> Union[Dict[str, Any], List[Dict[str, 
 def get_list_custom_fields(list_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the Custom Fields available for a specific List.
-    Returns a dictionary containing the list of custom fields or an error dictionary.
+    
+    Args:
+        list_id (str): The ID of the List.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of custom fields for the list.
     """
+    # Reference: https://developer.clickup.com/reference/getaccessiblecustomfields
     api = ClickUpAPI()
     endpoint = f"/list/{list_id}/field"
     return api._make_request("GET", endpoint)
@@ -211,8 +253,14 @@ def get_list_custom_fields(list_id: str) -> Union[Dict[str, Any], List[Dict[str,
 def get_folder_available_custom_fields(folder_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the available Custom Fields for a Folder.
-    Returns a dictionary containing the list of custom fields or an error dictionary.
+    
+    Args:
+        folder_id (str): The ID of the Folder.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of custom fields for the folder.
     """
+    # Reference: https://developer.clickup.com/reference/getfolderavailablefields
     api = ClickUpAPI()
     endpoint = f"/folder/{folder_id}/field"
     return api._make_request("GET", endpoint)
@@ -220,8 +268,14 @@ def get_folder_available_custom_fields(folder_id: str) -> Union[Dict[str, Any], 
 def get_space_available_custom_fields(space_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the available Custom Fields for a Space.
-    Returns a dictionary containing the list of custom fields or an error dictionary.
+    
+    Args:
+        space_id (str): The ID of the Space.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of custom fields for the space.
     """
+    # Reference: https://developer.clickup.com/reference/getspaceavailablefields
     api = ClickUpAPI()
     endpoint = f"/space/{space_id}/field"
     return api._make_request("GET", endpoint)
@@ -229,8 +283,14 @@ def get_space_available_custom_fields(space_id: str) -> Union[Dict[str, Any], Li
 def get_team_available_custom_fields(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the available Custom Fields for a Workspace (Team).
-    Returns a dictionary containing the list of custom fields or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of custom fields for the workspace.
     """
+    # Reference: https://developer.clickup.com/reference/getteamavailablefields
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/field"
     return api._make_request("GET", endpoint)
@@ -243,8 +303,23 @@ def search_docs(team_id: str, query: str, include_content: Optional[bool] = None
                  page_ids: Optional[List[str]] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Searches for Docs within a Workspace.
-    Returns a dictionary containing the search results or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+        query (str): The search query string.
+        include_content (Optional[bool]): Whether to include the content of the Docs (optional).
+        include_locations (Optional[bool]): Whether to include location information (optional).
+        owner_ids (Optional[List[int]]): Filter by owner user IDs (optional).
+        location_ids (Optional[List[int]]): Filter by location IDs (Space, Folder, List) (optional).
+        location_type (Optional[str]): Filter by location type ('space', 'folder', 'list') (optional).
+        parent_ids (Optional[List[int]]): Filter by parent Doc IDs (optional).
+        doc_ids (Optional[List[str]]): Filter by specific Doc IDs (optional).
+        page_ids (Optional[List[str]]): Filter by specific Page IDs (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the search results for Docs.
     """
+    # Reference: https://developer.clickup.com/reference/searchdocs
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/docs"
     params = {"query": query}
@@ -269,8 +344,15 @@ def search_docs(team_id: str, query: str, include_content: Optional[bool] = None
 def get_doc(doc_id: str, include_content: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details about a specific Doc.
-    Returns a dictionary containing the Doc details or an error dictionary.
+    
+    Args:
+        doc_id (str): The ID of the Doc.
+        include_content (Optional[bool]): Whether to include the content of the Doc (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the Doc details.
     """
+    # Reference: https://developer.clickup.com/reference/getdoc
     api = ClickUpAPI()
     endpoint = f"/doc/{doc_id}"
     params = {}
@@ -281,8 +363,14 @@ def get_doc(doc_id: str, include_content: Optional[bool] = None) -> Union[Dict[s
 def get_doc_page_listing(doc_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets a listing of pages within a Doc.
-    Returns a dictionary containing the page listing or an error dictionary.
+    
+    Args:
+        doc_id (str): The ID of the Doc.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the page listing for the Doc.
     """
+    # Reference: https://developer.clickup.com/reference/getdocpagelisting
     api = ClickUpAPI()
     endpoint = f"/doc/{doc_id}/pages/listing"
     return api._make_request("GET", endpoint)
@@ -290,8 +378,15 @@ def get_doc_page_listing(doc_id: str) -> Union[Dict[str, Any], List[Dict[str, An
 def get_doc_pages(doc_id: str, include_content: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the pages within a Doc, optionally including their content.
-    Returns a dictionary containing the pages or an error dictionary.
+    
+    Args:
+        doc_id (str): The ID of the Doc.
+        include_content (Optional[bool]): Whether to include the content of the pages (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the pages within the Doc.
     """
+    # Reference: https://developer.clickup.com/reference/getdocpages
     api = ClickUpAPI()
     endpoint = f"/doc/{doc_id}/pages"
     params = {}
@@ -302,8 +397,15 @@ def get_doc_pages(doc_id: str, include_content: Optional[bool] = None) -> Union[
 def get_page(page_id: str, include_content: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details about a specific page within a Doc.
-    Returns a dictionary containing the page details or an error dictionary.
+    
+    Args:
+        page_id (str): The ID of the page.
+        include_content (Optional[bool]): Whether to include the content of the page (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the page details.
     """
+    # Reference: https://developer.clickup.com/reference/getpage
     api = ClickUpAPI()
     endpoint = f"/page/{page_id}"
     params = {}
@@ -315,8 +417,15 @@ def get_page(page_id: str, include_content: Optional[bool] = None) -> Union[Dict
 def get_folders(space_id: str, archived: Optional[bool] = False) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets Folders within a specific Space.
-    Returns a dictionary containing the list of Folders or an error dictionary.
+    
+    Args:
+        space_id (str): The ID of the Space.
+        archived (Optional[bool]): Whether to include archived Folders (default: False).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of Folders.
     """
+    # Reference: https://developer.clickup.com/reference/getfolders
     api = ClickUpAPI()
     endpoint = f"/space/{space_id}/folder"
     params = {"archived": str(archived).lower()}
@@ -325,8 +434,14 @@ def get_folders(space_id: str, archived: Optional[bool] = False) -> Union[Dict[s
 def get_folder(folder_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details about a specific Folder.
-    Returns a dictionary containing the Folder details or an error dictionary.
+    
+    Args:
+        folder_id (str): The ID of the Folder.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the Folder details.
     """
+    # Reference: https://developer.clickup.com/reference/getfolder
     api = ClickUpAPI()
     endpoint = f"/folder/{folder_id}"
     return api._make_request("GET", endpoint)
@@ -335,8 +450,15 @@ def get_folder(folder_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
 def get_goals(team_id: str, include_completed: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets Goals from a Workspace.
-    Returns a dictionary containing the list of Goals or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+        include_completed (Optional[bool]): Whether to include completed Goals (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of Goals.
     """
+    # Reference: https://developer.clickup.com/reference/getgoals
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/goal"
     params = {}
@@ -347,8 +469,14 @@ def get_goals(team_id: str, include_completed: Optional[bool] = None) -> Union[D
 def get_goal(goal_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details about a specific Goal.
-    Returns a dictionary containing the Goal details or an error dictionary.
+    
+    Args:
+        goal_id (str): The ID of the Goal.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the Goal details.
     """
+    # Reference: https://developer.clickup.com/reference/getgoal
     api = ClickUpAPI()
     endpoint = f"/goal/{goal_id}"
     return api._make_request("GET", endpoint)
@@ -357,8 +485,15 @@ def get_goal(goal_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
 def get_guest(team_id: str, guest_id: int) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets information about a specific Guest in a Workspace.
-    Returns a dictionary containing the Guest details or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+        guest_id (int): The ID of the Guest user.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the Guest details.
     """
+    # Reference: https://developer.clickup.com/reference/getguest
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/guest/{guest_id}"
     return api._make_request("GET", endpoint)
@@ -367,8 +502,15 @@ def get_guest(team_id: str, guest_id: int) -> Union[Dict[str, Any], List[Dict[st
 def get_lists(folder_id: str, archived: Optional[bool] = False) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets Lists within a specific Folder.
-    Returns a dictionary containing the list of Lists or an error dictionary.
+    
+    Args:
+        folder_id (str): The ID of the Folder.
+        archived (Optional[bool]): Whether to include archived Lists (default: False).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of Lists in the Folder.
     """
+    # Reference: https://developer.clickup.com/reference/getlists
     api = ClickUpAPI()
     endpoint = f"/folder/{folder_id}/list"
     params = {"archived": str(archived).lower()}
@@ -377,8 +519,15 @@ def get_lists(folder_id: str, archived: Optional[bool] = False) -> Union[Dict[st
 def get_folderless_lists(space_id: str, archived: Optional[bool] = False) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets Lists in a Space that are not contained within any Folder.
-    Returns a dictionary containing the list of folderless Lists or an error dictionary.
+    
+    Args:
+        space_id (str): The ID of the Space.
+        archived (Optional[bool]): Whether to include archived Lists (default: False).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of folderless Lists in the Space.
     """
+    # Reference: https://developer.clickup.com/reference/getfolderlesslists
     api = ClickUpAPI()
     endpoint = f"/space/{space_id}/list"
     params = {"archived": str(archived).lower()}
@@ -387,8 +536,14 @@ def get_folderless_lists(space_id: str, archived: Optional[bool] = False) -> Uni
 def get_list(list_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details about a specific List.
-    Returns a dictionary containing the List details or an error dictionary.
+    
+    Args:
+        list_id (str): The ID of the List.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the List details.
     """
+    # Reference: https://developer.clickup.com/reference/getlist
     api = ClickUpAPI()
     endpoint = f"/list/{list_id}"
     return api._make_request("GET", endpoint)
@@ -397,8 +552,14 @@ def get_list(list_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
 def get_task_members(task_id: str) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
     """
     Gets members (users) assigned to or associated with a task.
-    Returns a list of member dictionaries or an error dictionary.
+    
+    Args:
+        task_id (str): The ID of the task.
+
+    Returns:
+        List[Dict[str, Any]]: A list of dictionaries, each representing a member associated with the task.
     """
+    # Reference: https://developer.clickup.com/reference/gettaskmembers
     api = ClickUpAPI()
     endpoint = f"/task/{task_id}/member"
     response = api._make_request("GET", endpoint)
@@ -410,8 +571,14 @@ def get_task_members(task_id: str) -> Union[List[Dict[str, Any]], Dict[str, Any]
 def get_list_members(list_id: str) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
     """
     Gets members (users) who have access to a specific List.
-    Returns a list of member dictionaries or an error dictionary.
+    
+    Args:
+        list_id (str): The ID of the List.
+
+    Returns:
+        List[Dict[str, Any]]: A list of dictionaries, each representing a member with access to the list.
     """
+    # Reference: https://developer.clickup.com/reference/getlistmembers
     api = ClickUpAPI()
     endpoint = f"/list/{list_id}/member"
     response = api._make_request("GET", endpoint)
@@ -424,8 +591,14 @@ def get_list_members(list_id: str) -> Union[List[Dict[str, Any]], Dict[str, Any]
 def get_shared_hierarchy(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the shared hierarchy for the authorized user in a Workspace.
-    Returns a dictionary containing the shared hierarchy details or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the shared hierarchy details.
     """
+    # Reference: https://developer.clickup.com/reference/sharedhierarchy
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/shared"
     return api._make_request("GET", endpoint)
@@ -434,8 +607,15 @@ def get_shared_hierarchy(team_id: str) -> Union[Dict[str, Any], List[Dict[str, A
 def get_spaces(team_id: str, archived: Optional[bool] = False) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets Spaces within a specific Workspace.
-    Returns a dictionary containing the list of Spaces or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+        archived (Optional[bool]): Whether to include archived Spaces (default: False).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of Spaces.
     """
+    # Reference: https://developer.clickup.com/reference/getspaces
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/space"
     params = {"archived": str(archived).lower()}
@@ -444,8 +624,14 @@ def get_spaces(team_id: str, archived: Optional[bool] = False) -> Union[Dict[str
 def get_space(space_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details about a specific Space.
-    Returns a dictionary containing the Space details or an error dictionary.
+    
+    Args:
+        space_id (str): The ID of the Space.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the Space details.
     """
+    # Reference: https://developer.clickup.com/reference/getspace
     api = ClickUpAPI()
     endpoint = f"/space/{space_id}"
     return api._make_request("GET", endpoint)
@@ -454,8 +640,14 @@ def get_space(space_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
 def get_space_tags(space_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets Tags available in a specific Space.
-    Returns a dictionary containing the list of tags or an error dictionary.
+    
+    Args:
+        space_id (str): The ID of the Space.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of tags for the Space.
     """
+    # Reference: https://developer.clickup.com/reference/getspacetags
     api = ClickUpAPI()
     endpoint = f"/space/{space_id}/tag"
     return api._make_request("GET", endpoint)
@@ -478,8 +670,39 @@ def get_tasks(list_id: str, archived: Optional[bool] = False,
               ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets tasks from a specific List, with extensive filtering options.
-    Returns a dictionary containing the list of tasks or an error dictionary.
+    
+    Args:
+        list_id (str): The ID of the List to get tasks from.
+        archived (Optional[bool]): Whether to include archived tasks (default: False).
+        include_markdown_description (Optional[bool]): Return description in Markdown format (optional).
+        page (Optional[int]): Page number for pagination (optional).
+        order_by (Optional[str]): Field to order tasks by (e.g., 'due_date', 'priority') (optional).
+        reverse (Optional[bool]): Reverse the order of tasks (optional).
+        subtasks (Optional[bool]): Include subtasks (true), exclude subtasks (false), or include both tasks and subtasks ('true_all') (optional).
+        space_ids (Optional[List[str]]): Filter by Space IDs (optional).
+        project_ids (Optional[List[str]]): Filter by Folder IDs (previously Projects) (optional).
+        list_ids (Optional[List[str]]): Filter by List IDs (optional).
+        statuses (Optional[List[str]]): Filter by task statuses (case-insensitive) (optional).
+        include_closed (Optional[bool]): Include closed tasks (optional).
+        assignees (Optional[List[str]]): Filter by assignee user IDs (optional).
+        tags (Optional[List[str]]): Filter by tag names (optional).
+        due_date_gt (Optional[int]): Filter by due date greater than (Unix time in ms) (optional).
+        due_date_lt (Optional[int]): Filter by due date less than (Unix time in ms) (optional).
+        date_created_gt (Optional[int]): Filter by creation date greater than (Unix time in ms) (optional).
+        date_created_lt (Optional[int]): Filter by creation date less than (Unix time in ms) (optional).
+        date_updated_gt (Optional[int]): Filter by update date greater than (Unix time in ms) (optional).
+        date_updated_lt (Optional[int]): Filter by update date less than (Unix time in ms) (optional).
+        date_done_gt (Optional[int]): Filter by completion date greater than (Unix time in ms) (optional).
+        date_done_lt (Optional[int]): Filter by completion date less than (Unix time in ms) (optional).
+        custom_fields (Optional[str]): Filter by custom fields (JSON string) (optional). Example: '[{"field_id":"...", "operator":"=", "value":"..."}]'
+        custom_items (Optional[List[int]]): Filter by Custom Task Types (provide IDs) (optional).
+        parent (Optional[str]): Filter by parent task ID (optional).
+        include_subtasks (Optional[bool]): Deprecated alias for `subtasks` (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of tasks matching the criteria.
     """
+    # Reference: https://developer.clickup.com/reference/gettasks
     api = ClickUpAPI()
     endpoint = f"/list/{list_id}/task"
     params = {"archived": str(archived).lower()}
@@ -540,8 +763,18 @@ def get_task(task_id: str, include_subtasks: Optional[bool] = None,
              include_markdown_description: Optional[bool] = None, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details about a specific task.
-    Returns a dictionary containing the task details or an error dictionary.
+    
+    Args:
+        task_id (str): The ID of the task (can be the canonical ID or custom task ID).
+        include_subtasks (Optional[bool]): Include subtasks in the response (optional).
+        include_markdown_description (Optional[bool]): Return description in Markdown format (optional).
+        custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires team_id. (optional)
+        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. (optional)
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the task details.
     """
+    # Reference: https://developer.clickup.com/reference/gettask
     api = ClickUpAPI()
     params = {}
     if include_subtasks is not None:
@@ -575,9 +808,38 @@ def get_filtered_team_tasks(team_id: str, page: Optional[int] = None,
                              parent: Optional[str] = None, include_markdown_description: Optional[bool] = None
                              ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
-    Gets tasks for a Workspace (Team), filtered by various criteria.
-    Returns a dictionary containing the list of tasks or an error dictionary.
+    Gets tasks for a Workspace (Team), filtered by various criteria. Similar to get_tasks but workspace-wide.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+        page (Optional[int]): Page number for pagination (optional).
+        order_by (Optional[str]): Field to order tasks by (e.g., 'due_date', 'priority') (optional).
+        reverse (Optional[bool]): Reverse the order of tasks (optional).
+        subtasks (Optional[bool]): Include subtasks (true), exclude subtasks (false), or include both tasks and subtasks ('true_all') (optional).
+        space_ids (Optional[List[str]]): Filter by Space IDs (optional).
+        project_ids (Optional[List[str]]): Filter by Folder IDs (previously Projects) (optional).
+        list_ids (Optional[List[str]]): Filter by List IDs (optional).
+        statuses (Optional[List[str]]): Filter by task statuses (case-insensitive) (optional).
+        include_closed (Optional[bool]): Include closed tasks (optional).
+        assignees (Optional[List[str]]): Filter by assignee user IDs (optional).
+        tags (Optional[List[str]]): Filter by tag names (optional).
+        due_date_gt (Optional[int]): Filter by due date greater than (Unix time in ms) (optional).
+        due_date_lt (Optional[int]): Filter by due date less than (Unix time in ms) (optional).
+        date_created_gt (Optional[int]): Filter by creation date greater than (Unix time in ms) (optional).
+        date_created_lt (Optional[int]): Filter by creation date less than (Unix time in ms) (optional).
+        date_updated_gt (Optional[int]): Filter by update date greater than (Unix time in ms) (optional).
+        date_updated_lt (Optional[int]): Filter by update date less than (Unix time in ms) (optional).
+        date_done_gt (Optional[int]): Filter by completion date greater than (Unix time in ms) (optional).
+        date_done_lt (Optional[int]): Filter by completion date less than (Unix time in ms) (optional).
+        custom_fields (Optional[str]): Filter by custom fields (JSON string) (optional). Example: '[{"field_id":"...", "operator":"=", "value":"..."}]'
+        custom_items (Optional[List[int]]): Filter by Custom Task Types (provide IDs) (optional).
+        parent (Optional[str]): Filter by parent task ID (optional).
+        include_markdown_description (Optional[bool]): Return description in Markdown format (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of tasks matching the criteria for the workspace.
     """
+    # Reference: https://developer.clickup.com/reference/getfilteredteamtasks
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/task"
     params = {}
@@ -633,8 +895,16 @@ def get_filtered_team_tasks(team_id: str, page: Optional[int] = None,
 def get_task_time_in_status(task_id: str, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the time spent by a task in each status.
-    Returns a dictionary containing the time in status details or an error dictionary.
+    
+    Args:
+        task_id (str): The ID of the task (can be the canonical ID or custom task ID).
+        custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires team_id. (optional)
+        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. (optional)
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the time in status details for the task.
     """
+    # Reference: https://developer.clickup.com/reference/gettaskstimeinstatus
     api = ClickUpAPI()
     endpoint = f"/task/{task_id}/time_in_status"
     params = {}
@@ -650,8 +920,16 @@ def get_task_time_in_status(task_id: str, custom_task_ids: Optional[bool] = None
 def get_bulk_tasks_time_in_status(task_ids: List[str], custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the time spent in status for multiple tasks.
-    Returns a dictionary containing the time in status details or an error dictionary.
+    
+    Args:
+        task_ids (List[str]): A list of task IDs (canonical or custom).
+        custom_task_ids (Optional[bool]): If true, treats task_ids as custom task IDs. Requires team_id. (optional)
+        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. (optional)
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the time in status details for the specified tasks.
     """
+    # Reference: https://developer.clickup.com/reference/getbulktaskstimeinstatus
     api = ClickUpAPI()
     endpoint = "/task/bulk_time_in_status/task_ids"
     params = {"task_ids": task_ids}
@@ -668,8 +946,17 @@ def get_bulk_tasks_time_in_status(task_ids: List[str], custom_task_ids: Optional
 def get_task_templates(team_id: str, page: int, space_id: Optional[int] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets task templates for a Workspace.
-    Returns a dictionary containing the list of task templates or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+        page (int): Page number for pagination (templates are returned 100 at a time).
+        space_id (Optional[int]): Optional Space ID to filter templates. If provided, only templates available
+                  to the specific Space are returned. Otherwise, Workspace-level templates are returned.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of task templates.
     """
+    # Reference: https://developer.clickup.com/reference/gettasktemplates
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/template"
     params: Dict[str, Any] = {"page": page}
@@ -687,8 +974,25 @@ def get_time_entries(team_id: str, start_date: Optional[int] = None,
                      ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets time entries within a date range for a Workspace (Team).
-    Returns a dictionary containing the list of time entries or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+        start_date (Optional[int]): Start timestamp (Unix time in ms) (optional).
+        end_date (Optional[int]): End timestamp (Unix time in ms) (optional).
+        assignee (Optional[str]): Filter by user ID(s) (comma-separated string or list) (optional).
+        include_task_tags (Optional[bool]): Include task tags in the response (optional).
+        include_location_names (Optional[bool]): Include Folder and List names (optional).
+        space_id (Optional[str]): Filter by Space ID (optional).
+        folder_id (Optional[str]): Filter by Folder ID (optional).
+        list_id (Optional[str]): Filter by List ID (optional).
+        task_id (Optional[str]): Filter by Task ID (canonical or custom) (optional).
+        custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires task_team_id. (optional)
+        task_team_id (Optional[str]): The Workspace (Team) ID for the custom task ID lookup. Required if custom_task_ids is true and task_id is provided. (optional)
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of time entries matching the criteria.
     """
+    # Reference: https://developer.clickup.com/reference/gettimeentrieswithinadaterange
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/time_entries"
     params: Dict[str, Any] = {}
@@ -723,8 +1027,17 @@ def get_singular_time_entry(team_id: str, timer_id: str, include_task_tags: Opti
                             include_location_names: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details for a specific time entry.
-    Returns a dictionary containing the details or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+        timer_id (str): The ID of the time entry (timer_id).
+        include_task_tags (Optional[bool]): Include task tags in the response (optional).
+        include_location_names (Optional[bool]): Include Folder and List names (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the details of the specified time entry.
     """
+    # Reference: https://developer.clickup.com/reference/getsingulartimeentry
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/time_entries/{timer_id}"
     params = {}
@@ -737,17 +1050,30 @@ def get_singular_time_entry(team_id: str, timer_id: str, include_task_tags: Opti
 def get_time_entry_history(team_id: str, timer_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the history of changes for a specific time entry.
-    Returns a dictionary containing the history or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+        timer_id (str): The ID of the time entry.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the history of the specified time entry.
     """
+    # Reference: https://developer.clickup.com/reference/gettimeentryhistory
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/time_entries/{timer_id}/history"
     return api._make_request("GET", endpoint)
 
 def get_running_time_entry(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
-    Gets the currently running time entry for the authorized user.
-    Returns a dictionary containing the running time entry or an error dictionary.
+    Gets the currently running time entry for the authorized user in a Workspace.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the details of the running time entry, or an empty dict if none.
     """
+    # Reference: https://developer.clickup.com/reference/getrunningtimeentry
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/time_entries/current"
     return api._make_request("GET", endpoint)
@@ -755,8 +1081,14 @@ def get_running_time_entry(team_id: str) -> Union[Dict[str, Any], List[Dict[str,
 def get_all_time_entry_tags(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets all tags used in time entries for a Workspace.
-    Returns a dictionary containing the list of tags or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of all time entry tags.
     """
+    # Reference: https://developer.clickup.com/reference/getalltagsfromtimeentries
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/time_entries/tags"
     return api._make_request("GET", endpoint)
@@ -765,8 +1097,15 @@ def get_all_time_entry_tags(team_id: str) -> Union[Dict[str, Any], List[Dict[str
 def get_user(team_id: str, user_id: int) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets information about a specific user in a Workspace.
-    Returns a dictionary containing the user details or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+        user_id (int): The ID of the user.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the user details.
     """
+    # Reference: https://developer.clickup.com/reference/getuser
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/user/{user_id}"
     return api._make_request("GET", endpoint)
@@ -775,8 +1114,14 @@ def get_user(team_id: str, user_id: int) -> Union[Dict[str, Any], List[Dict[str,
 def get_team_views(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets "Everything" level views (Workspace views).
-    Returns a dictionary containing the list of Workspace views or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of Workspace views.
     """
+    # Reference: https://developer.clickup.com/reference/getteamviews
     api = ClickUpAPI()
     endpoint = f"/team/{team_id}/view"
     return api._make_request("GET", endpoint)
@@ -784,8 +1129,14 @@ def get_team_views(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
 def get_space_views(space_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets views available in a specific Space.
-    Returns a dictionary containing the list of Space views or an error dictionary.
+    
+    Args:
+        space_id (str): The ID of the Space.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of Space views.
     """
+    # Reference: https://developer.clickup.com/reference/getspaceviews
     api = ClickUpAPI()
     endpoint = f"/space/{space_id}/view"
     return api._make_request("GET", endpoint)
@@ -793,8 +1144,14 @@ def get_space_views(space_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]
 def get_folder_views(folder_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets views available in a specific Folder.
-    Returns a dictionary containing the list of Folder views or an error dictionary.
+    
+    Args:
+        folder_id (str): The ID of the Folder.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of Folder views.
     """
+    # Reference: https://developer.clickup.com/reference/getfolderviews
     api = ClickUpAPI()
     endpoint = f"/folder/{folder_id}/view"
     return api._make_request("GET", endpoint)
@@ -802,8 +1159,14 @@ def get_folder_views(folder_id: str) -> Union[Dict[str, Any], List[Dict[str, Any
 def get_list_views(list_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets views available in a specific List.
-    Returns a dictionary containing the list of List views or an error dictionary.
+    
+    Args:
+        list_id (str): The ID of the List.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of List views.
     """
+    # Reference: https://developer.clickup.com/reference/getlistviews
     api = ClickUpAPI()
     endpoint = f"/list/{list_id}/view"
     return api._make_request("GET", endpoint)
@@ -811,8 +1174,14 @@ def get_list_views(list_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
 def get_view(view_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details about a specific view.
-    Returns a dictionary containing the view details or an error dictionary.
+    
+    Args:
+        view_id (str): The ID of the view.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the view details.
     """
+    # Reference: https://developer.clickup.com/reference/getview
     api = ClickUpAPI()
     endpoint = f"/view/{view_id}"
     return api._make_request("GET", endpoint)
@@ -820,8 +1189,16 @@ def get_view(view_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
 def get_view_tasks(view_id: str, page: Optional[int] = 0, include_closed: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets tasks that are visible in a specific view.
-    Returns a dictionary containing the list of tasks or an error dictionary.
+    
+    Args:
+        view_id (str): The ID of the view.
+        page (Optional[int]): Page number for pagination (starts at 0) (optional).
+        include_closed (Optional[bool]): Include closed tasks filter override (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of tasks in the view.
     """
+    # Reference: https://developer.clickup.com/reference/getviewtasks
     api = ClickUpAPI()
     endpoint = f"/view/{view_id}/task"
     params = {}
@@ -838,8 +1215,20 @@ def get_chat_channels(team_id: str, with_members: Optional[bool] = None,
                       continuation: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Retrieves chat channels for a Workspace.
-    Returns a dictionary containing the list of chat channels or an error dictionary.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team).
+        with_members (Optional[bool]): Include channel member list (optional).
+        with_last_message (Optional[bool]): Include the last message sent (optional).
+        types (Optional[List[str]]): Filter by channel types ('location', 'direct', 'group') (optional).
+        filter_unread (Optional[bool]): Only return channels with unread messages (optional).
+        filter_mentions (Optional[bool]): Only return channels with mentions (optional).
+        continuation (Optional[str]): Pagination token from previous response (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of chat channels.
     """
+    # Reference: https://developer.clickup.com/reference/getchatchannels
     api = ClickUpAPI()
     endpoint = "/channel"
     params = {"team_id": team_id}
@@ -861,8 +1250,16 @@ def get_chat_channel(channel_id: str, with_members: Optional[bool] = None,
                      with_last_message: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details for a specific chat channel.
-    Returns a dictionary containing the chat channel details or an error dictionary.
+    
+    Args:
+        channel_id (str): The ID of the chat channel.
+        with_members (Optional[bool]): Include channel member list (optional).
+        with_last_message (Optional[bool]): Include the last message sent (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the chat channel details.
     """
+    # Reference: https://developer.clickup.com/reference/getchatchannel
     api = ClickUpAPI()
     endpoint = f"/channel/{channel_id}"
     params = {}
@@ -875,8 +1272,15 @@ def get_chat_channel(channel_id: str, with_members: Optional[bool] = None,
 def get_chat_channel_followers(channel_id: str, continuation: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the followers of a specific chat channel.
-    Returns a dictionary containing the list of channel followers or an error dictionary.
+    
+    Args:
+        channel_id (str): The ID of the chat channel.
+        continuation (Optional[str]): Pagination token from previous response (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of channel followers.
     """
+    # Reference: https://developer.clickup.com/reference/getchatchannelfollowers
     api = ClickUpAPI()
     endpoint = f"/channel/{channel_id}/follower"
     params = {}
@@ -887,8 +1291,15 @@ def get_chat_channel_followers(channel_id: str, continuation: Optional[str] = No
 def get_chat_channel_members(channel_id: str, continuation: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the members of a specific chat channel.
-    Returns a dictionary containing the list of channel members or an error dictionary.
+    
+    Args:
+        channel_id (str): The ID of the chat channel.
+        continuation (Optional[str]): Pagination token from previous response (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of channel members.
     """
+    # Reference: https://developer.clickup.com/reference/getchatchannelmembers
     api = ClickUpAPI()
     endpoint = f"/channel/{channel_id}/member"
     params = {}
@@ -902,8 +1313,21 @@ def get_chat_messages(channel_id: str, before_message_id: Optional[str] = None,
                       reverse: Optional[bool] = None, limit: Optional[int] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Retrieves messages from a specific chat channel.
-    Returns a dictionary containing the list of chat messages or an error dictionary.
+    
+    Args:
+        channel_id (str): The ID of the chat channel.
+        before_message_id (Optional[str]): Get messages before this ID (optional).
+        after_message_id (Optional[str]): Get messages after this ID (optional).
+        include_deleted (Optional[bool]): Include deleted messages (optional).
+        include_reactions (Optional[bool]): Include reactions for each message (optional).
+        include_replies (Optional[bool]): Include reply details for each message (optional).
+        reverse (Optional[bool]): Retrieve messages in reverse chronological order (optional).
+        limit (Optional[int]): Number of messages to retrieve (max 100) (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of chat messages.
     """
+    # Reference: https://developer.clickup.com/reference/getchatmessages
     api = ClickUpAPI()
     endpoint = f"/channel/{channel_id}/message"
     params: Dict[str, Any] = {}
@@ -927,8 +1351,16 @@ def get_message_reactions(message_id: str, user_id: Optional[int] = None,
                           continuation: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets reactions for a specific chat message.
-    Returns a dictionary containing the list of reactions or an error dictionary.
+    
+    Args:
+        message_id (str): The ID of the chat message.
+        user_id (Optional[int]): Filter reactions by a specific user ID (optional).
+        continuation (Optional[str]): Pagination token from previous response (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of reactions for the message.
     """
+    # Reference: https://developer.clickup.com/reference/getchatmessagereactions
     api = ClickUpAPI()
     endpoint = f"/message/{message_id}/reaction"
     params = {}
@@ -944,8 +1376,20 @@ def get_message_replies(message_id: str, include_deleted: Optional[bool] = None,
                         continuation: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Retrieves replies to a specific chat message.
-    Returns a dictionary containing the list of replies or an error dictionary.
+    
+    Args:
+        message_id (str): The ID of the parent chat message.
+        include_deleted (Optional[bool]): Include deleted replies (optional).
+        include_reactions (Optional[bool]): Include reactions for each reply (optional).
+        include_replies (Optional[bool]): Include nested reply details (optional).
+        reverse (Optional[bool]): Retrieve replies in reverse chronological order (optional).
+        limit (Optional[int]): Number of replies to retrieve (max 100) (optional).
+        continuation (Optional[str]): Pagination token from previous response (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of replies for the message.
     """
+    # Reference: https://developer.clickup.com/reference/getchatmessagereplies
     api = ClickUpAPI()
     endpoint = f"/message/{message_id}/reply"
     params: Dict[str, Any] = {}
@@ -966,8 +1410,14 @@ def get_message_replies(message_id: str, include_deleted: Optional[bool] = None,
 def get_tagged_users_for_message(message_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets users tagged (mentioned) in a specific chat message.
-    Returns a dictionary containing the list of tagged users or an error dictionary.
+    
+    Args:
+        message_id (str): The ID of the chat message.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the list of tagged users.
     """
+    # Reference: https://developer.clickup.com/reference/getchatmessagetaggedusers
     api = ClickUpAPI()
     endpoint = f"/message/{message_id}/tagged_user"
     return api._make_request("GET", endpoint)
