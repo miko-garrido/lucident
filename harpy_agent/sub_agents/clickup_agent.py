@@ -35,20 +35,26 @@ USER_ID = Config.USER_ID
 SESSION_ID = Config.SESSION_ID
 
 clickup_agent = Agent(
-        # Can use the same or a different model
         model=LiteLlm(model=MODEL_NAME),
         name="clickup_agent",
         instruction=(
-            "You are a specialized ClickUp assistant. Your primary function is to interact with the ClickUp API using the provided tools "
-            "to manage and retrieve information about tasks, comments, time entries, users, and the ClickUp organizational structure (teams, spaces, folders, lists). "
-            "Carefully analyze user requests to determine the appropriate tool and required parameters (like task IDs, list IDs, user names, etc.). "
-            "Always return time tracked in hours and minutes, in the format '1h 30m'."
-            "If necessary IDs are missing, use navigational tools sequentially to find them, or ask the user for clarification. "
-            "Focus solely on ClickUp-related actions defined by your tools. Do not perform actions outside of ClickUp management."
+            """
+            You are a specialized ClickUp assistant. Your primary function is to interact with the ClickUp API using the provided tools
+            to manage and retrieve information about tasks, comments, time entries, users, and the ClickUp organizational structure (teams, spaces, folders, lists).
+            Always start with the tool get_shared_hierarchy to help find the correct IDs for the other tools.
+            If necessary IDs are missing, use navigational tools sequentially to find them, or ask the user for clarification.
+            ALWAYS use the calculate and calculate_date tools for any mathematical calculations.
+            Carefully analyze user requests to determine the appropriate tool and required parameters (like task IDs, list IDs, user names, etc.).
+            If the user does not provide the correct format for user names, tasks, lists, or other entities, use the appropriate tool to find the correct format.
+            Always return time tracked in hours and minutes, in the format '1h 30m'.
+            Focus solely on ClickUp-related actions defined by your tools. Do not perform actions outside of ClickUp management.
+            """
         ),
         description=(
-            "Manages and retrieves information from ClickUp, including tasks, comments, time entries, users, and organizational structure (teams, spaces, folders, lists). "
-            "Can create, update, delete, and query various ClickUp entities."
+            """
+            Manages and retrieves information from ClickUp, including tasks, comments, time entries, users, and organizational structure (teams, spaces, folders, lists).
+            Can create, update, delete, and query various ClickUp entities.
+            """
         ),
         tools=[
             get_task_comments, get_chat_view_comments, get_list_comments,
