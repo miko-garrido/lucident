@@ -216,7 +216,7 @@ def get_threaded_comments(comment_id: str) -> Union[Dict[str, Any], List[Dict[st
     """
     # Reference: https://developer.clickup.com/reference/getthreadedcomments
     api = ClickUpAPI()
-    endpoint = f"/v2/comment/{comment_id}/comments"
+    endpoint = f"/v2/comment/{comment_id}/reply" # Changed from /comments to /reply
     return api._make_request("GET", endpoint)
 
 # --- Custom Task Types ---
@@ -322,9 +322,11 @@ def search_docs(team_id: str, query: str, include_content: Optional[bool] = None
     """
     # Reference: https://developer.clickup.com/reference/searchdocs 
     api = ClickUpAPI()
-    # Using V3 endpoint structure
-    endpoint = f"/v3/workspaces/{team_id}/docs/search" # Switched to /v3 
-    params = {"query": query}
+    # Using V3 endpoint structure - changed from /docs/search
+    endpoint = f"/v3/workspaces/{team_id}/docs"
+    params = {}
+    if query:
+        params["search"] = query # Changed from "query": query
     if include_content is not None:
         params["include_content"] = str(include_content).lower()
     if include_locations is not None:
@@ -365,7 +367,7 @@ def get_doc(workspace_id: str, doc_id: str, include_content: Optional[bool] = No
         params["include_content"] = str(include_content).lower()
     return api._make_request("GET", endpoint, params=params)
 
-def get_doc_page_listing(workspace_id: str, doc_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_doc_page_listing(workspace_id: str, doc_id: str) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
     """
     Gets a listing of pages within a Doc.
     
@@ -374,14 +376,14 @@ def get_doc_page_listing(workspace_id: str, doc_id: str) -> Union[Dict[str, Any]
         doc_id (str): The ID of the Doc.
 
     Returns:
-        Dict[str, Any]: A dictionary containing the page listing for the Doc.
+        Union[List[Dict[str, Any]], Dict[str, Any]]: A list containing page listings, or an error dictionary.
     """
     # Reference: https://developer.clickup.com/reference/getdocpagelisting
     api = ClickUpAPI()
     endpoint = f"/v3/workspaces/{workspace_id}/docs/{doc_id}/pages" # Switched to /v3
     return api._make_request("GET", endpoint)
 
-def get_doc_pages(workspace_id: str, doc_id: str, include_content: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_doc_pages(workspace_id: str, doc_id: str, include_content: Optional[bool] = None) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
     """
     Gets the pages within a Doc, optionally including their content.
     
@@ -391,7 +393,7 @@ def get_doc_pages(workspace_id: str, doc_id: str, include_content: Optional[bool
         include_content (Optional[bool]): Whether to include the content of the pages (optional).
 
     Returns:
-        Dict[str, Any]: A dictionary containing the pages within the Doc.
+        Union[List[Dict[str, Any]], Dict[str, Any]]: A list containing the pages, or an error dictionary.
     """
     # Reference: https://developer.clickup.com/reference/getdocpages
     api = ClickUpAPI()
@@ -402,24 +404,25 @@ def get_doc_pages(workspace_id: str, doc_id: str, include_content: Optional[bool
         params["include_content"] = str(include_content).lower()
     return api._make_request("GET", endpoint, params=params)
 
-def get_page(workspace_id: str, page_id: str, include_content: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_page(workspace_id: str, doc_id: str, page_id: str, content_format: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details about a specific page within a Doc.
     
     Args:
         workspace_id (str): The ID of the Workspace (Team).
+        doc_id (str): The ID of the parent Doc.
         page_id (str): The ID of the page.
-        include_content (Optional[bool]): Whether to include the content of the page (optional).
+        content_format (Optional[str]): The desired content format (e.g., 'text/html', 'text/md'). Optional.
 
     Returns:
         Dict[str, Any]: A dictionary containing the page details.
     """
     # Reference: https://developer.clickup.com/reference/getpage
     api = ClickUpAPI()
-    endpoint = f"/v3/workspaces/{workspace_id}/pages/{page_id}" # Switched to /v3
+    endpoint = f"/v3/workspaces/{workspace_id}/docs/{doc_id}/pages/{page_id}"
     params = {}
-    if include_content is not None:
-        params["include_content"] = str(include_content).lower()
+    if content_format is not None:
+        params["content_format"] = content_format
     return api._make_request("GET", endpoint, params=params)
 
 # --- Folders ---
@@ -967,7 +970,7 @@ def get_task_templates(team_id: str, page: int, space_id: Optional[int] = None) 
     """
     # Reference: https://developer.clickup.com/reference/gettasktemplates
     api = ClickUpAPI()
-    endpoint = f"/v2/team/{team_id}/template"
+    endpoint = f"/v2/team/{team_id}/taskTemplate"
     params: Dict[str, Any] = {"page": page}
     if space_id is not None:
         params["space_id"] = space_id
@@ -1188,7 +1191,7 @@ def get_view(view_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         view_id (str): The ID of the view.
 
     Returns:
-        Dict[str, Any]: A dictionary containing the view details.
+        Dict[str, Any]: A dictionary containing the view details, often nested under a 'view' key, or an error dictionary.
     """
     # Reference: https://developer.clickup.com/reference/getview
     api = ClickUpAPI()
@@ -1239,7 +1242,7 @@ def get_chat_channels(team_id: str, with_members: Optional[bool] = None,
     """
     # Reference: https://developer.clickup.com/reference/getchatchannels
     api = ClickUpAPI()
-    endpoint = "/v2/channel"
+    endpoint = "/v3/channel"
     params = {"team_id": team_id}
     if with_members is not None:
         params["with_members"] = str(with_members).lower()
@@ -1270,7 +1273,7 @@ def get_chat_channel(channel_id: str, with_members: Optional[bool] = None,
     """
     # Reference: https://developer.clickup.com/reference/getchatchannel
     api = ClickUpAPI()
-    endpoint = f"/v2/channel/{channel_id}"
+    endpoint = f"/v3/channel/{channel_id}"
     params = {}
     if with_members is not None:
         params["with_members"] = str(with_members).lower()
@@ -1291,7 +1294,7 @@ def get_chat_channel_followers(channel_id: str, continuation: Optional[str] = No
     """
     # Reference: https://developer.clickup.com/reference/getchatchannelfollowers
     api = ClickUpAPI()
-    endpoint = f"/v2/channel/{channel_id}/follower"
+    endpoint = f"/v3/channel/{channel_id}/follower"
     params = {}
     if continuation:
         params["continuation"] = continuation
@@ -1310,7 +1313,7 @@ def get_chat_channel_members(channel_id: str, continuation: Optional[str] = None
     """
     # Reference: https://developer.clickup.com/reference/getchatchannelmembers
     api = ClickUpAPI()
-    endpoint = f"/v2/channel/{channel_id}/member"
+    endpoint = f"/v3/channel/{channel_id}/member"
     params = {}
     if continuation:
         params["continuation"] = continuation
@@ -1338,7 +1341,7 @@ def get_chat_messages(channel_id: str, before_message_id: Optional[str] = None,
     """
     # Reference: https://developer.clickup.com/reference/getchatmessages
     api = ClickUpAPI()
-    endpoint = f"/v2/channel/{channel_id}/message"
+    endpoint = f"/v3/channel/{channel_id}/message"
     params: Dict[str, Any] = {}
     if before_message_id:
         params["before_message_id"] = before_message_id
@@ -1371,7 +1374,7 @@ def get_message_reactions(message_id: str, user_id: Optional[int] = None,
     """
     # Reference: https://developer.clickup.com/reference/getchatmessagereactions
     api = ClickUpAPI()
-    endpoint = f"/v2/message/{message_id}/reaction"
+    endpoint = f"/v3/message/{message_id}/reaction"
     params = {}
     if user_id is not None:
         params["user_id"] = user_id
@@ -1400,7 +1403,7 @@ def get_message_replies(message_id: str, include_deleted: Optional[bool] = None,
     """
     # Reference: https://developer.clickup.com/reference/getchatmessagereplies
     api = ClickUpAPI()
-    endpoint = f"/v2/message/{message_id}/reply"
+    endpoint = f"/v3/message/{message_id}/reply"
     params: Dict[str, Any] = {}
     if include_deleted is not None:
         params["include_deleted"] = str(include_deleted).lower()
@@ -1428,5 +1431,5 @@ def get_tagged_users_for_message(message_id: str) -> Union[Dict[str, Any], List[
     """
     # Reference: https://developer.clickup.com/reference/getchatmessagetaggedusers
     api = ClickUpAPI()
-    endpoint = f"/v2/message/{message_id}/tagged_user"
+    endpoint = f"/v3/message/{message_id}/tagged_user"
     return api._make_request("GET", endpoint)

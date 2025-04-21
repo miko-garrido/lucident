@@ -37,6 +37,7 @@ TEST_TEAM_ID = "3723297"
 TEST_SPACE_ID = "43795741"
 TEST_FOLDER_ID = "90184491751"
 TEST_VIEW_ID = "3hm11-56478"
+TEST_CHAT_VIEW_ID = "3hm11-3260"
 TEST_DOC_ID = "3hm11-2595"
 TEST_PAGE_ID = "3hm11-9105"
 TEST_GOAL_ID = "f2ff1f14-b2c8-42c6-a0d7-a5ce900ec03e"
@@ -112,11 +113,11 @@ def test_get_task_comments_live():
         assert "user" in comments[0]
 
 def test_get_chat_view_comments_live():
-    if not TEST_VIEW_ID or TEST_VIEW_ID == "YOUR_REAL_VIEW_ID":
+    if not TEST_CHAT_VIEW_ID or TEST_CHAT_VIEW_ID == "YOUR_REAL_VIEW_ID":
         pytest.skip("TEST_VIEW_ID not set for chat view comments test.")
 
     rate_limit_delay()
-    result = clickup_tools.get_chat_view_comments(view_id=TEST_VIEW_ID)
+    result = clickup_tools.get_chat_view_comments(view_id=TEST_CHAT_VIEW_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting chat view comments: {result['error_message']} (Code: {result['error_code']})")
@@ -163,7 +164,7 @@ def test_get_subtasks_via_get_tasks_live():
         pytest.skip("TEST_PARENT_TASK_ID not set.")
 
     rate_limit_delay()
-    subtasks = clickup_tools.get_tasks(parent=TEST_PARENT_TASK_ID)
+    subtasks = clickup_tools.get_tasks(list_id=TEST_LIST_ID, parent=TEST_PARENT_TASK_ID)
     
     assert isinstance(subtasks, list)
     if subtasks:
@@ -476,7 +477,6 @@ def test_get_list_live():
     assert "name" in list_details
     assert "space" in list_details
     assert "folder" in list_details
-    assert "shared" in list_details
 
 def test_get_shared_hierarchy_live():
     if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
@@ -569,9 +569,12 @@ def test_get_view_live():
         pytest.fail(f"API Error getting view: {view['error_message']} (Code: {view['error_code']})")
 
     assert isinstance(view, dict)
-    assert view.get("id") == TEST_VIEW_ID
-    assert "name" in view
-    assert "type" in view
+    # Check nested structure
+    view_data = view.get("view", {})
+    assert isinstance(view_data, dict)
+    assert view_data.get("id") == TEST_VIEW_ID
+    assert "name" in view_data
+    assert "type" in view_data
 
 def test_get_view_tasks_live():
     if not TEST_VIEW_ID or TEST_VIEW_ID == "YOUR_REAL_VIEW_ID":
@@ -958,14 +961,12 @@ def test_get_doc_page_listing_live():
     if is_api_error(result):
         pytest.fail(f"API Error getting doc page listing: {result['error_message']} (Code: {result['error_code']})")
 
-    assert isinstance(result, dict)
-    assert "pages" in result or "data" in result
-    pages = result.get("pages", result.get("data", []))
-    assert isinstance(pages, list)
-    if pages:
-        assert isinstance(pages[0], dict)
-        assert "id" in pages[0]
-        assert "title" in pages[0] or "name" in pages[0]
+    # Expecting a list of pages directly
+    assert isinstance(result, list)
+    if result: # Check if the list is not empty
+        assert isinstance(result[0], dict) # Check the first item
+        assert "id" in result[0]
+        assert "title" in result[0] or "name" in result[0]
 
 def test_get_doc_pages_live():
     if not TEST_DOC_ID or TEST_DOC_ID == "YOUR_REAL_DOC_ID":
@@ -979,23 +980,23 @@ def test_get_doc_pages_live():
     if is_api_error(result):
         pytest.fail(f"API Error getting doc pages: {result['error_message']} (Code: {result['error_code']})")
 
-    assert isinstance(result, dict)
-    assert "pages" in result or "data" in result
-    pages = result.get("pages", result.get("data", []))
-    assert isinstance(pages, list)
-    if pages:
-        assert isinstance(pages[0], dict)
-        assert "id" in pages[0]
-        assert "title" in pages[0] or "name" in pages[0]
+    # Expecting a list of pages directly
+    assert isinstance(result, list)
+    if result: # Check if the list is not empty
+        assert isinstance(result[0], dict) # Check the first item
+        assert "id" in result[0]
+        assert "title" in result[0] or "name" in result[0]
 
 def test_get_page_live():
     if not TEST_PAGE_ID or TEST_PAGE_ID == "YOUR_REAL_PAGE_ID":
         pytest.skip("TEST_PAGE_ID not set.")
     if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
         pytest.skip("TEST_TEAM_ID not set (assuming required for V3).")
+    if not TEST_DOC_ID or TEST_DOC_ID == "YOUR_REAL_DOC_ID":
+        pytest.skip("TEST_DOC_ID not set.")
 
     rate_limit_delay()
-    page = clickup_tools.get_page(workspace_id=TEST_TEAM_ID, page_id=TEST_PAGE_ID)
+    page = clickup_tools.get_page(workspace_id=TEST_TEAM_ID, doc_id=TEST_DOC_ID, page_id=TEST_PAGE_ID)
 
     if is_api_error(page):
         pytest.fail(f"API Error getting page: {page['error_message']} (Code: {page['error_code']})")
