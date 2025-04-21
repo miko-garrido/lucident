@@ -178,8 +178,6 @@ def test_get_subtasks_via_get_tasks_live():
         assert subtasks[0].get("parent") == TEST_PARENT_TASK_ID
 
 def test_get_filtered_team_tasks_for_user_live():
-    if not TEST_USER_ID or TEST_USER_ID == 3833265:
-        pytest.skip("TEST_USER_ID not set to a real value.")
     if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
         pytest.skip("TEST_TEAM_ID not set.")
 
@@ -326,8 +324,6 @@ def test_get_task_members_live():
 def test_get_user_live():
     if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
         pytest.skip("TEST_TEAM_ID not set.")
-    if not TEST_USER_ID or TEST_USER_ID == 3833265:
-        pytest.skip("TEST_USER_ID not set to a real value.")
 
     rate_limit_delay()
     result = clickup_tools.get_user(team_id=TEST_TEAM_ID, user_id=TEST_USER_ID)
@@ -336,8 +332,10 @@ def test_get_user_live():
         pytest.fail(f"API Error getting user: {result['error_message']} (Code: {result['error_code']})")
 
     assert isinstance(result, dict)
-    assert "user" in result
-    user = result["user"]
+    assert "member" in result
+    assert "user" in result["member"]
+    user = result["member"]["user"]
+
     assert isinstance(user, dict)
     assert user.get("id") == TEST_USER_ID
     assert "username" in user
@@ -598,8 +596,6 @@ def test_get_view_tasks_live():
 def test_get_guest_live():
     if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
         pytest.skip("TEST_TEAM_ID not set.")
-    if not TEST_GUEST_ID or TEST_GUEST_ID == 3455671:
-        pytest.skip("TEST_GUEST_ID not set to a real value.")
 
     rate_limit_delay()
     result = clickup_tools.get_guest(team_id=TEST_TEAM_ID, guest_id=TEST_GUEST_ID)
@@ -613,7 +609,6 @@ def test_get_guest_live():
     assert "guest" in result
     guest = result["guest"]
     assert isinstance(guest, dict)
-    assert guest.get("id") == TEST_GUEST_ID
     assert "user" in guest
     assert guest["user"].get("id") == TEST_GUEST_ID
     assert "username" in guest["user"]
@@ -845,8 +840,8 @@ def test_get_custom_task_types_live():
         pytest.fail(f"API Error getting custom task types: {result['error_message']} (Code: {result['error_code']})")
 
     assert isinstance(result, dict)
-    assert "data" in result
-    items = result["data"]
+    assert "custom_items" in result  # Corrected key from 'data'
+    items = result["custom_items"]   # Corrected key from 'data'
     assert isinstance(items, list)
     if items:
         assert isinstance(items[0], dict)
@@ -978,12 +973,14 @@ def test_get_doc_page_listing_live():
     if is_api_error(result):
         pytest.fail(f"API Error getting doc page listing: {result['error_message']} (Code: {result['error_code']})")
 
-    assert isinstance(result, dict)
-    assert "pages" in result
-    pages = result["pages"]
+    # Check if the result is a list (as observed in failure)
+    assert isinstance(result, list)
+    pages = result # Assign the list directly
+
+    # Keep the rest of the assertions on the list content
     assert isinstance(pages, list)
-    if pages: # Check if the list is not empty
-        assert isinstance(pages[0], dict) # Check the first item
+    if pages:
+        assert isinstance(pages[0], dict)
         assert "id" in pages[0]
         assert "title" in pages[0] or "name" in pages[0]
 
@@ -999,12 +996,14 @@ def test_get_doc_pages_live():
     if is_api_error(result):
         pytest.fail(f"API Error getting doc pages: {result['error_message']} (Code: {result['error_code']})")
 
-    assert isinstance(result, dict)
-    assert "pages" in result
-    pages = result["pages"]
+    # Check if the result is a list (as observed in failure)
+    assert isinstance(result, list)
+    pages = result # Assign the list directly
+
+    # Keep the rest of the assertions on the list content
     assert isinstance(pages, list)
-    if pages: # Check if the list is not empty
-        assert isinstance(pages[0], dict) # Check the first item
+    if pages:
+        assert isinstance(pages[0], dict)
         assert "id" in pages[0]
         assert "title" in pages[0] or "name" in pages[0]
 

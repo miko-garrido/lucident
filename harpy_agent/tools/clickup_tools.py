@@ -364,7 +364,7 @@ def get_doc(workspace_id: str, doc_id: str, include_content: Optional[bool] = No
         params["include_content"] = str(include_content).lower()
     return api._make_request("GET", endpoint, params=params)
 
-def get_doc_page_listing(workspace_id: str, doc_id: str) -> Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
+def get_doc_page_listing(workspace_id: str, doc_id: str) -> List[Dict[str, Any]]:
     """
     Gets a listing of pages within a Doc.
     
@@ -373,14 +373,14 @@ def get_doc_page_listing(workspace_id: str, doc_id: str) -> Union[Dict[str, List
         doc_id (str): The ID of the Doc.
 
     Returns:
-        Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]: A dictionary containing page listings under the 'pages' key, or an error dictionary.
+        List[Dict[str, Any]]: A list of dictionaries, each containing page listing details.
     """
     # Reference: https://developer.clickup.com/reference/getdocpagelisting
     api = ClickUpAPI()
     endpoint = f"/v3/workspaces/{workspace_id}/docs/{doc_id}/pages"
     return api._make_request("GET", endpoint)
 
-def get_doc_pages(workspace_id: str, doc_id: str, include_content: Optional[bool] = None) -> Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
+def get_doc_pages(workspace_id: str, doc_id: str, include_content: Optional[bool] = None) -> List[Dict[str, Any]]:
     """
     Gets the pages within a Doc, optionally including their content.
     
@@ -390,7 +390,7 @@ def get_doc_pages(workspace_id: str, doc_id: str, include_content: Optional[bool
         include_content (Optional[bool]): Whether to include the content of the pages (optional).
 
     Returns:
-        Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]: A dictionary containing the list of pages under the "pages" key, or an error dictionary.
+        List[Dict[str, Any]]: A list of dictionaries, each representing a page.
     """
     # Reference: https://developer.clickup.com/reference/getdocpages
     api = ClickUpAPI()
