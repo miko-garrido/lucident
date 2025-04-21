@@ -164,9 +164,13 @@ def test_get_subtasks_via_get_tasks_live():
         pytest.skip("TEST_PARENT_TASK_ID not set.")
 
     rate_limit_delay()
-    subtasks = clickup_tools.get_tasks(list_id=TEST_LIST_ID, parent=TEST_PARENT_TASK_ID)
+    result = clickup_tools.get_tasks(list_id=TEST_LIST_ID, parent=TEST_PARENT_TASK_ID)
     
+    assert isinstance(result, dict)
+    assert "tasks" in result
+    subtasks = result["tasks"]
     assert isinstance(subtasks, list)
+
     if subtasks:
         assert isinstance(subtasks[0], dict)
         assert "id" in subtasks[0]
@@ -699,8 +703,8 @@ def test_get_chat_channels_live():
         pytest.fail(f"API Error getting chat channels: {result['error_message']} (Code: {result['error_code']})")
 
     assert isinstance(result, dict)
-    assert "channels" in result
-    channels = result["channels"]
+    assert "data" in result
+    channels = result["data"]
     assert isinstance(channels, list)
     if channels:
         assert isinstance(channels[0], dict)
@@ -712,107 +716,122 @@ def test_get_chat_channel_live():
         pytest.skip("TEST_CHANNEL_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_chat_channel(channel_id=TEST_CHANNEL_ID)
+    result = clickup_tools.get_chat_channel(team_id=TEST_TEAM_ID, channel_id=TEST_CHANNEL_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting chat channel: {result['error_message']} (Code: {result['error_code']})")
 
     assert isinstance(result, dict)
-    assert result.get("id") == TEST_CHANNEL_ID
-    assert "name" in result
+    assert "data" in result
+    channel_data = result["data"]
+    assert isinstance(channel_data, dict)
+    assert channel_data.get("id") == TEST_CHANNEL_ID
+    assert "name" in channel_data
 
 def test_get_chat_channel_followers_live():
     if not TEST_CHANNEL_ID or TEST_CHANNEL_ID == "YOUR_REAL_CHAT_CHANNEL_ID":
         pytest.skip("TEST_CHANNEL_ID not set.")
+    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+        pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_chat_channel_followers(channel_id=TEST_CHANNEL_ID)
+    result = clickup_tools.get_chat_channel_followers(team_id=TEST_TEAM_ID, channel_id=TEST_CHANNEL_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting channel followers: {result['error_message']} (Code: {result['error_code']})")
 
     assert isinstance(result, dict)
-    assert "followers" in result
-    followers = result["followers"]
+    assert "data" in result
+    followers = result["data"]
     assert isinstance(followers, list)
 
 def test_get_chat_channel_members_live():
     if not TEST_CHANNEL_ID or TEST_CHANNEL_ID == "YOUR_REAL_CHAT_CHANNEL_ID":
         pytest.skip("TEST_CHANNEL_ID not set.")
+    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+        pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_chat_channel_members(channel_id=TEST_CHANNEL_ID)
+    result = clickup_tools.get_chat_channel_members(team_id=TEST_TEAM_ID, channel_id=TEST_CHANNEL_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting chat channel members: {result['error_message']} (Code: {result['error_code']})")
 
     assert isinstance(result, dict)
-    assert "members" in result
-    members = result["members"]
+    assert "data" in result
+    members = result["data"]
     assert isinstance(members, list)
 
-def test_get_chat_messages_live():   
+def test_get_chat_messages_live():
     if not TEST_CHANNEL_ID or TEST_CHANNEL_ID == "YOUR_REAL_CHAT_CHANNEL_ID":
         pytest.skip("TEST_CHANNEL_ID not set.")
+    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+        pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_chat_messages(channel_id=TEST_CHANNEL_ID, limit=10)
+    result = clickup_tools.get_chat_messages(team_id=TEST_TEAM_ID, channel_id=TEST_CHANNEL_ID, limit=10)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting chat messages: {result['error_message']} (Code: {result['error_code']})")
 
     assert isinstance(result, dict)
-    assert "messages" in result
-    messages = result["messages"]
+    assert "data" in result
+    messages = result["data"]
     assert isinstance(messages, list)
     if messages:
         assert isinstance(messages[0], dict)
         assert "id" in messages[0]
-        assert "message" in messages[0]
+        assert "content" in messages[0]
 
 def test_get_message_reactions_live():
     if not TEST_MESSAGE_ID or TEST_MESSAGE_ID == "YOUR_REAL_CHAT_MESSAGE_ID":
         pytest.skip("TEST_MESSAGE_ID not set.")
+    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+        pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_message_reactions(message_id=TEST_MESSAGE_ID)
+    result = clickup_tools.get_message_reactions(team_id=TEST_TEAM_ID, message_id=TEST_MESSAGE_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting message reactions: {result['error_message']} (Code: {result['error_code']})")
 
     assert isinstance(result, dict)
-    assert "reactions" in result
-    reactions = result["reactions"]
+    assert "data" in result
+    reactions = result["data"]
     assert isinstance(reactions, list)
 
 def test_get_message_replies_live():
     if not TEST_MESSAGE_ID or TEST_MESSAGE_ID == "YOUR_REAL_CHAT_MESSAGE_ID":
         pytest.skip("TEST_MESSAGE_ID not set.")
+    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+        pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_message_replies(message_id=TEST_MESSAGE_ID)
+    result = clickup_tools.get_message_replies(team_id=TEST_TEAM_ID, message_id=TEST_MESSAGE_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting message replies: {result['error_message']} (Code: {result['error_code']})")
 
     assert isinstance(result, dict)
-    assert "replies" in result
-    replies = result["replies"]
+    assert "data" in result
+    replies = result["data"]
     assert isinstance(replies, list)
 
 def test_get_tagged_users_for_message_live():
     if not TEST_MESSAGE_ID or TEST_MESSAGE_ID == "YOUR_REAL_CHAT_MESSAGE_ID":
         pytest.skip("TEST_MESSAGE_ID with tagged users not set.")
+    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+        pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_tagged_users_for_message(message_id=TEST_MESSAGE_ID)
+    result = clickup_tools.get_tagged_users_for_message(team_id=TEST_TEAM_ID, message_id=TEST_MESSAGE_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting tagged users: {result['error_message']} (Code: {result['error_code']})")
 
     assert isinstance(result, dict)
-    assert "tagged_users" in result
-    users = result["tagged_users"]
+    assert "data" in result
+    users = result["data"]
     assert isinstance(users, list)
 
 def test_get_custom_task_types_live():
@@ -826,8 +845,8 @@ def test_get_custom_task_types_live():
         pytest.fail(f"API Error getting custom task types: {result['error_message']} (Code: {result['error_code']})")
 
     assert isinstance(result, dict)
-    assert "custom_items" in result
-    items = result["custom_items"]
+    assert "data" in result
+    items = result["data"]
     assert isinstance(items, list)
     if items:
         assert isinstance(items[0], dict)
@@ -944,10 +963,8 @@ def test_get_doc_live():
         pytest.fail(f"API Error getting doc: {doc['error_message']} (Code: {doc['error_code']})")
 
     assert isinstance(doc, dict)
-    doc_data = doc.get("doc", doc.get("data", doc))
-    assert isinstance(doc_data, dict)
-    assert doc_data.get("id") == TEST_DOC_ID
-    assert "title" in doc_data or "name" in doc_data
+    assert doc.get("id") == TEST_DOC_ID
+    assert "title" in doc or "name" in doc
 
 def test_get_doc_page_listing_live():
     if not TEST_DOC_ID or TEST_DOC_ID == "YOUR_REAL_DOC_ID":
@@ -961,12 +978,14 @@ def test_get_doc_page_listing_live():
     if is_api_error(result):
         pytest.fail(f"API Error getting doc page listing: {result['error_message']} (Code: {result['error_code']})")
 
-    # Expecting a list of pages directly
-    assert isinstance(result, list)
-    if result: # Check if the list is not empty
-        assert isinstance(result[0], dict) # Check the first item
-        assert "id" in result[0]
-        assert "title" in result[0] or "name" in result[0]
+    assert isinstance(result, dict)
+    assert "pages" in result
+    pages = result["pages"]
+    assert isinstance(pages, list)
+    if pages: # Check if the list is not empty
+        assert isinstance(pages[0], dict) # Check the first item
+        assert "id" in pages[0]
+        assert "title" in pages[0] or "name" in pages[0]
 
 def test_get_doc_pages_live():
     if not TEST_DOC_ID or TEST_DOC_ID == "YOUR_REAL_DOC_ID":
@@ -980,12 +999,14 @@ def test_get_doc_pages_live():
     if is_api_error(result):
         pytest.fail(f"API Error getting doc pages: {result['error_message']} (Code: {result['error_code']})")
 
-    # Expecting a list of pages directly
-    assert isinstance(result, list)
-    if result: # Check if the list is not empty
-        assert isinstance(result[0], dict) # Check the first item
-        assert "id" in result[0]
-        assert "title" in result[0] or "name" in result[0]
+    assert isinstance(result, dict)
+    assert "pages" in result
+    pages = result["pages"]
+    assert isinstance(pages, list)
+    if pages: # Check if the list is not empty
+        assert isinstance(pages[0], dict) # Check the first item
+        assert "id" in pages[0]
+        assert "title" in pages[0] or "name" in pages[0]
 
 def test_get_page_live():
     if not TEST_PAGE_ID or TEST_PAGE_ID == "YOUR_REAL_PAGE_ID":
@@ -1002,10 +1023,8 @@ def test_get_page_live():
         pytest.fail(f"API Error getting page: {page['error_message']} (Code: {page['error_code']})")
 
     assert isinstance(page, dict)
-    page_data = page.get("page", page.get("data", page))
-    assert isinstance(page_data, dict)
-    assert page_data.get("id") == TEST_PAGE_ID
-    assert "title" in page_data or "name" in page_data
+    assert page.get("id") == TEST_PAGE_ID
+    assert "title" in page or "name" in page
 
 def test_get_task_time_in_status_live():
     if not TEST_TASK_ID or TEST_TASK_ID == "YOUR_REAL_TASK_ID":
