@@ -64,3 +64,10 @@ Example Response: "You have 2 overdue tasks in ClickUp: [Task 1 Name], [Task 2 N
 
 # Export root_agent
 __all__ = ['root_agent']
+
+class Agent:
+    def __init__(self):
+        pass
+    
+    def process_message(self, message: str) -> str:
+        pass
