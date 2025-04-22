@@ -4,3 +4,4 @@ class Config:
     USER_ID = "user_001"
     SESSION_ID = "session_001"
     TIMEZONE = "Asia/Manila"
+    CLICKUP_TEAM_ID = "3723297"

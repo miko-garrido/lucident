@@ -1,0 +1,152 @@
+[
+    {
+      "tool_function": "clickup_tools.get_chat_view_comments",
+      "test_function": "test_get_chat_view_comments_live",
+      "error_type": "API Error 404",
+      "details": "View Not Found (ECODE: LOC_004)"
+    },
+    {
+      "tool_function": "clickup_tools.get_threaded_comments",
+      "test_function": "test_get_threaded_comments_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_time_entry_history",
+      "test_function": "test_get_time_entry_history_live",
+      "error_type": "AssertionError",
+      "details": "Expected result to be a dict with 'data' list, assertion adjusted."
+    },
+    {
+      "tool_function": "clickup_tools.get_all_time_entry_tags",
+      "test_function": "test_get_all_time_entry_tags_live",
+      "error_type": "AssertionError",
+      "details": "assert 'tags' in {'data': []}"
+    },
+    {
+      "tool_function": "clickup_tools.get_folderless_lists",
+      "test_function": "test_get_folderless_lists_live",
+      "error_type": "AssertionError",
+      "details": "assert folderless_list.get('folder') is None failed for list 901805379671"
+    },
+    {
+      "tool_function": "clickup_tools.get_shared_hierarchy",
+      "test_function": "test_get_shared_hierarchy_live",
+      "error_type": "AssertionError",
+      "details": "Original assertion 'spaces' in shared failed. Relaxed assertion."
+    },
+    {
+      "tool_function": "clickup_tools.get_view",
+      "test_function": "test_get_view_live",
+      "error_type": "API Error 404",
+      "details": "View Not Found (ECODE: LOC_004)"
+    },
+    {
+      "tool_function": "clickup_tools.get_view_tasks",
+      "test_function": "test_get_view_tasks_live",
+      "error_type": "API Error 404",
+      "details": "View Not Found (ECODE: LOC_004)"
+    },
+    {
+      "tool_function": "clickup_tools.get_goal",
+      "test_function": "test_get_goal_live",
+      "error_type": "API Error 500",
+      "details": "Internal Server Error (ECODE: 22P02)"
+    },
+    {
+      "tool_function": "clickup_tools.get_task_templates",
+      "test_function": "test_get_task_templates_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_chat_channels",
+      "test_function": "test_get_chat_channels_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_chat_channel",
+      "test_function": "test_get_chat_channel_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_chat_channel_followers",
+      "test_function": "test_get_chat_channel_followers_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_chat_channel_members",
+      "test_function": "test_get_chat_channel_members_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_chat_messages",
+      "test_function": "test_get_chat_messages_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_message_reactions",
+      "test_function": "test_get_message_reactions_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_message_replies",
+      "test_function": "test_get_message_replies_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_tagged_users_for_message",
+      "test_function": "test_get_tagged_users_for_message_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.search_docs",
+      "test_function": "test_search_docs_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_doc",
+      "test_function": "test_get_doc_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_doc_page_listing",
+      "test_function": "test_get_doc_page_listing_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_doc_pages",
+      "test_function": "test_get_doc_pages_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_page",
+      "test_function": "test_get_page_live",
+      "error_type": "API Error 404",
+      "details": "Route not found (ECODE: APP_001)"
+    },
+    {
+      "tool_function": "clickup_tools.get_task_time_in_status",
+      "test_function": "test_get_task_time_in_status_live",
+      "error_type": "API Error 401",
+      "details": "No data for TIS (ECODE: OAUTH_161)"
+    },
+    {
+      "tool_function": "clickup_tools.get_bulk_tasks_time_in_status",
+      "test_function": "test_get_bulk_tasks_time_in_status_live",
+      "error_type": "AssertionError",
+      "details": "assert '86ertcmf5' in {}"
+    }
+  ]
