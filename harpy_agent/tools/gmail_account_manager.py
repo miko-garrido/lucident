@@ -6,7 +6,7 @@ This module manages Gmail account configurations and credentials.
 import os
 import json
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -22,46 +22,63 @@ class GmailAccountManager:
         """Initialize the account manager."""
         self.accounts = self._load_accounts()
     
-    def _load_accounts(self) -> Dict[str, str]:
+    def _load_accounts(self) -> Dict[str, Dict]:
         """Load account configurations from token file.
         
         Returns:
-            Dict mapping account IDs to email addresses
+            Dict mapping account IDs to account details
         """
         accounts = {}
         try:
             if os.path.exists(TOKEN_FILE):
                 with open(TOKEN_FILE, 'r') as f:
-                    all_tokens = json.load(f)
-                    for account_id in all_tokens:
-                        accounts[account_id] = account_id  # Use account_id as email since it's the same
+                    accounts = json.load(f)
         except Exception as e:
             logger.error(f"Error loading accounts: {e}")
             
         return accounts
     
-    def add_account(self, account_id: str, email: str) -> None:
+    def add_account(self, account_id: str, credentials: Dict) -> None:
         """Add a new Gmail account.
         
         Args:
             account_id: Account identifier
-            email: Email address
+            credentials: Account credentials
         """
-        logger.info(f"Adding account: {account_id} ({email})")
-        self.accounts[account_id] = email
+        logger.info(f"Adding account: {account_id}")
+        self.accounts[account_id] = credentials
         
-    def get_accounts(self) -> Dict[str, str]:
+    def get_accounts(self) -> Dict[str, Dict]:
         """Get all configured accounts.
         
         Returns:
-            Dict mapping account IDs to email addresses
+            Dict mapping account IDs to account details
         """
         return self.accounts
         
     def get_default_account(self) -> Optional[str]:
-        """Get the default account email.
+        """Get the default account ID.
         
         Returns:
-            Default account email if configured, None otherwise
+            Default account ID if configured, None otherwise
         """
-        return self.accounts.get('default') 
+        return 'default' if 'default' in self.accounts else None
+
+    def get_account_credentials(self, account_id: str) -> Optional[Dict]:
+        """Get credentials for a specific account.
+        
+        Args:
+            account_id: Account identifier
+            
+        Returns:
+            Account credentials if found, None otherwise
+        """
+        return self.accounts.get(account_id)
+
+    def get_all_account_ids(self) -> List[str]:
+        """Get all account IDs.
+        
+        Returns:
+            List of account IDs
+        """
+        return list(self.accounts.keys()) 
