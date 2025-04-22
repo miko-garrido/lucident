@@ -5,12 +5,16 @@ import os
 from dotenv import load_dotenv
 import json
 import logging
+from config import Config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Load environment variables
 load_dotenv()
+
+# Load ClickUp Team ID from config
+CLICKUP_TEAM_ID = Config.CLICKUP_TEAM_ID
 
 # --- ClickUpAPI Class ---
 class ClickUpAPI:
@@ -220,12 +224,12 @@ def get_threaded_comments(comment_id: str) -> Union[Dict[str, Any], List[Dict[st
     return api._make_request("GET", endpoint)
 
 # --- Custom Task Types ---
-def get_custom_task_types(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_custom_task_types(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the Custom Task Types available in a Workspace.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of custom task types under the 'data' key.
@@ -281,12 +285,12 @@ def get_space_available_custom_fields(space_id: str) -> Union[Dict[str, Any], Li
     endpoint = f"/v2/space/{space_id}/field"
     return api._make_request("GET", endpoint)
 
-def get_team_available_custom_fields(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_team_available_custom_fields(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the available Custom Fields for a Workspace (Team).
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of custom fields for the workspace.
@@ -297,7 +301,7 @@ def get_team_available_custom_fields(team_id: str) -> Union[Dict[str, Any], List
     return api._make_request("GET", endpoint)
 
 # --- Docs ---
-def search_docs(team_id: str, query: str, include_content: Optional[bool] = None,
+def search_docs(query: str, team_id: str = CLICKUP_TEAM_ID, include_content: Optional[bool] = None,
                  include_locations: Optional[bool] = None, owner_ids: Optional[List[int]] = None,
                  location_ids: Optional[List[int]] = None, location_type: Optional[str] = None,
                  parent_ids: Optional[List[int]] = None, doc_ids: Optional[List[str]] = None,
@@ -306,8 +310,8 @@ def search_docs(team_id: str, query: str, include_content: Optional[bool] = None
     Searches for Docs within a Workspace.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
         query (str): The search query string.
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         include_content (Optional[bool]): Whether to include the content of the Docs (optional).
         include_locations (Optional[bool]): Whether to include location information (optional).
         owner_ids (Optional[List[int]]): Filter by owner user IDs (optional).
@@ -344,13 +348,13 @@ def search_docs(team_id: str, query: str, include_content: Optional[bool] = None
         params["page_ids[]"] = page_ids
     return api._make_request("GET", endpoint, params=params)
 
-def get_doc(workspace_id: str, doc_id: str, include_content: Optional[bool] = None) -> Dict[str, Any]:
+def get_doc(doc_id: str, workspace_id: str = CLICKUP_TEAM_ID, include_content: Optional[bool] = None) -> Dict[str, Any]:
     """
     Gets details about a specific Doc.
     
     Args:
-        workspace_id (str): The ID of the Workspace (Team).
         doc_id (str): The ID of the Doc.
+        workspace_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         include_content (Optional[bool]): Whether to include the content of the Doc (optional).
 
     Returns:
@@ -364,13 +368,13 @@ def get_doc(workspace_id: str, doc_id: str, include_content: Optional[bool] = No
         params["include_content"] = str(include_content).lower()
     return api._make_request("GET", endpoint, params=params)
 
-def get_doc_page_listing(workspace_id: str, doc_id: str) -> List[Dict[str, Any]]:
+def get_doc_page_listing(doc_id: str, workspace_id: str = CLICKUP_TEAM_ID) -> List[Dict[str, Any]]:
     """
     Gets a listing of pages within a Doc.
     
     Args:
-        workspace_id (str): The ID of the Workspace (Team).
         doc_id (str): The ID of the Doc.
+        workspace_id (str): The ID of the Workspace (Team). Defaults to Dorxata team.
 
     Returns:
         List[Dict[str, Any]]: A list of dictionaries, each containing page listing details.
@@ -380,13 +384,13 @@ def get_doc_page_listing(workspace_id: str, doc_id: str) -> List[Dict[str, Any]]
     endpoint = f"/v3/workspaces/{workspace_id}/docs/{doc_id}/pages"
     return api._make_request("GET", endpoint)
 
-def get_doc_pages(workspace_id: str, doc_id: str, include_content: Optional[bool] = None) -> List[Dict[str, Any]]:
+def get_doc_pages(doc_id: str, workspace_id: str = CLICKUP_TEAM_ID, include_content: Optional[bool] = None) -> List[Dict[str, Any]]:
     """
     Gets the pages within a Doc, optionally including their content.
     
     Args:
-        workspace_id (str): The ID of the Workspace (Team).
         doc_id (str): The ID of the Doc.
+        workspace_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         include_content (Optional[bool]): Whether to include the content of the pages (optional).
 
     Returns:
@@ -400,14 +404,14 @@ def get_doc_pages(workspace_id: str, doc_id: str, include_content: Optional[bool
         params["include_content"] = str(include_content).lower()
     return api._make_request("GET", endpoint, params=params)
 
-def get_page(workspace_id: str, doc_id: str, page_id: str, content_format: Optional[str] = None) -> Dict[str, Any]:
+def get_page(doc_id: str, page_id: str, workspace_id: str = CLICKUP_TEAM_ID, content_format: Optional[str] = None) -> Dict[str, Any]:
     """
     Gets details about a specific page within a Doc.
     
     Args:
-        workspace_id (str): The ID of the Workspace (Team).
         doc_id (str): The ID of the parent Doc.
         page_id (str): The ID of the page.
+        workspace_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         content_format (Optional[str]): The desired content format (e.g., 'text/html', 'text/md'). Optional.
 
     Returns:
@@ -455,12 +459,12 @@ def get_folder(folder_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     return api._make_request("GET", endpoint)
 
 # --- Goals ---
-def get_goals(team_id: str, include_completed: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_goals(team_id: str = CLICKUP_TEAM_ID, include_completed: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets Goals from a Workspace.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         include_completed (Optional[bool]): Whether to include completed Goals (optional).
 
     Returns:
@@ -490,13 +494,13 @@ def get_goal(goal_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     return api._make_request("GET", endpoint)
 
 # --- Guests ---
-def get_guest(team_id: str, guest_id: int) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_guest(guest_id: int, team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets information about a specific Guest in a Workspace.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
         guest_id (int): The ID of the Guest user.
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the Guest details.
@@ -596,12 +600,12 @@ def get_list_members(list_id: str) -> Union[List[Dict[str, Any]], Dict[str, Any]
     return response.get("members", []) # Assuming success structure {'members': [...]} or empty dict
 
 # --- Shared Hierarchy ---
-def get_shared_hierarchy(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_shared_hierarchy(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the shared hierarchy for the authorized user in a Workspace.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the shared hierarchy details.
@@ -612,12 +616,12 @@ def get_shared_hierarchy(team_id: str) -> Union[Dict[str, Any], List[Dict[str, A
     return api._make_request("GET", endpoint)
 
 # --- Spaces ---
-def get_spaces(team_id: str, archived: Optional[bool] = False) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_spaces(team_id: str = CLICKUP_TEAM_ID, archived: Optional[bool] = False) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets Spaces within a specific Workspace.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         archived (Optional[bool]): Whether to include archived Spaces (default: False).
 
     Returns:
@@ -769,7 +773,7 @@ def get_tasks(list_id: str, archived: Optional[bool] = False,
     return api._make_request("GET", endpoint, params=params)
 
 def get_task(task_id: str, include_subtasks: Optional[bool] = None,
-             include_markdown_description: Optional[bool] = None, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+             include_markdown_description: Optional[bool] = None, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details about a specific task.
     
@@ -778,7 +782,7 @@ def get_task(task_id: str, include_subtasks: Optional[bool] = None,
         include_subtasks (Optional[bool]): Include subtasks in the response (optional).
         include_markdown_description (Optional[bool]): Return description in Markdown format (optional).
         custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires team_id. (optional)
-        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. (optional)
+        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the task details.
@@ -802,7 +806,7 @@ def get_task(task_id: str, include_subtasks: Optional[bool] = None,
 
     return api._make_request("GET", endpoint, params=params)
 
-def get_filtered_team_tasks(team_id: str, page: Optional[int] = None,
+def get_filtered_team_tasks(team_id: str = CLICKUP_TEAM_ID, page: Optional[int] = None,
                              order_by: Optional[str] = None, reverse: Optional[bool] = None,
                              subtasks: Optional[bool] = None, space_ids: Optional[List[str]] = None,
                              project_ids: Optional[List[str]] = None, list_ids: Optional[List[str]] = None,
@@ -820,7 +824,7 @@ def get_filtered_team_tasks(team_id: str, page: Optional[int] = None,
     Gets tasks for a Workspace (Team), filtered by various criteria. Similar to get_tasks but workspace-wide.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         page (Optional[int]): Page number for pagination (optional).
         order_by (Optional[str]): Field to order tasks by (e.g., 'due_date', 'priority') (optional).
         reverse (Optional[bool]): Reverse the order of tasks (optional).
@@ -901,14 +905,14 @@ def get_filtered_team_tasks(team_id: str, page: Optional[int] = None,
 
     return api._make_request("GET", endpoint, params=params)
 
-def get_task_time_in_status(task_id: str, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_task_time_in_status(task_id: str, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the time spent by a task in each status.
     
     Args:
         task_id (str): The ID of the task (can be the canonical ID or custom task ID).
         custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires team_id. (optional)
-        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. (optional)
+        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the time in status details for the task.
@@ -919,21 +923,21 @@ def get_task_time_in_status(task_id: str, custom_task_ids: Optional[bool] = None
     params = {}
     if custom_task_ids:
         if not team_id:
-            # Keep raising config error here
-            raise ValueError("team_id is required when custom_task_ids is true.")
+            # Keep raising config error here if CLICKUP_TEAM_ID is not set
+            raise ValueError("team_id is required when custom_task_ids is true, and CLICKUP_TEAM_ID seems not configured.")
         params["custom_task_ids"] = "true"
         params["team_id"] = team_id
 
     return api._make_request("GET", endpoint, params=params)
 
-def get_bulk_tasks_time_in_status(task_ids: List[str], custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_bulk_tasks_time_in_status(task_ids: List[str], custom_task_ids: Optional[bool] = None, team_id: Optional[str] = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the time spent in status for multiple tasks.
     
     Args:
         task_ids (List[str]): A list of task IDs (canonical or custom).
         custom_task_ids (Optional[bool]): If true, treats task_ids as custom task IDs. Requires team_id. (optional)
-        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. (optional)
+        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the time in status details for the specified tasks.
@@ -944,21 +948,21 @@ def get_bulk_tasks_time_in_status(task_ids: List[str], custom_task_ids: Optional
     params = {"task_ids": task_ids}
     if custom_task_ids:
          if not team_id:
-             # Keep raising config error here
-             raise ValueError("team_id is required when custom_task_ids is true.")
+             # Keep raising config error here if CLICKUP_TEAM_ID is not set
+             raise ValueError("team_id is required when custom_task_ids is true, and CLICKUP_TEAM_ID seems not configured.")
          params["custom_task_ids"] = "true"
          params["team_id"] = team_id
 
     return api._make_request("GET", endpoint, params=params)
 
 # --- Templates ---
-def get_task_templates(team_id: str, page: int, space_id: Optional[int] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_task_templates(page: int, team_id: str = CLICKUP_TEAM_ID, space_id: Optional[int] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets task templates for a Workspace.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
         page (int): Page number for pagination (templates are returned 100 at a time).
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         space_id (Optional[int]): Optional Space ID to filter templates. If provided, only templates available
                   to the specific Space are returned. Otherwise, Workspace-level templates are returned.
 
@@ -974,18 +978,18 @@ def get_task_templates(team_id: str, page: int, space_id: Optional[int] = None) 
     return api._make_request("GET", endpoint, params=params)
 
 # --- Time Tracking ---
-def get_time_entries(team_id: str, start_date: Optional[int] = None,
+def get_time_entries(team_id: str = CLICKUP_TEAM_ID, start_date: Optional[int] = None,
                      end_date: Optional[int] = None, assignee: Optional[str] = None,
                      include_task_tags: Optional[bool] = None, include_location_names: Optional[bool] = None,
                      space_id: Optional[str] = None, folder_id: Optional[str] = None,
                      list_id: Optional[str] = None, task_id: Optional[str] = None,
-                     custom_task_ids: Optional[bool] = None, task_team_id: Optional[str] = None
+                     custom_task_ids: Optional[bool] = None, task_team_id: Optional[str] = CLICKUP_TEAM_ID
                      ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets time entries within a date range for a Workspace (Team).
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         start_date (Optional[int]): Start timestamp (Unix time in ms) (optional).
         end_date (Optional[int]): End timestamp (Unix time in ms) (optional).
         assignee (Optional[str]): Filter by user ID(s) (comma-separated string or list) (optional).
@@ -996,7 +1000,7 @@ def get_time_entries(team_id: str, start_date: Optional[int] = None,
         list_id (Optional[str]): Filter by List ID (optional).
         task_id (Optional[str]): Filter by Task ID (canonical or custom) (optional).
         custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires task_team_id. (optional)
-        task_team_id (Optional[str]): The Workspace (Team) ID for the custom task ID lookup. Required if custom_task_ids is true and task_id is provided. (optional)
+        task_team_id (Optional[str]): The Workspace (Team) ID for the custom task ID lookup. Required if custom_task_ids is true and task_id is provided. Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of time entries matching the criteria.
@@ -1025,21 +1029,22 @@ def get_time_entries(team_id: str, start_date: Optional[int] = None,
         params["task_id"] = task_id
         if custom_task_ids:
             if not task_team_id:
-                # Keep raising config error here
-                raise ValueError("task_team_id is required when custom_task_ids is true and task_id is provided.")
+                # Keep raising config error here if CLICKUP_TEAM_ID is not set
+                raise ValueError("task_team_id is required when custom_task_ids is true and task_id is provided, and CLICKUP_TEAM_ID seems not configured.")
             params["custom_task_ids"] = "true"
+            # Use the provided or defaulted task_team_id. API param is 'team_id' in this context.
             params["team_id"] = task_team_id
 
     return api._make_request("GET", endpoint, params=params)
 
-def get_singular_time_entry(team_id: str, timer_id: str, include_task_tags: Optional[bool] = None,
+def get_singular_time_entry(timer_id: str, team_id: str = CLICKUP_TEAM_ID, include_task_tags: Optional[bool] = None,
                             include_location_names: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details for a specific time entry.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
         timer_id (str): The ID of the time entry (timer_id).
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         include_task_tags (Optional[bool]): Include task tags in the response (optional).
         include_location_names (Optional[bool]): Include Folder and List names (optional).
 
@@ -1056,13 +1061,13 @@ def get_singular_time_entry(team_id: str, timer_id: str, include_task_tags: Opti
         params["include_location_names"] = str(include_location_names).lower()
     return api._make_request("GET", endpoint, params=params)
 
-def get_time_entry_history(team_id: str, timer_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_time_entry_history(timer_id: str, team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the history of changes for a specific time entry.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
         timer_id (str): The ID of the time entry.
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the history of the specified time entry.
@@ -1072,12 +1077,12 @@ def get_time_entry_history(team_id: str, timer_id: str) -> Union[Dict[str, Any],
     endpoint = f"/v2/team/{team_id}/time_entries/{timer_id}/history"
     return api._make_request("GET", endpoint)
 
-def get_running_time_entry(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_running_time_entry(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the currently running time entry for the authorized user in a Workspace.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the details of the running time entry, or an empty dict if none.
@@ -1087,12 +1092,12 @@ def get_running_time_entry(team_id: str) -> Union[Dict[str, Any], List[Dict[str,
     endpoint = f"/v2/team/{team_id}/time_entries/current"
     return api._make_request("GET", endpoint)
 
-def get_all_time_entry_tags(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_all_time_entry_tags(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets all tags used in time entries for a Workspace.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of all time entry tags.
@@ -1103,13 +1108,13 @@ def get_all_time_entry_tags(team_id: str) -> Union[Dict[str, Any], List[Dict[str
     return api._make_request("GET", endpoint)
 
 # --- Users ---
-def get_user(team_id: str, user_id: int) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_user(user_id: int, team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets information about a specific user in a Workspace.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
         user_id (int): The ID of the user.
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the user details.
@@ -1120,12 +1125,12 @@ def get_user(team_id: str, user_id: int) -> Union[Dict[str, Any], List[Dict[str,
     return api._make_request("GET", endpoint)
 
 # --- Views ---
-def get_team_views(team_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_team_views(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets "Everything" level views (Workspace views).
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of Workspace views.
@@ -1218,7 +1223,7 @@ def get_view_tasks(view_id: str, page: Optional[int] = 0, include_closed: Option
     return api._make_request("GET", endpoint, params=params)
 
 # --- Chat (Experimental) ---
-def get_chat_channels(team_id: str, with_members: Optional[bool] = None,
+def get_chat_channels(team_id: str = CLICKUP_TEAM_ID, with_members: Optional[bool] = None,
                       with_last_message: Optional[bool] = None, types: Optional[List[str]] = None,
                       filter_unread: Optional[bool] = None, filter_mentions: Optional[bool] = None,
                       continuation: Optional[str] = None) -> Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
@@ -1226,7 +1231,7 @@ def get_chat_channels(team_id: str, with_members: Optional[bool] = None,
     Retrieves chat channels for a Workspace.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         with_members (Optional[bool]): Include channel member list (optional).
         with_last_message (Optional[bool]): Include the last message sent (optional).
         types (Optional[List[str]]): Filter by channel types ('location', 'direct', 'group') (optional).
@@ -1255,14 +1260,14 @@ def get_chat_channels(team_id: str, with_members: Optional[bool] = None,
         params["continuation"] = continuation
     return api._make_request("GET", endpoint, params=params)
 
-def get_chat_channel(team_id: str, channel_id: str, with_members: Optional[bool] = None,
+def get_chat_channel(channel_id: str, team_id: str = CLICKUP_TEAM_ID, with_members: Optional[bool] = None,
                      with_last_message: Optional[bool] = None) -> Union[Dict[str, Dict[str, Any]], Dict[str, Any]]:
     """
     Gets details for a specific chat channel.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
         channel_id (str): The ID of the chat channel.
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         with_members (Optional[bool]): Include channel member list (optional).
         with_last_message (Optional[bool]): Include the last message sent (optional).
 
@@ -1279,13 +1284,13 @@ def get_chat_channel(team_id: str, channel_id: str, with_members: Optional[bool]
         params["with_last_message"] = str(with_last_message).lower()
     return api._make_request("GET", endpoint, params=params)
 
-def get_chat_channel_followers(team_id: str, channel_id: str, continuation: Optional[str] = None) -> Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
+def get_chat_channel_followers(channel_id: str, team_id: str = CLICKUP_TEAM_ID, continuation: Optional[str] = None) -> Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
     """
     Gets the followers of a specific chat channel.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
         channel_id (str): The ID of the chat channel.
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         continuation (Optional[str]): Pagination token from previous response (optional).
 
     Returns:
@@ -1299,13 +1304,13 @@ def get_chat_channel_followers(team_id: str, channel_id: str, continuation: Opti
         params["continuation"] = continuation
     return api._make_request("GET", endpoint, params=params)
 
-def get_chat_channel_members(team_id: str, channel_id: str, continuation: Optional[str] = None) -> Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
+def get_chat_channel_members(channel_id: str, team_id: str = CLICKUP_TEAM_ID, continuation: Optional[str] = None) -> Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
     """
     Gets the members of a specific chat channel.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
         channel_id (str): The ID of the chat channel.
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         continuation (Optional[str]): Pagination token from previous response (optional).
 
     Returns:
@@ -1319,7 +1324,7 @@ def get_chat_channel_members(team_id: str, channel_id: str, continuation: Option
         params["continuation"] = continuation
     return api._make_request("GET", endpoint, params=params)
 
-def get_chat_messages(team_id: str, channel_id: str, before_message_id: Optional[str] = None,
+def get_chat_messages(channel_id: str, team_id: str = CLICKUP_TEAM_ID, before_message_id: Optional[str] = None,
                       after_message_id: Optional[str] = None, include_deleted: Optional[bool] = None,
                       include_reactions: Optional[bool] = None, include_replies: Optional[bool] = None,
                       reverse: Optional[bool] = None, limit: Optional[int] = None) -> Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
@@ -1327,8 +1332,8 @@ def get_chat_messages(team_id: str, channel_id: str, before_message_id: Optional
     Retrieves messages from a specific chat channel.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
         channel_id (str): The ID of the chat channel.
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         before_message_id (Optional[str]): Get messages before this ID (optional).
         after_message_id (Optional[str]): Get messages after this ID (optional).
         include_deleted (Optional[bool]): Include deleted messages (optional).
@@ -1360,14 +1365,14 @@ def get_chat_messages(team_id: str, channel_id: str, before_message_id: Optional
          params["limit"] = limit
     return api._make_request("GET", endpoint, params=params)
 
-def get_message_reactions(team_id: str, message_id: str, user_id: Optional[int] = None,
+def get_message_reactions(message_id: str, team_id: str = CLICKUP_TEAM_ID, user_id: Optional[int] = None,
                           continuation: Optional[str] = None) -> Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
     """
     Gets reactions for a specific chat message.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
         message_id (str): The ID of the chat message.
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         user_id (Optional[int]): Filter reactions by a specific user ID (optional).
         continuation (Optional[str]): Pagination token from previous response (optional).
 
@@ -1384,7 +1389,7 @@ def get_message_reactions(team_id: str, message_id: str, user_id: Optional[int] 
         params["continuation"] = continuation
     return api._make_request("GET", endpoint, params=params)
 
-def get_message_replies(team_id: str, message_id: str, include_deleted: Optional[bool] = None,
+def get_message_replies(message_id: str, team_id: str = CLICKUP_TEAM_ID, include_deleted: Optional[bool] = None,
                         include_reactions: Optional[bool] = None, include_replies: Optional[bool] = None,
                         reverse: Optional[bool] = None, limit: Optional[int] = None,
                         continuation: Optional[str] = None) -> Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
@@ -1392,8 +1397,8 @@ def get_message_replies(team_id: str, message_id: str, include_deleted: Optional
     Retrieves replies to a specific chat message.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
         message_id (str): The ID of the parent chat message.
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
         include_deleted (Optional[bool]): Include deleted replies (optional).
         include_reactions (Optional[bool]): Include reactions for each reply (optional).
         include_replies (Optional[bool]): Include nested reply details (optional).
@@ -1422,13 +1427,13 @@ def get_message_replies(team_id: str, message_id: str, include_deleted: Optional
          params["continuation"] = continuation
     return api._make_request("GET", endpoint, params=params)
 
-def get_tagged_users_for_message(team_id: str, message_id: str) -> Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
+def get_tagged_users_for_message(message_id: str, team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
     """
     Gets users tagged (mentioned) in a specific chat message.
     
     Args:
-        team_id (str): The ID of the Workspace (Team).
         message_id (str): The ID of the chat message.
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of tagged users under the 'data' key.

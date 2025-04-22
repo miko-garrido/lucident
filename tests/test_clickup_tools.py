@@ -33,7 +33,7 @@ TEST_PARENT_TASK_ID = "86et65e20"
 TEST_COMMENT_ID = "90180108845811"
 TEST_USERNAME = "josh@dorxata.com"
 TEST_USER_ID = 3833265
-TEST_TEAM_ID = "3723297"
+# TEST_TEAM_ID = "3723297"
 TEST_SPACE_ID = "43795741"
 TEST_FOLDER_ID = "90184491751"
 TEST_VIEW_ID = "3hm11-56478"
@@ -178,8 +178,8 @@ def test_get_subtasks_via_get_tasks_live():
         assert subtasks[0].get("parent") == TEST_PARENT_TASK_ID
 
 def test_get_filtered_team_tasks_for_user_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
     now = datetime.now(timezone.utc)
@@ -187,7 +187,7 @@ def test_get_filtered_team_tasks_for_user_live():
     start_timestamp_ms = int(ninety_days_ago.timestamp() * 1000)
 
     result = clickup_tools.get_filtered_team_tasks(
-        team_id=TEST_TEAM_ID,
+        # team_id=TEST_TEAM_ID,
         assignees=[str(TEST_USER_ID)],
         date_updated_gt=start_timestamp_ms
     )
@@ -201,8 +201,8 @@ def test_get_filtered_team_tasks_for_user_live():
     assert isinstance(user_tasks, list)
 
 def test_get_time_entries_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
     now = datetime.now(timezone.utc)
@@ -211,7 +211,7 @@ def test_get_time_entries_live():
     end_timestamp_ms = int(now.timestamp() * 1000)
 
     result = clickup_tools.get_time_entries(
-        team_id=TEST_TEAM_ID,
+        # team_id=TEST_TEAM_ID,
         start_date=start_timestamp_ms,
         end_date=end_timestamp_ms
     )
@@ -225,13 +225,15 @@ def test_get_time_entries_live():
     assert isinstance(entries, list)
 
 def test_get_singular_time_entry_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
     if not TEST_TIMER_ID or TEST_TIMER_ID == "YOUR_REAL_TIMER_ID":
         pytest.skip("TEST_TIMER_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_singular_time_entry(team_id=TEST_TEAM_ID, timer_id=TEST_TIMER_ID)
+    result = clickup_tools.get_singular_time_entry(
+        # team_id=TEST_TEAM_ID, 
+        timer_id=TEST_TIMER_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting singular time entry: {result['error_message']} (Code: {result['error_code']})")
@@ -245,13 +247,15 @@ def test_get_singular_time_entry_live():
     assert "task" in entry
 
 def test_get_time_entry_history_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
     if not TEST_TIMER_ID or TEST_TIMER_ID == "YOUR_REAL_TIMER_ID":
         pytest.skip("TEST_TIMER_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_time_entry_history(team_id=TEST_TEAM_ID, timer_id=TEST_TIMER_ID)
+    result = clickup_tools.get_time_entry_history(
+        # team_id=TEST_TEAM_ID, 
+        timer_id=TEST_TIMER_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting time entry history: {result['error_message']} (Code: {result['error_code']})")
@@ -261,11 +265,13 @@ def test_get_time_entry_history_live():
     assert isinstance(result["data"], list)
 
 def test_get_running_time_entry_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_running_time_entry(team_id=TEST_TEAM_ID)
+    result = clickup_tools.get_running_time_entry(
+        # team_id=TEST_TEAM_ID
+        )
 
     if is_api_error(result):
         pytest.fail(f"API Error getting running time entry: {result['error_message']} (Code: {result['error_code']})")
@@ -274,11 +280,13 @@ def test_get_running_time_entry_live():
     assert "data" in result
 
 def test_get_all_time_entry_tags_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_all_time_entry_tags(team_id=TEST_TEAM_ID)
+    result = clickup_tools.get_all_time_entry_tags(
+        # team_id=TEST_TEAM_ID
+        )
 
     if is_api_error(result):
         pytest.fail(f"API Error getting time entry tags: {result['error_message']} (Code: {result['error_code']})")
@@ -322,11 +330,13 @@ def test_get_task_members_live():
         assert "username" in members[0]
 
 def test_get_user_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_user(team_id=TEST_TEAM_ID, user_id=TEST_USER_ID)
+    result = clickup_tools.get_user(
+        # team_id=TEST_TEAM_ID, 
+        user_id=TEST_USER_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting user: {result['error_message']} (Code: {result['error_code']})")
@@ -342,11 +352,13 @@ def test_get_user_live():
     assert "email" in user
 
 def test_get_spaces_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_spaces(team_id=TEST_TEAM_ID)
+    result = clickup_tools.get_spaces(
+        # team_id=TEST_TEAM_ID
+        )
 
     if is_api_error(result):
         pytest.fail(f"API Error getting spaces: {result['error_message']} (Code: {result['error_code']})")
@@ -481,11 +493,13 @@ def test_get_list_live():
     assert "folder" in list_details
 
 def test_get_shared_hierarchy_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_shared_hierarchy(team_id=TEST_TEAM_ID)
+    result = clickup_tools.get_shared_hierarchy(
+        # team_id=TEST_TEAM_ID
+        )
 
     if is_api_error(result):
         pytest.fail(f"API Error getting shared hierarchy: {result['error_message']} (Code: {result['error_code']})")
@@ -496,11 +510,13 @@ def test_get_shared_hierarchy_live():
     assert isinstance(shared, dict)
 
 def test_get_team_views_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_team_views(team_id=TEST_TEAM_ID)
+    result = clickup_tools.get_team_views(
+        # team_id=TEST_TEAM_ID
+        )
 
     if is_api_error(result):
         pytest.fail(f"API Error getting team views: {result['error_message']} (Code: {result['error_code']})")
@@ -594,11 +610,13 @@ def test_get_view_tasks_live():
     assert isinstance(tasks, list)
 
 def test_get_guest_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_guest(team_id=TEST_TEAM_ID, guest_id=TEST_GUEST_ID)
+    result = clickup_tools.get_guest(
+        # team_id=TEST_TEAM_ID, 
+        guest_id=TEST_GUEST_ID)
 
     if is_api_error(result):
         if result.get("error_code") == 404:
@@ -614,11 +632,13 @@ def test_get_guest_live():
     assert "username" in guest["user"]
 
 def test_get_goals_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_goals(team_id=TEST_TEAM_ID)
+    result = clickup_tools.get_goals(
+        # team_id=TEST_TEAM_ID
+        )
 
     if is_api_error(result):
         pytest.fail(f"API Error getting goals: {result['error_message']} (Code: {result['error_code']})")
@@ -669,11 +689,13 @@ def test_get_space_tags_live():
         assert "tag_fg" in tags[0]
 
 def test_get_task_templates_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_task_templates(team_id=TEST_TEAM_ID, page=0)
+    result = clickup_tools.get_task_templates(
+        # team_id=TEST_TEAM_ID, 
+        page=0)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting task templates: {result['error_message']} (Code: {result['error_code']})")
@@ -688,11 +710,13 @@ def test_get_task_templates_live():
         assert "name" in templates[0]
 
 def test_get_chat_channels_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_chat_channels(team_id=TEST_TEAM_ID)
+    result = clickup_tools.get_chat_channels(
+        # team_id=TEST_TEAM_ID
+        )
 
     if is_api_error(result):
         pytest.fail(f"API Error getting chat channels: {result['error_message']} (Code: {result['error_code']})")
@@ -709,9 +733,13 @@ def test_get_chat_channels_live():
 def test_get_chat_channel_live():
     if not TEST_CHANNEL_ID or TEST_CHANNEL_ID == "YOUR_REAL_CHAT_CHANNEL_ID":
         pytest.skip("TEST_CHANNEL_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_chat_channel(team_id=TEST_TEAM_ID, channel_id=TEST_CHANNEL_ID)
+    result = clickup_tools.get_chat_channel(
+        # team_id=TEST_TEAM_ID, 
+        channel_id=TEST_CHANNEL_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting chat channel: {result['error_message']} (Code: {result['error_code']})")
@@ -726,11 +754,13 @@ def test_get_chat_channel_live():
 def test_get_chat_channel_followers_live():
     if not TEST_CHANNEL_ID or TEST_CHANNEL_ID == "YOUR_REAL_CHAT_CHANNEL_ID":
         pytest.skip("TEST_CHANNEL_ID not set.")
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_chat_channel_followers(team_id=TEST_TEAM_ID, channel_id=TEST_CHANNEL_ID)
+    result = clickup_tools.get_chat_channel_followers(
+        # team_id=TEST_TEAM_ID, 
+        channel_id=TEST_CHANNEL_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting channel followers: {result['error_message']} (Code: {result['error_code']})")
@@ -743,11 +773,13 @@ def test_get_chat_channel_followers_live():
 def test_get_chat_channel_members_live():
     if not TEST_CHANNEL_ID or TEST_CHANNEL_ID == "YOUR_REAL_CHAT_CHANNEL_ID":
         pytest.skip("TEST_CHANNEL_ID not set.")
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_chat_channel_members(team_id=TEST_TEAM_ID, channel_id=TEST_CHANNEL_ID)
+    result = clickup_tools.get_chat_channel_members(
+        # team_id=TEST_TEAM_ID, 
+        channel_id=TEST_CHANNEL_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting chat channel members: {result['error_message']} (Code: {result['error_code']})")
@@ -760,11 +792,13 @@ def test_get_chat_channel_members_live():
 def test_get_chat_messages_live():
     if not TEST_CHANNEL_ID or TEST_CHANNEL_ID == "YOUR_REAL_CHAT_CHANNEL_ID":
         pytest.skip("TEST_CHANNEL_ID not set.")
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_chat_messages(team_id=TEST_TEAM_ID, channel_id=TEST_CHANNEL_ID, limit=10)
+    result = clickup_tools.get_chat_messages(
+        # team_id=TEST_TEAM_ID, 
+        channel_id=TEST_CHANNEL_ID, limit=10)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting chat messages: {result['error_message']} (Code: {result['error_code']})")
@@ -781,11 +815,13 @@ def test_get_chat_messages_live():
 def test_get_message_reactions_live():
     if not TEST_MESSAGE_ID or TEST_MESSAGE_ID == "YOUR_REAL_CHAT_MESSAGE_ID":
         pytest.skip("TEST_MESSAGE_ID not set.")
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_message_reactions(team_id=TEST_TEAM_ID, message_id=TEST_MESSAGE_ID)
+    result = clickup_tools.get_message_reactions(
+        # team_id=TEST_TEAM_ID, 
+        message_id=TEST_MESSAGE_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting message reactions: {result['error_message']} (Code: {result['error_code']})")
@@ -798,11 +834,13 @@ def test_get_message_reactions_live():
 def test_get_message_replies_live():
     if not TEST_MESSAGE_ID or TEST_MESSAGE_ID == "YOUR_REAL_CHAT_MESSAGE_ID":
         pytest.skip("TEST_MESSAGE_ID not set.")
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_message_replies(team_id=TEST_TEAM_ID, message_id=TEST_MESSAGE_ID)
+    result = clickup_tools.get_message_replies(
+        # team_id=TEST_TEAM_ID, 
+        message_id=TEST_MESSAGE_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting message replies: {result['error_message']} (Code: {result['error_code']})")
@@ -815,11 +853,13 @@ def test_get_message_replies_live():
 def test_get_tagged_users_for_message_live():
     if not TEST_MESSAGE_ID or TEST_MESSAGE_ID == "YOUR_REAL_CHAT_MESSAGE_ID":
         pytest.skip("TEST_MESSAGE_ID with tagged users not set.")
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_tagged_users_for_message(team_id=TEST_TEAM_ID, message_id=TEST_MESSAGE_ID)
+    result = clickup_tools.get_tagged_users_for_message(
+        # team_id=TEST_TEAM_ID, 
+        message_id=TEST_MESSAGE_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting tagged users: {result['error_message']} (Code: {result['error_code']})")
@@ -830,11 +870,13 @@ def test_get_tagged_users_for_message_live():
     assert isinstance(users, list)
 
 def test_get_custom_task_types_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_custom_task_types(team_id=TEST_TEAM_ID)
+    result = clickup_tools.get_custom_task_types(
+        # team_id=TEST_TEAM_ID
+        )
 
     if is_api_error(result):
         pytest.fail(f"API Error getting custom task types: {result['error_message']} (Code: {result['error_code']})")
@@ -907,11 +949,13 @@ def test_get_space_available_custom_fields_live():
         assert "name" in fields[0]
 
 def test_get_team_available_custom_fields_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_team_available_custom_fields(team_id=TEST_TEAM_ID)
+    result = clickup_tools.get_team_available_custom_fields(
+        # team_id=TEST_TEAM_ID
+        )
 
     if is_api_error(result):
         pytest.fail(f"API Error getting team custom fields: {result['error_message']} (Code: {result['error_code']})")
@@ -926,12 +970,14 @@ def test_get_team_available_custom_fields_live():
         assert "name" in fields[0]
 
 def test_search_docs_live():
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set.")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
     query = "test"
-    result = clickup_tools.search_docs(team_id=TEST_TEAM_ID, query=query)
+    result = clickup_tools.search_docs(
+        # team_id=TEST_TEAM_ID, 
+        query=query)
 
     if is_api_error(result):
         pytest.fail(f"API Error searching docs: {result['error_message']} (Code: {result['error_code']})")
@@ -948,11 +994,12 @@ def test_search_docs_live():
 def test_get_doc_live():
     if not TEST_DOC_ID or TEST_DOC_ID == "YOUR_REAL_DOC_ID":
         pytest.skip("TEST_DOC_ID not set.")
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set (required for V3 get_doc).")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set (required for V3 get_doc).")
 
     rate_limit_delay()
-    doc = clickup_tools.get_doc(workspace_id=TEST_TEAM_ID, doc_id=TEST_DOC_ID)
+    doc = clickup_tools.get_doc(doc_id=TEST_DOC_ID)
+    # doc = clickup_tools.get_doc(workspace_id=TEST_TEAM_ID, doc_id=TEST_DOC_ID)
 
     if is_api_error(doc):
         pytest.fail(f"API Error getting doc: {doc['error_message']} (Code: {doc['error_code']})")
@@ -964,11 +1011,12 @@ def test_get_doc_live():
 def test_get_doc_page_listing_live():
     if not TEST_DOC_ID or TEST_DOC_ID == "YOUR_REAL_DOC_ID":
         pytest.skip("TEST_DOC_ID not set.")
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set (assuming required for V3).")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set (assuming required for V3).")
 
     rate_limit_delay()
-    result = clickup_tools.get_doc_page_listing(workspace_id=TEST_TEAM_ID, doc_id=TEST_DOC_ID)
+    result = clickup_tools.get_doc_page_listing(doc_id=TEST_DOC_ID)
+    # result = clickup_tools.get_doc_page_listing(workspace_id=TEST_TEAM_ID, doc_id=TEST_DOC_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting doc page listing: {result['error_message']} (Code: {result['error_code']})")
@@ -987,11 +1035,12 @@ def test_get_doc_page_listing_live():
 def test_get_doc_pages_live():
     if not TEST_DOC_ID or TEST_DOC_ID == "YOUR_REAL_DOC_ID":
         pytest.skip("TEST_DOC_ID not set.")
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set (assuming required for V3).")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set (assuming required for V3).")
 
     rate_limit_delay()
-    result = clickup_tools.get_doc_pages(workspace_id=TEST_TEAM_ID, doc_id=TEST_DOC_ID)
+    result = clickup_tools.get_doc_pages(doc_id=TEST_DOC_ID)
+    # result = clickup_tools.get_doc_pages(workspace_id=TEST_TEAM_ID, doc_id=TEST_DOC_ID)
 
     if is_api_error(result):
         pytest.fail(f"API Error getting doc pages: {result['error_message']} (Code: {result['error_code']})")
@@ -1010,13 +1059,14 @@ def test_get_doc_pages_live():
 def test_get_page_live():
     if not TEST_PAGE_ID or TEST_PAGE_ID == "YOUR_REAL_PAGE_ID":
         pytest.skip("TEST_PAGE_ID not set.")
-    if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
-        pytest.skip("TEST_TEAM_ID not set (assuming required for V3).")
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set (assuming required for V3).")
     if not TEST_DOC_ID or TEST_DOC_ID == "YOUR_REAL_DOC_ID":
         pytest.skip("TEST_DOC_ID not set.")
 
     rate_limit_delay()
-    page = clickup_tools.get_page(workspace_id=TEST_TEAM_ID, doc_id=TEST_DOC_ID, page_id=TEST_PAGE_ID)
+    page = clickup_tools.get_page(doc_id=TEST_DOC_ID, page_id=TEST_PAGE_ID)
+    # page = clickup_tools.get_page(workspace_id=TEST_TEAM_ID, doc_id=TEST_DOC_ID, page_id=TEST_PAGE_ID)
 
     if is_api_error(page):
         pytest.fail(f"API Error getting page: {page['error_message']} (Code: {page['error_code']})")
