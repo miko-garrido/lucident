@@ -924,7 +924,7 @@ def analyze_email_content(email_id: str) -> GmailAnalysisResponse:
     """Analyzes the content of a specific email to extract relevant information.
     
     Args:
-        email_id: ID of the email to analyze
+        email_id (str): ID of the email to analyze
         
     Returns:
         GmailAnalysisResponse: Contains email analysis results
