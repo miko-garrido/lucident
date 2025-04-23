@@ -9,6 +9,8 @@ AGENT_MODEL = Config.MODEL_NAME
 
 from google.adk.models.lite_llm import LiteLlm
 from google.adk.agents import Agent
+from google.genai import types
+from dotenv import load_dotenv
 from harpy_agent.tools.gmail_tools import (
     get_gmail_messages,
     search_by_from,
@@ -26,36 +28,35 @@ from harpy_agent.tools.basic_tools import (
     calculate_date
 )
 
+load_dotenv()
+
+MODEL_NAME = Config.MODEL_NAME
+APP_NAME = Config.APP_NAME
+USER_ID = Config.USER_ID
+SESSION_ID = Config.SESSION_ID
+
+# Create the agent instance
 gmail_agent = Agent(
     name="gmail_agent",
-    model=LiteLlm(model=AGENT_MODEL),
+    model=LiteLlm(model=MODEL_NAME),
     description=(
-        "Agent to manage multiple Gmail accounts and answer questions about email"
+        "Manages and retrieves information from Gmail accounts, including emails, search, and account management. "
+        "Checks accounts one by one and provides clear responses for each account."
     ),
     instruction=(
-        "I can help with emails from multiple Gmail accounts, including reading, searching, and categorizing emails."
-        "ALWAYS use calculate and calculate_date tools for any mathematical calculations."
-        "\n\nAccount Management:"
-        "\n- Add account: add_gmail_account(account_id)"
-        "\n- List accounts: list_gmail_accounts()"
-        "\n- Search across accounts: search_gmail_with_query(query, account_id=None)"
-        "\n\nEmail Operations:"
-        "\n- To get recent emails: Use get_gmail_messages(max_results=N) where N is the number of emails to retrieve"
-        "\n- To search for emails from someone: Use search_by_from(sender, max_results=N)"
-        "\n- To search for emails with a specific subject: Use search_by_subject(subject_text, max_results=N)"
-        "\n- To search by category: Use categorized_search_gmail(category, max_results=N)"
-        "\n- To analyze an email: Use analyze_email_content with the email ID"
-        "\n- To extract metadata: Use extract_email_metadata with the email ID"
-        "\n- To check deadlines: Use check_upcoming_deadlines()"
-        "\n\nCRITICAL - Tool Call Handling:"
-        "\n1. NEVER make multiple tool calls in parallel"
-        "\n2. ALWAYS follow this sequence:"
-        "\n   a. Make ONE tool call"
-        "\n   b. Wait for the response"
-        "\n   c. Process the response"
-        "\n   d. Make the next tool call if needed"
+        "You are a specialized Gmail assistant. Your primary function is to interact with Gmail accounts using the provided tools. "
+        "IMPORTANT: You must ALWAYS start by listing available accounts using list_gmail_accounts() before performing any other operations. "
+        "After listing accounts, you can proceed with the following steps:"
+        "1. For each account, make a SEPARATE tool call to get_gmail_messages() with the specific account_id"
+        "2. Provide a clear summary for each account before moving to the next"
+        "3. If an account has no emails or returns an error, clearly state that"
+        "4. After checking all accounts, provide a final summary"
+        "If list_gmail_accounts() returns no accounts, inform the user they need to add a Gmail account first. "
+        "Focus solely on Gmail-related actions defined by your tools. Do not perform actions outside of Gmail management. "
+        "IMPORTANT: You must wait for each tool call to complete before making the next one. Do not make multiple tool calls simultaneously."
     ),
     tools=[
+        list_gmail_accounts,
         get_gmail_messages,
         search_by_from,
         search_by_subject,
@@ -63,15 +64,15 @@ gmail_agent = Agent(
         analyze_email_content,
         extract_email_metadata,
         add_gmail_account,
-        list_gmail_accounts,
         search_gmail_with_query,
         get_current_time,
         calculate,
         calculate_date
     ]
 )
-    
-#     return agent
+
+# Export the agent
+__all__ = ['gmail_agent']
 
 # if __name__ == "__main__":
 #     # First authenticate

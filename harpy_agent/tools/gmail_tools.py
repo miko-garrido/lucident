@@ -2,7 +2,7 @@
 """
 Gmail Tools Module
 
-This module contains all the tools and authentication functionality for Gmail.
+This module provides Gmail API integration tools using Google ADK.
 """
 
 import datetime
@@ -13,6 +13,9 @@ import json
 import base64
 import socket
 import webbrowser
+import logging
+import time
+from typing import Optional, Dict, List, Union, Any, TypedDict, Literal
 from zoneinfo import ZoneInfo
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -20,15 +23,198 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from email.mime.text import MIMEText
 from .gmail_account_manager import GmailAccountManager
+from tenacity import retry, stop_after_attempt, wait_exponential
+from googleapiclient.errors import HttpError
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Define the scopes needed for Gmail API
 SCOPES = [
     'https://www.googleapis.com/auth/gmail.readonly',
     'https://www.googleapis.com/auth/gmail.send',
     'https://www.googleapis.com/auth/gmail.modify',
-    'https://www.googleapis.com/auth/gmail.compose',
-    'https://www.googleapis.com/auth/calendar'
+    'https://www.googleapis.com/auth/gmail.compose'
 ]
+
+# Constants
+TOKEN_FILE = 'gmail_tokens.json'
+CREDENTIALS_FILE = 'credentials.json'
+DEFAULT_ACCOUNT = 'default'
+MAX_RETRIES = 3
+RATE_LIMIT_DELAY = 1  # seconds
+
+# Quota constants
+PROJECT_QUOTA_LIMIT = 1200000  # per minute
+USER_QUOTA_LIMIT = 15000  # per minute
+
+# Initialize account manager
+account_manager = GmailAccountManager()
+
+class QuotaManager:
+    """Manages Gmail API quota usage."""
+    
+    def __init__(self):
+        self.project_quota = 0
+        self.user_quotas = {}
+        self.last_reset = time.time()
+        
+    def check_quota(self, method: str, account_id: str) -> bool:
+        """Check if operation is within quota limits.
+        
+        Args:
+            method: API method being called
+            account_id: Account identifier
+            
+        Returns:
+            bool: True if within limits, False otherwise
+        """
+        # Reset quotas if minute has passed
+        current_time = time.time()
+        if current_time - self.last_reset >= 60:
+            self.project_quota = 0
+            self.user_quotas = {}
+            self.last_reset = current_time
+            
+        # Get quota cost for method
+        quota_cost = self._get_method_quota(method)
+        
+        # Check project quota
+        if self.project_quota + quota_cost > PROJECT_QUOTA_LIMIT:
+            return False
+            
+        # Check user quota
+        user_quota = self.user_quotas.get(account_id, 0)
+        if user_quota + quota_cost > USER_QUOTA_LIMIT:
+            return False
+            
+        # Update quotas
+        self.project_quota += quota_cost
+        self.user_quotas[account_id] = user_quota + quota_cost
+        return True
+        
+    def _get_method_quota(self, method: str) -> int:
+        """Get quota cost for a method.
+        
+        Args:
+            method: API method name
+            
+        Returns:
+            int: Quota units required
+        """
+        quota_costs = {
+            'messages.list': 5,
+            'messages.get': 5,
+            'messages.send': 100,
+            'messages.delete': 10,
+            'messages.batchDelete': 50,
+            'messages.import': 25,
+            'messages.insert': 25,
+            'drafts.create': 10,
+            'drafts.delete': 10,
+            'drafts.get': 5,
+            'drafts.list': 5,
+            'drafts.send': 100,
+            'drafts.update': 15,
+            'threads.get': 10,
+            'threads.list': 10,
+            'threads.modify': 10,
+            'threads.delete': 20,
+            'threads.trash': 10,
+            'threads.untrash': 10
+        }
+        return quota_costs.get(method, 1)  # Default to 1 if unknown
+
+# Initialize quota manager
+quota_manager = QuotaManager()
+
+# Type definitions
+class GmailMessage(TypedDict):
+    id: str
+    subject: str
+    from_: str
+    date: str
+    snippet: str
+    body: str
+
+class GmailServiceResponse(TypedDict):
+    status: Literal['success', 'error']
+    error_message: Optional[str]
+    service: Optional[Any]  # googleapiclient.discovery.Resource
+    account: Optional[str]
+
+class GmailErrorResponse(TypedDict):
+    status: Literal['error']
+    error_message: str
+
+class GmailMessageResponse(TypedDict):
+    status: Literal['success', 'error']
+    account: str
+    messages: List[GmailMessage]
+    report: Optional[str]
+
+class GmailSearchResponse(TypedDict):
+    status: Literal['success', 'error']
+    account: str
+    report: str
+    emails: List[GmailMessage]
+    accounts_searched: List[str]
+    accounts_with_results: List[str]
+    total_accounts: int
+
+GmailResponse = Union[GmailServiceResponse, GmailErrorResponse, GmailMessageResponse, GmailSearchResponse]
+
+class GmailDeadlineResponse(TypedDict):
+    status: Literal['success', 'error']
+    report: str
+    deadlines: List[Dict[str, Any]]
+    error_message: Optional[str]
+
+class GmailAccountResponse(TypedDict):
+    status: Literal['success', 'error']
+    message: str
+    error_message: Optional[str]
+
+class GmailAccountListResponse(TypedDict):
+    status: Literal['success', 'error']
+    accounts: Dict[str, Dict[str, Any]]
+    error_message: Optional[str]
+
+class GmailProjectIntentResponse(TypedDict):
+    intents: Dict[str, List[Dict[str, str]]]
+    confidence_scores: Dict[str, float]
+    has_project_intent: bool
+
+class GmailProjectSearchResponse(TypedDict):
+    status: Literal['success', 'error']
+    report: str
+    emails: List[Dict[str, Any]]
+    categorized_results: Dict[str, List[Dict[str, Any]]]
+    accounts_searched: List[str]
+    accounts_with_results: List[str]
+    total_accounts: int
+    search_strategies: List[str]
+    time_filter: str
+    error_message: Optional[str]
+
+class GmailAnalysisResponse(TypedDict):
+    status: Literal['success', 'error']
+    subject: str
+    sender: str
+    body: str
+    categories: Dict[str, List[str]]
+    error_message: Optional[str]
+
+class GmailMetadataResponse(TypedDict):
+    status: Literal['success', 'error']
+    subject: str
+    sender: str
+    date: str
+    has_attachment: bool
+    attachment_info: List[str]
+    body: str
+    error_message: Optional[str]
 
 # Gmail authentication functions
 def is_port_in_use(port):
@@ -42,77 +228,144 @@ def find_free_port():
         s.bind(('', 0))
         return s.getsockname()[1]
 
-def get_gmail_service(account_id=None):
-    """Get Gmail service for specified account"""
-    if not account_id:
-        account_id = "default"
-        
-    token_file = 'gmail_tokens.json'
-    
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+def execute_with_retry(request):
+    """Execute Gmail API request with retry logic."""
     try:
-        # Load all credentials from consolidated token file
-        if os.path.exists(token_file):
-            with open(token_file, 'r') as f:
-                all_tokens = json.load(f)
-        else:
-            all_tokens = {}
-            
-        if account_id not in all_tokens:
-            return {
-                "status": "error",
-                "error_message": f"Gmail authentication not set up for account {account_id}. Please run 'python gmail_tools.py auth {account_id}' to set up authentication."
-            }
-            
-        # Load credentials for specific account
-        creds = Credentials.from_authorized_user_info(all_tokens[account_id])
-        
-        # If credentials expired, refresh them
-        if creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            # Update token file with refreshed credentials
-            all_tokens[account_id] = {
-                'token': creds.token,
-                'refresh_token': creds.refresh_token,
-                'token_uri': creds.token_uri,
-                'client_id': creds.client_id,
-                'client_secret': creds.client_secret,
-                'scopes': creds.scopes,
-                'expiry': creds.expiry.isoformat() if creds.expiry else None
-            }
-            with open(token_file, 'w') as f:
-                json.dump(all_tokens, f, indent=2)
-        
-        # Build the Gmail service
-        service = build('gmail', 'v1', credentials=creds)
-        
-        return {
-            "status": "success",
-            "service": service,
-            "account": account_id
-        }
-        
+        result = request.execute()
+        if result is None:
+            logger.error("Gmail API request returned None")
+            return None
+        return result
+    except HttpError as error:
+        if error.resp.status in [429, 500, 503]:
+            logger.warning(f"Retrying after HTTP error {error.resp.status}: {error}")
+            # Add delay for rate limit errors
+            if error.resp.status == 429:
+                time.sleep(5)  # Wait 5 seconds before retry
+            raise
+        logger.error(f"Gmail API error: {error}")
+        return None
     except Exception as e:
-        return {
-            "status": "error",
-            "error_message": f"Error authenticating with Gmail for account {account_id}: {str(e)}"
-        }
+        if "Too many concurrent requests" in str(e):
+            logger.warning("Concurrent request limit reached, waiting before retry")
+            time.sleep(5)  # Wait 5 seconds before retry
+            raise
+        logger.error(f"Unexpected error in execute_with_retry: {e}")
+        return None
 
-def gmail_auth(account_id="default"):
-    """Authenticates with Gmail API and sets up credentials.
+def get_gmail_service(account_id: Optional[str] = None) -> GmailServiceResponse:
+    """Get Gmail service for specified account."""
+    try:
+        account_id = account_id or account_manager.get_default_account()
+        if not account_id:
+            return GmailServiceResponse(
+                status="error",
+                error_message="No account ID provided and no default account found",
+                service=None,
+                account=None
+            )
+            
+        credentials_dict = account_manager.get_account_credentials(account_id)
+        if not credentials_dict:
+            return GmailServiceResponse(
+                status="error",
+                error_message=f"No credentials found for account {account_id}",
+                service=None,
+                account=account_id
+            )
+            
+        credentials = Credentials.from_authorized_user_info(credentials_dict)
+        service = build('gmail', 'v1', credentials=credentials)
+        
+        return GmailServiceResponse(
+            status="success",
+            error_message=None,
+            service=service,
+            account=account_id
+        )
+    except Exception as e:
+        logger.error(f"Error getting Gmail service: {e}")
+        return GmailServiceResponse(
+            status="error",
+            error_message=str(e),
+            service=None,
+            account=account_id
+        )
+
+def get_credentials(account_id: str = DEFAULT_ACCOUNT) -> Optional[Credentials]:
+    """Get valid credentials for Gmail API.
     
     Args:
-        account_id (str, optional): ID of the Gmail account to use. Defaults to "default".
+        account_id: Account identifier
         
     Returns:
-        bool: True if authentication was successful, False otherwise.
+        Valid credentials or None if failed
     """
-    print(f"\n=== Gmail API Authentication Setup for {account_id} ===\n")
+    try:
+        # Load tokens
+        if not os.path.exists(TOKEN_FILE):
+            logger.error("Token file not found")
+            return None
+            
+        with open(TOKEN_FILE, 'r') as f:
+            all_tokens = json.load(f)
+            
+        if account_id not in all_tokens:
+            logger.error(f"Account {account_id} not found in tokens")
+            return None
+            
+        token_data = all_tokens[account_id]
+        
+        # Create credentials object
+        creds = Credentials(
+            token=token_data['token'],
+            refresh_token=token_data['refresh_token'],
+            token_uri=token_data['token_uri'],
+            client_id=token_data['client_id'],
+            client_secret=token_data['client_secret'],
+            scopes=token_data['scopes']
+        )
+        
+        # Check if credentials need refresh
+        if not creds.valid:
+            if creds.expired and creds.refresh_token:
+                try:
+                    creds.refresh(Request())
+                    # Update token file with new credentials
+                    all_tokens[account_id].update({
+                        'token': creds.token,
+                        'expiry': creds.expiry.isoformat() if creds.expiry else None
+                    })
+                    with open(TOKEN_FILE, 'w') as f:
+                        json.dump(all_tokens, f, indent=2)
+                except Exception as e:
+                    logger.error(f"Failed to refresh credentials: {e}")
+                    return None
+            else:
+                logger.error("Credentials expired and no refresh token")
+                return None
+                
+        return creds
+        
+    except Exception as e:
+        logger.error(f"Error getting credentials: {e}")
+        return None
+
+def gmail_auth(account_id: str = DEFAULT_ACCOUNT) -> bool:
+    """Authenticate with Gmail API and save credentials.
     
-    token_file = 'gmail_tokens.json'
+    Args:
+        account_id: Account identifier to use. Defaults to 'default'.
+        
+    Returns:
+        bool: True if authentication successful, False otherwise.
+    """
+    logger.info(f"Starting Gmail authentication for account: {account_id}")
     
-    # Check if credentials.json exists
-    if not os.path.exists('credentials.json'):
-        print("ERROR: 'credentials.json' file not found!")
+    if not os.path.exists(CREDENTIALS_FILE):
+        logger.error("Credentials file not found")
+        print("\nERROR: 'credentials.json' file not found!")
         print("\nFollow these steps to get your credentials.json file:")
         print("1. Go to https://console.cloud.google.com/")
         print("2. Create a new project or select an existing one")
@@ -122,96 +375,39 @@ def gmail_auth(account_id="default"):
         print("6. Click 'Create Credentials' > 'OAuth client ID'")
         print("7. Set Application type to 'Desktop application'")
         print("8. Name your client and click 'Create'")
-        print("9. Download the JSON file and save it as 'credentials.json' in this directory")
+        print("9. Download the JSON file and save it as 'credentials.json'")
         return False
     
-    # Load existing tokens if any
-    if os.path.exists(token_file):
-        with open(token_file, 'r') as f:
-            all_tokens = json.load(f)
-    else:
-        all_tokens = {}
-    
     try:
-        # Allow insecure localhost
-        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+        # Load existing tokens
+        all_tokens = {}
+        if os.path.exists(TOKEN_FILE):
+            with open(TOKEN_FILE, 'r') as f:
+                all_tokens = json.load(f)
         
-        # Try each of these ports, in order
-        ports_to_try = [8001, 8080, 8090, 8000]
+        # Create OAuth flow
+        flow = InstalledAppFlow.from_client_secrets_file(
+            CREDENTIALS_FILE,
+            SCOPES
+        )
         
-        creds = None
-        success = False
+        # Run local server for authentication
+        creds = flow.run_local_server(
+            port=0,  # Let the system choose an available port
+            open_browser=True,
+            success_message="Authentication successful! You can close this window.",
+            access_type='offline',
+            prompt='consent'
+        )
         
-        for port in ports_to_try:
-            if is_port_in_use(port):
-                print(f"Port {port} is already in use, trying next port...")
-                continue
-                
-            print(f"Using port {port}...")
-            
-            try:
-                # Create the flow
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json',
-                    SCOPES
-                )
-                
-                print(f"Starting OAuth authentication flow on port {port}...")
-                print("This will open a browser window for you to sign in to your Google account.")
-                
-                # Run the local server
-                creds = flow.run_local_server(
-                    port=port,
-                    open_browser=True,
-                    success_message="Authentication successful! You can close this window and return to the terminal.",
-                    access_type='offline',
-                    prompt='consent'
-                )
-                
-                success = True
-                break  # Found a working port and completed authentication
-                
-            except Exception as e:
-                print(f"Error with port {port}: {e}")
-                continue
-        
-        if not success:
-            print("All ports failed. Trying a random free port...")
-            port = find_free_port()
-            print(f"Using random free port: {port}")
-            
-            try:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json',
-                    SCOPES
-                )
-                
-                print(f"Starting OAuth authentication flow on port {port}...")
-                print("This will open a browser window for you to sign in to your Google account.")
-                
-                creds = flow.run_local_server(
-                    port=port,
-                    open_browser=True,
-                    success_message="Authentication successful! You can close this window and return to the terminal.",
-                    access_type='offline',
-                    prompt='consent'
-                )
-                
-                success = True
-                
-            except Exception as e:
-                print(f"Error with random port {port}: {e}")
-                success = False
-        
-        # Check if we got credentials
-        if not success or not creds or not creds.refresh_token:
+        if not creds or not creds.refresh_token:
+            logger.error("Failed to obtain refresh token")
             print("\nWARNING: Did not receive valid credentials or refresh token!")
-            print("This could happen if you've already authorized this app previously.")
-            print("Please go to https://myaccount.google.com/permissions and revoke access")
-            print("for this app, then run this script again.")
+            print("Please go to https://myaccount.google.com/permissions")
+            print("Revoke access for this app, then try again.")
             return False
         
-        # Save the credentials for this account
+        # Save credentials
         all_tokens[account_id] = {
             'token': creds.token,
             'refresh_token': creds.refresh_token,
@@ -222,65 +418,172 @@ def gmail_auth(account_id="default"):
             'expiry': creds.expiry.isoformat() if creds.expiry else None
         }
         
-        # Save all tokens to file
-        with open(token_file, 'w') as f:
+        with open(TOKEN_FILE, 'w') as f:
             json.dump(all_tokens, f, indent=2)
         
-        print("\nAuthentication successful!")
-        print(f"Refresh token obtained: {bool(creds.refresh_token)}")
-        print(f"Credentials saved to '{token_file}' for account '{account_id}'\n")
+        logger.info(f"Authentication successful for account: {account_id}")
         return True
         
     except Exception as e:
+        logger.error(f"Authentication failed: {e}")
         print(f"\nError during authentication: {e}")
-        print("\nTroubleshooting tips:")
-        print("1. Make sure your credentials.json is valid and downloaded directly from Google Cloud Console")
-        print("2. Ensure your OAuth consent screen is configured properly")
-        print("3. Make sure one of these redirect URIs is authorized in Google Cloud:")
-        print("   - http://localhost:8001")
-        print("   - http://localhost:8080")
-        print("   - http://localhost:8000")
-        print("   - http://localhost (without a port)")
-        print("4. Try closing any browser windows that might be caching credentials")
-        print("5. Go to https://myaccount.google.com/permissions and revoke access for this app, then try again")
-        print("6. Check if your firewall is blocking localhost connections")
         return False
 
 # Gmail functionality
-def get_gmail_messages(max_results: int = 10, account_id: str = "") -> dict:
-    """Retrieves recent messages from Gmail.
+def get_gmail_messages(account_id: Optional[str] = None, max_results: int = 10) -> GmailMessageResponse:
+    """Get Gmail messages using batch operations."""
+    try:
+        # Get service for account
+        service_response = get_gmail_service(account_id)
+        if service_response.error:
+            return GmailMessageResponse(
+                status="error",
+                account=account_id,
+                error=service_response.error
+            )
+        service = service_response.service
+
+        # Check quota before proceeding
+        if not quota_manager.check_quota("users.messages.list", 1):
+            return GmailMessageResponse(
+                status="error",
+                account=account_id,
+                error="API quota exceeded. Please try again later."
+            )
+
+        # Create request objects first
+        list_request = service.users().messages().list(
+            userId="me",
+            maxResults=max_results
+        )
+
+        # Execute list request with retry
+        result = execute_with_retry(list_request)
+        if not result:
+            return GmailMessageResponse(
+                status="error",
+                account=account_id,
+                error="Failed to retrieve message list"
+            )
+
+        messages = result.get("messages", [])
+        if not messages:
+            return GmailMessageResponse(
+                status="success",
+                account=account_id,
+                messages=[],
+                report=f"No messages found for account {account_id}"
+            )
+
+        # Create batch request
+        batch = service.new_batch_http_request()
+        message_details = []
+
+        def callback(request_id, response, exception):
+            if exception:
+                logger.error(f"Error in batch request {request_id}: {exception}")
+                if "Too many concurrent requests" in str(exception):
+                    time.sleep(5)  # Wait before retrying
+                    raise exception
+                return
+            if response:
+                message_details.append(response)
+
+        # Add requests to batch with delay between batches
+        batch_size = 5  # Process 5 messages at a time
+        for i in range(0, len(messages), batch_size):
+            batch_messages = messages[i:i + batch_size]
+            for msg in batch_messages:
+                batch.add(
+                    service.users().messages().get(
+                        userId="me",
+                        id=msg["id"],
+                        format="full"
+                    ),
+                    callback=callback
+                )
+            # Execute batch and wait
+            batch.execute()
+            batch = service.new_batch_http_request()  # Create new batch for next group
+            if i + batch_size < len(messages):
+                time.sleep(2)  # Wait between batches
+
+        return GmailMessageResponse(
+            status="success",
+            account=account_id,
+            messages=message_details,
+            report=f"Retrieved {len(message_details)} messages for account {account_id}"
+        )
+
+    except Exception as e:
+        logger.error(f"Error in get_gmail_messages: {e}")
+        return GmailMessageResponse(
+            status="error",
+            account=account_id,
+            error=str(e)
+        )
+
+def get_gmail_messages_for_account(account_id: str, max_results: int = 10) -> Union[GmailMessageResponse, GmailErrorResponse]:
+    """Get recent messages from a specific Gmail account.
     
     Args:
-        max_results (int, optional): Maximum number of emails to retrieve. Defaults to 10.
-        account_id (str, optional): Specific account to retrieve from. If empty, retrieves from all accounts.
+        account_id: The account ID to check
+        max_results: Maximum number of messages to retrieve
         
     Returns:
-        Result containing recent emails
+        GmailMessageResponse: Contains messages and account information if successful
+        GmailErrorResponse: Contains error status and message if failed
     """
-    account_manager = GmailAccountManager()
+    service_result = get_gmail_service(account_id)
+    if service_result["status"] == "error":
+        return service_result
+        
+    service = service_result["service"]
     
-    # If account_id is specified, get messages only from that account
-    if account_id:
-        service_result = get_gmail_service(account_id)
-        if service_result["status"] == "error":
-            return service_result
-            
-        service = service_result["service"]
-        try:
-            results = service.users().messages().list(userId='me', maxResults=max_results).execute()
-            messages = results.get('messages', [])
-            
-            if not messages:
-                return {
-                    "status": "success",
-                    "account": account_id,
-                    "report": f"No messages found for account {account_id}."
-                }
-            
-            # Get details for each message
-            email_data = []
-            for message in messages:
-                msg = service.users().messages().get(userId='me', id=message['id'], format='metadata').execute()
+    try:
+        # Get messages with retry logic
+        for attempt in range(MAX_RETRIES):
+            try:
+                results = service.users().messages().list(
+                    userId='me',
+                    maxResults=max_results
+                ).execute()
+                break
+            except Exception as e:
+                if attempt == MAX_RETRIES - 1:
+                    raise
+                logger.warning(f"Message list attempt {attempt + 1} failed: {e}")
+                time.sleep(RATE_LIMIT_DELAY)
+                
+        messages = results.get('messages', [])
+        
+        if not messages:
+            return {
+                "status": "success",
+                "account": account_id,
+                "messages": [],
+                "report": "No messages found"
+            }
+        
+        # Get full message details for each message
+        email_data = []
+        for message in messages:
+            try:
+                # Get message with retry logic
+                for attempt in range(MAX_RETRIES):
+                    try:
+                        msg = service.users().messages().get(
+                            userId='me',
+                            id=message['id'],
+                            format='full'
+                        ).execute()
+                        break
+                    except Exception as e:
+                        if attempt == MAX_RETRIES - 1:
+                            raise
+                        logger.warning(f"Message get attempt {attempt + 1} failed: {e}")
+                        time.sleep(RATE_LIMIT_DELAY)
+                        
                 headers = msg['payload']['headers']
                 
                 # Extract subject, from, and date information
@@ -288,150 +591,223 @@ def get_gmail_messages(max_results: int = 10, account_id: str = "") -> dict:
                 sender = next((header['value'] for header in headers if header['name'].lower() == 'from'), 'Unknown sender')
                 date = next((header['value'] for header in headers if header['name'].lower() == 'date'), 'Unknown date')
                 
+                # Extract body content
+                body = ""
+                if 'parts' in msg['payload']:
+                    for part in msg['payload']['parts']:
+                        if part['mimeType'] == 'text/plain':
+                            body_data = part['body'].get('data', '')
+                            if body_data:
+                                body = base64.urlsafe_b64decode(body_data).decode('utf-8')
+                                break
+                elif 'body' in msg['payload'] and 'data' in msg['payload']['body']:
+                    body_data = msg['payload']['body']['data']
+                    body = base64.urlsafe_b64decode(body_data).decode('utf-8')
+                
                 email_data.append({
                     'id': message['id'],
                     'subject': subject,
-                    'from': sender,
+                    'from_': sender,
                     'date': date,
-                    'snippet': msg.get('snippet', '')
+                    'snippet': msg.get('snippet', ''),
+                    'body': body[:500] + ('...' if len(body) > 500 else '')
                 })
+            except Exception as e:
+                logger.error(f"Error getting message {message['id']}: {e}")
+                continue
             
-            return {
-                "status": "success",
-                "account": account_id,
-                "report": f"Found {len(email_data)} emails",
-                "emails": email_data
-            }
-            
-        except Exception as e:
-            return {
-                "status": "error",
-                "error_message": f"Error retrieving Gmail messages for account {account_id}: {str(e)}"
-            }
-    
-    # Otherwise get messages from all accounts
-    all_results = []
-    accounts = list(account_manager.get_accounts().keys())
-    
-    for acc in accounts:
-        result = get_gmail_messages(max_results, acc)
-        if result["status"] == "success":
-            all_results.append(result)
-    
-    return {
-        "status": "success",
-        "results": all_results,
-        "accounts_searched": accounts
-    }
+        return {
+            "status": "success",
+            "account": account_id,
+            "messages": email_data,
+            "report": f"Found {len(email_data)} messages"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting messages for account {account_id}: {e}")
+        return {
+            "status": "error",
+            "error_message": f"Error getting messages for account {account_id}: {str(e)}"
+        }
 
 # Helper to fix the parameter issue by providing an explicit parameter schema function
-def search_gmail_with_query(query: str = "", account_id: str = "", max_results: int = 10):
-    """Search Gmail across specified or all accounts.
+def search_gmail_with_query(query: str, max_results: int = 10, account_id: Optional[str] = None) -> Union[GmailSearchResponse, GmailErrorResponse]:
+    """Search Gmail messages with the given query.
     
     Args:
-        query: Gmail search query string. If empty, returns most recent emails.
-        account_id: Specific account ID to search. If empty, searches all accounts.
-        max_results: Maximum number of results to return.
+        query: Search query string
+        max_results: Maximum number of results to return
+        account_id: Optional account ID to search
+        
+    Returns:
+        GmailSearchResponse: Contains matching messages and search info if successful
+        GmailErrorResponse: Contains error status and message if failed
     """
-    if not query:
-        return get_gmail_messages(max_results, account_id)
+    logger.info(f"Searching Gmail with query: {query} for account: {account_id}")
     
-    account_manager = GmailAccountManager()
-    
-    # If account_id is specified, search only that account
-    if account_id:
-        result = _search_gmail_impl(query, account_id, max_results)
+    try:
+        account_manager = GmailAccountManager()
+        accounts = account_manager.get_accounts()
+        
+        if not accounts:
+            return {
+                "status": "error",
+                "error_message": "No Gmail accounts configured"
+            }
+            
+        if account_id and account_id not in accounts:
+            return {
+                "status": "error",
+                "error_message": f"Account {account_id} not found"
+            }
+            
+        # Extract time filter from query
+        time_filter = None
+        if "this week" in query.lower():
+            time_filter = "after:" + (datetime.now() - datetime.timedelta(days=7)).strftime("%Y/%m/%d")
+        elif "this month" in query.lower():
+            time_filter = "after:" + (datetime.now() - datetime.timedelta(days=30)).strftime("%Y/%m/%d")
+        elif "today" in query.lower():
+            time_filter = "after:" + datetime.now().strftime("%Y/%m/%d")
+            
+        # Build search query
+        search_query = query
+        if time_filter:
+            search_query = f"{search_query} {time_filter}"
+            
+        # If query is empty, use smart project search or get recent emails
+        if not search_query.strip():
+            search_query = "in:inbox"
+            
+        # Search all accounts sequentially
+        all_results = []
+        for acc_id in (accounts if not account_id else [account_id]):
+            result = _search_gmail_impl(acc_id, search_query, max_results)
+            if result["status"] == "success":
+                all_results.extend(result["messages"])
+                
+        # Sort by date and limit results
+        all_results.sort(key=lambda x: x["date"], reverse=True)
+        all_results = all_results[:max_results]
+        
         return {
-            "status": "success", 
-            "results": [result] if result["status"] == "success" else [],
-            "accounts_searched": [account_id]
+            "status": "success",
+            "account": account_id or "all",
+            "messages": all_results,
+            "report": f"Found {len(all_results)} messages matching query"
         }
-    
-    # Otherwise search all accounts sequentially
-    results = []
-    accounts = list(account_manager.get_accounts().keys())
-    
-    for acc in accounts:
-        result = _search_gmail_impl(query, acc, max_results)
-        if result["status"] == "success":
-            results.append(result)
-    
-    return {
-        "status": "success",
-        "results": results,
-        "accounts_searched": accounts
-    }
-
-# Rename original function to implementation
-def _search_gmail_impl(query, account_id, max_results):
+        
+    except Exception as e:
+        logger.error(f"Error searching Gmail: {e}")
+        return {
+            "status": "error",
+            "error_message": str(e)
+        }
+        
+def _search_gmail_impl(account_id: str, query: str, max_results: int) -> Union[GmailSearchResponse, GmailErrorResponse]:
     """Internal implementation of Gmail search.
     
-    This is used by both the search_gmail and search_gmail_with_query functions.
+    Args:
+        account_id: Account ID to search
+        query: Search query string
+        max_results: Maximum number of results to return
+        
+    Returns:
+        GmailSearchResponse: Contains matching messages and search info if successful
+        GmailErrorResponse: Contains error status and message if failed
     """
-    # Get Gmail service for the specified account
     service_result = get_gmail_service(account_id)
-    
-    # Check if authentication was successful
     if service_result["status"] == "error":
         return service_result
-    
-    # Extract the service object
+        
     service = service_result["service"]
     
     try:
-        # Search for emails matching the query
-        results = service.users().messages().list(userId='me', q=query, maxResults=max_results).execute()
+        # Search messages with retry logic
+        for attempt in range(MAX_RETRIES):
+            try:
+                results = service.users().messages().list(
+                    userId='me',
+                    q=query,
+                    maxResults=max_results
+                ).execute()
+                break
+            except Exception as e:
+                if attempt == MAX_RETRIES - 1:
+                    raise
+                logger.warning(f"Search attempt {attempt + 1} failed: {e}")
+                time.sleep(RATE_LIMIT_DELAY)
+                
         messages = results.get('messages', [])
         
         if not messages:
             return {
                 "status": "success",
                 "account": account_id,
-                "report": f"No messages found matching query: '{query}'."
+                "messages": [],
+                "report": "No messages found matching query"
             }
-        
-        # Get details for each message
+            
+        # Get full message details
         email_data = []
         for message in messages:
-            msg = service.users().messages().get(userId='me', id=message['id'], format='full').execute()
-            headers = msg['payload']['headers']
-            
-            # Extract subject, from, and date information
-            subject = next((header['value'] for header in headers if header['name'].lower() == 'subject'), 'No subject')
-            sender = next((header['value'] for header in headers if header['name'].lower() == 'from'), 'Unknown sender')
-            date = next((header['value'] for header in headers if header['name'].lower() == 'date'), 'Unknown date')
-            
-            # Extract body content
-            body = ""
-            if 'parts' in msg['payload']:
-                for part in msg['payload']['parts']:
-                    if part['mimeType'] == 'text/plain':
-                        # Decode the base64 encoded message
-                        body_data = part['body'].get('data', '')
-                        if body_data:
-                            body = base64.urlsafe_b64decode(body_data).decode('utf-8')
-                            break
-            elif 'body' in msg['payload'] and 'data' in msg['payload']['body']:
-                body_data = msg['payload']['body']['data']
-                body = base64.urlsafe_b64decode(body_data).decode('utf-8')
-            
-            email_data.append({
-                'id': message['id'],
-                'subject': subject,
-                'from': sender,
-                'date': date,
-                'snippet': msg.get('snippet', ''),
-                'body': body[:500] + ('...' if len(body) > 500 else '')  # Truncate long messages
-            })
-        
+            try:
+                # Get message with retry logic
+                for attempt in range(MAX_RETRIES):
+                    try:
+                        msg = service.users().messages().get(
+                            userId='me',
+                            id=message['id'],
+                            format='full'
+                        ).execute()
+                        break
+                    except Exception as e:
+                        if attempt == MAX_RETRIES - 1:
+                            raise
+                        logger.warning(f"Message get attempt {attempt + 1} failed: {e}")
+                        time.sleep(RATE_LIMIT_DELAY)
+                        
+                headers = msg['payload']['headers']
+                
+                # Extract subject, from, and date information
+                subject = next((header['value'] for header in headers if header['name'].lower() == 'subject'), 'No subject')
+                sender = next((header['value'] for header in headers if header['name'].lower() == 'from'), 'Unknown sender')
+                date = next((header['value'] for header in headers if header['name'].lower() == 'date'), 'Unknown date')
+                
+                # Extract body content
+                body = ""
+                if 'parts' in msg['payload']:
+                    for part in msg['payload']['parts']:
+                        if part['mimeType'] == 'text/plain':
+                            body_data = part['body'].get('data', '')
+                            if body_data:
+                                body = base64.urlsafe_b64decode(body_data).decode('utf-8')
+                                break
+                elif 'body' in msg['payload'] and 'data' in msg['payload']['body']:
+                    body_data = msg['payload']['body']['data']
+                    body = base64.urlsafe_b64decode(body_data).decode('utf-8')
+                
+                email_data.append({
+                    'id': message['id'],
+                    'subject': subject,
+                    'from_': sender,
+                    'date': date,
+                    'snippet': msg.get('snippet', ''),
+                    'body': body[:500] + ('...' if len(body) > 500 else '')
+                })
+            except Exception as e:
+                logger.error(f"Error getting message {message['id']}: {e}")
+                continue
+                
         return {
             "status": "success",
             "account": account_id,
-            "report": f"Found {len(email_data)} emails matching query: '{query}'",
-            "emails": email_data
+            "messages": email_data,
+            "report": f"Found {len(email_data)} messages matching query"
         }
         
     except Exception as e:
+        logger.error(f"Error searching Gmail for account {account_id}: {e}")
         return {
             "status": "error",
             "error_message": f"Error searching Gmail for account {account_id}: {str(e)}"
@@ -440,12 +816,13 @@ def _search_gmail_impl(query, account_id, max_results):
 # Replace the original search_gmail with the new clean version
 search_gmail = search_gmail_with_query
 
-def categorized_search_gmail(category: str, max_results: int = 10) -> dict:
+def categorized_search_gmail(category: str, account_id: str = "", max_results: int = 10) -> dict:
     """Searches Gmail for specific emails based on predefined categories.
     
     Args:
         category: Category to search for. Valid values: 'people', 'projects', 'tasks', 'attachments', 'meetings'
-        max_results (int, optional): Maximum number of emails to retrieve. Defaults to 10.
+        account_id: Specific account ID to search. If empty, searches all accounts.
+        max_results: Maximum number of results to return.
         
     Returns:
         Result containing matching emails
@@ -497,29 +874,60 @@ def categorized_search_gmail(category: str, max_results: int = 10) -> dict:
         # If no specific tag, combine all queries for the category
         query = " OR ".join([f"({q})" for q in category_queries.values()])
     
-    # Use the implementation directly
-    results = _search_gmail_impl(query, "default", max_results)
+    # Use the implementation directly with account_id support
+    if account_id:
+        result = _search_gmail_impl(account_id, query, max_results)
+    else:
+        # Search across all accounts
+        account_manager = GmailAccountManager()
+        all_emails = []
+        accounts_searched = []
+        accounts_with_results = []
+        accounts = list(account_manager.get_accounts().keys())
+        
+        for acc in accounts:
+            result = _search_gmail_impl(acc, query, max_results)
+            if result["status"] == "success":
+                accounts_searched.append(acc)
+                if "emails" in result and result["emails"]:
+                    all_emails.extend(result["emails"])
+                    accounts_with_results.append(acc)
+        
+        # Sort emails by date (most recent first)
+        all_emails.sort(key=lambda x: x.get('date', ''), reverse=True)
+        
+        # Limit total results to max_results
+        all_emails = all_emails[:max_results]
+        
+        result = {
+            "status": "success",
+            "report": f"Found {len(all_emails)} emails in category '{category}' across {len(accounts_with_results)} accounts",
+            "emails": all_emails,
+            "accounts_searched": accounts_searched,
+            "accounts_with_results": accounts_with_results,
+            "total_accounts": len(accounts)
+        }
     
     # Add categorization info to the results
-    if results["status"] == "success" and "emails" in results:
+    if result["status"] == "success" and "emails" in result:
         if tag:
-            results["category"] = category.lower()
-            results["tag"] = tag.lower()
-            results["search_criteria"] = query
+            result["category"] = category.lower()
+            result["tag"] = tag.lower()
+            result["search_criteria"] = query
         else:
-            results["category"] = category.lower()
-            results["search_criteria"] = query
+            result["category"] = category.lower()
+            result["search_criteria"] = query
     
-    return results
+    return result
 
-def analyze_email_content(email_id: str) -> dict:
+def analyze_email_content(email_id: str) -> GmailAnalysisResponse:
     """Analyzes the content of a specific email to extract relevant information.
     
     Args:
         email_id (str): ID of the email to analyze
         
     Returns:
-        Result containing email analysis
+        GmailAnalysisResponse: Contains email analysis results
     """
     # Set default values
     account_id = "default"
@@ -623,14 +1031,14 @@ def analyze_email_content(email_id: str) -> dict:
             "error_message": f"Error analyzing email for account {account_id}: {str(e)}"
         }
 
-def extract_email_metadata(email_id: str) -> dict:
+def extract_email_metadata(email_id: str) -> GmailMetadataResponse:
     """Extracts structured metadata from an email.
     
     Args:
         email_id: ID of the email to extract metadata from
         
     Returns:
-        Result containing email metadata
+        GmailMetadataResponse: Contains email metadata
     """
     # Set default values
     account_id = "default"
@@ -785,7 +1193,7 @@ def extract_email_metadata(email_id: str) -> dict:
         }
 
 # Simplest possible function with explicit parameter and type annotation
-def search_by_from(sender: str, account_id: str = "", max_results: int = 10) -> dict:
+def search_by_from(sender: str, account_id: str = "", max_results: int = 10) -> GmailSearchResponse:
     """Search for emails from a specific sender.
     
     Args:
@@ -794,30 +1202,48 @@ def search_by_from(sender: str, account_id: str = "", max_results: int = 10) -> 
         max_results: Maximum number of results to return
         
     Returns:
-        Result containing matching emails
+        GmailSearchResponse: Contains matching messages and search info if successful
     """
     query = f"from:{sender}"
-    return _search_gmail_impl(query, account_id, max_results)
+    result = _search_gmail_impl(account_id, query, max_results)
+    return GmailSearchResponse(
+        status=result["status"],
+        account=account_id or "default",
+        report=result.get("report", ""),
+        emails=result.get("messages", []),
+        accounts_searched=[account_id] if account_id else [],
+        accounts_with_results=[account_id] if account_id and result["status"] == "success" else [],
+        total_accounts=1
+    )
     
 # Simplest possible function with explicit parameter and type annotation
-def search_by_subject(subject_text: str) -> dict:
+def search_by_subject(subject_text: str) -> GmailSearchResponse:
     """Search for emails with specific text in the subject.
     
     Args:
         subject_text: Text to search for in subject
         
     Returns:
-        Result containing matching emails
+        GmailSearchResponse: Contains matching messages and search info if successful
     """
     query = f"subject:{subject_text}"
-    return _search_gmail_impl(query, "default", 10)
+    result = _search_gmail_impl("default", query, 10)
+    return GmailSearchResponse(
+        status=result["status"],
+        account="default",
+        report=result.get("report", ""),
+        emails=result.get("messages", []),
+        accounts_searched=["default"],
+        accounts_with_results=["default"] if result["status"] == "success" else [],
+        total_accounts=1
+    )
 
-def check_upcoming_deadlines() -> dict:
+def check_upcoming_deadlines() -> GmailDeadlineResponse:
     """Searches Gmail for emails containing deadline-related keywords and promises.
     Returns structured information about upcoming deadlines and promises.
     
     Returns:
-        dict: Contains status, deadlines found, and any error messages
+        GmailDeadlineResponse: Contains status, deadlines found, and any error messages
     """
     # Define deadline-related search patterns
     formal_deadlines = [
@@ -844,7 +1270,12 @@ def check_upcoming_deadlines() -> dict:
     # Get Gmail service
     service_result = get_gmail_service()
     if service_result["status"] == "error":
-        return service_result
+        return GmailDeadlineResponse(
+            status="error",
+            report="Error getting Gmail service",
+            deadlines=[],
+            error_message=service_result["error_message"]
+        )
     
     service = service_result["service"]
     
@@ -858,11 +1289,11 @@ def check_upcoming_deadlines() -> dict:
         
         messages = results.get('messages', [])
         if not messages:
-            return {
-                "status": "success",
-                "report": "No upcoming deadlines found.",
-                "deadlines": []
-            }
+            return GmailDeadlineResponse(
+                status="success",
+                report="No upcoming deadlines found.",
+                deadlines=[]
+            )
         
         # Process each email
         deadlines = []
@@ -932,40 +1363,45 @@ def check_upcoming_deadlines() -> dict:
                     "deadlines_found": found_deadlines
                 })
         
-        return {
-            "status": "success",
-            "report": f"Found {len(deadlines)} emails with deadline-related content",
-            "deadlines": deadlines
-        }
+        return GmailDeadlineResponse(
+            status="success",
+            report=f"Found {len(deadlines)} emails with deadline-related content",
+            deadlines=deadlines
+        )
         
     except Exception as e:
-        return {
-            "status": "error",
-            "error_message": f"Error checking deadlines: {str(e)}"
-        }
+        return GmailDeadlineResponse(
+            status="error",
+            report=f"Error checking deadlines: {str(e)}",
+            deadlines=[],
+            error_message=str(e)
+        )
 
-def add_gmail_account(account_id: str):
+def add_gmail_account(account_id: str) -> GmailAccountResponse:
     """Add new Gmail account"""
     success = gmail_auth(account_id)
     if success:
-        return {
-            "status": "success",
-            "message": f"Successfully added Gmail account: {account_id}"
-        }
-    return {
-        "status": "error",
-        "message": "Failed to authenticate new account"
-    }
+        return GmailAccountResponse(
+            status="success",
+            message=f"Successfully added Gmail account: {account_id}",
+            error_message=None
+        )
+    return GmailAccountResponse(
+        status="error",
+        message="Failed to authenticate new account",
+        error_message="Authentication failed"
+    )
 
-def list_gmail_accounts():
+def list_gmail_accounts() -> GmailAccountListResponse:
     """List all configured Gmail accounts"""
     token_file = 'gmail_tokens.json'
     
     if not os.path.exists(token_file):
-        return {
-            "status": "success",
-            "accounts": {}
-        }
+        return GmailAccountListResponse(
+            status="success",
+            accounts={},
+            error_message=None
+        )
         
     try:
         with open(token_file, 'r') as f:
@@ -978,48 +1414,405 @@ def list_gmail_accounts():
             } for account_id, token_data in all_tokens.items()
         }
         
-        return {
-            "status": "success",
-            "accounts": accounts
-        }
+        return GmailAccountListResponse(
+            status="success",
+            accounts=accounts,
+            error_message=None
+        )
     except Exception as e:
-        return {
-            "status": "error",
-            "error_message": f"Error listing Gmail accounts: {str(e)}"
-        }
+        return GmailAccountListResponse(
+            status="error",
+            accounts={},
+            error_message=f"Error listing Gmail accounts: {str(e)}"
+        )
 
-# Main function to run from command line
-if __name__ == "__main__":
-    import sys
+def detect_project_intent(text: str) -> GmailProjectIntentResponse:
+    """Analyzes text for project-related intent and patterns.
     
-    # Check if we have command line arguments
-    if len(sys.argv) < 2:
-        print("Usage: python gmail_tools.py auth [account_id]")
-        sys.exit(1)
+    Args:
+        text: Text content to analyze
+        
+    Returns:
+        GmailProjectIntentResponse: Contains detected intents and confidence scores
+    """
+    # Project initiation patterns
+    initiation_patterns = [
+        r"(?i)(new|proposed|initiated|started)\s+(project|initiative|work)",
+        r"(?i)(can|could)\s+you\s+(build|develop|create|design)",
+        r"(?i)(would|should)\s+like\s+to\s+(start|begin|launch)",
+        r"(?i)(proposal|proposed|suggestion|suggested)\s+(for|to)",
+        r"(?i)(timeline|scope|budget|deadline)\s+(for|of)",
+        r"(?i)(kickoff|kick-off|start)\s+(meeting|call|discussion)"
+    ]
     
-    # Check for auth command
-    if sys.argv[1] == "auth":
-        # Get account ID if provided
-        account_id = sys.argv[2] if len(sys.argv) > 2 else "default"
+    # Project status patterns
+    status_patterns = [
+        r"(?i)(update|status|progress)\s+(on|for)",
+        r"(?i)(completed|finished|done|delivered)",
+        r"(?i)(next\s+steps|next\s+phase|next\s+stage)",
+        r"(?i)(review|feedback|approval)\s+(needed|required)"
+    ]
+    
+    # Collaboration patterns
+    collaboration_patterns = [
+        r"(?i)(collaborate|work\s+together|team\s+up)",
+        r"(?i)(partner|partnership|joint\s+effort)",
+        r"(?i)(involve|include|participate)",
+        r"(?i)(assign|delegate|hand\s+over)"
+    ]
+    
+    import re
+    
+    # Check for patterns
+    intents = {
+        "project_initiation": [],
+        "project_status": [],
+        "collaboration": []
+    }
+    
+    # Check initiation patterns
+    for pattern in initiation_patterns:
+        matches = re.finditer(pattern, text)
+        for match in matches:
+            intents["project_initiation"].append({
+                "pattern": pattern,
+                "match": match.group(),
+                "context": text[max(0, match.start()-50):min(len(text), match.end()+50)]
+            })
+    
+    # Check status patterns
+    for pattern in status_patterns:
+        matches = re.finditer(pattern, text)
+        for match in matches:
+            intents["project_status"].append({
+                "pattern": pattern,
+                "match": match.group(),
+                "context": text[max(0, match.start()-50):min(len(text), match.end()+50)]
+            })
+    
+    # Check collaboration patterns
+    for pattern in collaboration_patterns:
+        matches = re.finditer(pattern, text)
+        for match in matches:
+            intents["collaboration"].append({
+                "pattern": pattern,
+                "match": match.group(),
+                "context": text[max(0, match.start()-50):min(len(text), match.end()+50)]
+            })
+    
+    # Calculate confidence scores
+    confidence_scores = {
+        "project_initiation": len(intents["project_initiation"]) * 0.3,
+        "project_status": len(intents["project_status"]) * 0.2,
+        "collaboration": len(intents["collaboration"]) * 0.25
+    }
+    
+    # Cap confidence scores at 1.0
+    for key in confidence_scores:
+        confidence_scores[key] = min(1.0, confidence_scores[key])
+    
+    return {
+        "intents": intents,
+        "confidence_scores": confidence_scores,
+        "has_project_intent": any(score > 0.3 for score in confidence_scores.values())
+    }
+
+def smart_project_search(account_id: str = "", max_results: int = 10, time_filter: str = "") -> GmailProjectSearchResponse:
+    """Smart search for project-related emails using multiple strategies.
+    
+    Args:
+        account_id: Specific account ID to search. If empty, searches all accounts.
+        max_results: Maximum number of results to return.
+        time_filter: Time filter for emails (e.g., "after:2024/03/01", "newer_than:7d")
         
-        # Run the authentication flow
-        success = gmail_auth(account_id)
-        
-        if success:
-            print(f"Your agent is now ready to access Gmail for account '{account_id}'!")
-            print("\nYou can now ask questions like:")
-            print("- 'Show me my recent emails'")
-            print("- 'Find emails from john@example.com'")
-            print("- 'Search for emails with subject meeting'")
-            sys.exit(0)
+    Returns:
+        GmailProjectSearchResponse: Contains project-related emails and analysis
+    """
+    # Define specialized project categories and their terms
+    project_categories = {
+        "web_development": [
+            "website", "web development", "web app", "web application",
+            "landing page", "site launch", "redesign", "web redesign",
+            "frontend", "backend", "fullstack", "responsive design"
+        ],
+        "ecommerce": [
+            "e-commerce", "ecommerce", "online store", "shopify", "woocommerce",
+            "wordpress", "magento", "payment gateway", "shopping cart",
+            "product catalog", "inventory management"
+        ],
+        "automation": [
+            "automation", "workflow automation", "process automation",
+            "integration", "api integration", "webhook", "automated",
+            "script", "bot", "automated workflow"
+        ],
+        "saas": [
+            "saas", "software as a service", "subscription", "subscription model",
+            "recurring revenue", "user management", "tenant", "multi-tenant",
+            "platform", "cloud service"
+        ],
+        "mobile": [
+            "mobile app", "ios app", "android app", "react native",
+            "flutter", "mobile development", "app store", "play store",
+            "mobile responsive", "mobile-first"
+        ],
+        "api": [
+            "api", "rest api", "graphql", "endpoint", "microservice",
+            "service architecture", "backend service", "api integration",
+            "api documentation", "swagger"
+        ]
+    }
+    
+    # Define search strategies with weights
+    search_strategies = [
+        # Strategy 1: Project initiation and proposals
+        {
+            "query": "(\"project proposal\" OR \"project brief\" OR \"project scope\" OR \"project timeline\" OR \"project requirements\" OR \"project specification\")",
+            "weight": 1.5
+        },
+        # Strategy 2: Project status and updates
+        {
+            "query": "(\"project update\" OR \"project status\" OR \"project progress\" OR \"project milestone\" OR \"project completion\" OR \"project delivery\")",
+            "weight": 1.2
+        },
+        # Strategy 3: Project management
+        {
+            "query": "(\"project management\" OR \"project team\" OR \"project lead\" OR \"project manager\" OR \"project timeline\" OR \"project budget\")",
+            "weight": 1.0
+        }
+    ]
+    
+    # Add category-specific strategies
+    for category, terms in project_categories.items():
+        # Create a query that combines category terms with project context
+        category_query = " OR ".join([f'"{term}"' for term in terms])
+        search_strategies.append({
+            "query": f"({category_query}) AND (project OR proposal OR brief OR timeline OR scope OR launch OR development)",
+            "weight": 1.3,
+            "category": category
+        })
+    
+    all_emails = []
+    accounts_searched = []
+    accounts_with_results = []
+    
+    # Get accounts to search
+    account_manager = GmailAccountManager()
+    accounts = [account_id] if account_id else list(account_manager.get_accounts().keys())
+    
+    # Search each account with each strategy
+    for acc in accounts:
+        for strategy in search_strategies:
+            # Add time filter to query if provided
+            query = strategy["query"]
+            if time_filter:
+                query = f"{query} {time_filter}"
+            
+            result = _search_gmail_impl(acc, query, max_results)
+            if result["status"] == "success" and "emails" in result:
+                accounts_searched.append(acc)
+                if result["emails"]:
+                    # Add strategy weight and category to each email
+                    for email in result["emails"]:
+                        email["search_weight"] = strategy["weight"]
+                        email["search_strategy"] = strategy["query"]
+                        if "category" in strategy:
+                            email["project_category"] = strategy["category"]
+                    all_emails.extend(result["emails"])
+                    if acc not in accounts_with_results:
+                        accounts_with_results.append(acc)
+    
+    # Remove duplicates while preserving order and weights
+    seen_ids = set()
+    unique_emails = []
+    for email in all_emails:
+        if email["id"] not in seen_ids:
+            seen_ids.add(email["id"])
+            unique_emails.append(email)
         else:
-            print("\nFailed to set up Gmail API authentication.")
-            print("Please address the issues mentioned above and try again.")
-            sys.exit(1)
-    else:
-        print("Unknown command. Available commands:")
-        print("  auth [account_id] - Set up Gmail authentication for the specified account")
-        sys.exit(1) 
+            # Update weight and category if this is a better match
+            existing = next(e for e in unique_emails if e["id"] == email["id"])
+            if email["search_weight"] > existing["search_weight"]:
+                existing["search_weight"] = email["search_weight"]
+                existing["search_strategy"] = email["search_strategy"]
+                if "project_category" in email:
+                    existing["project_category"] = email["project_category"]
+    
+    # Analyze content for project intent
+    for email in unique_emails:
+        # Combine subject and body for analysis
+        content = f"{email.get('subject', '')} {email.get('body', '')}"
+        intent_analysis = detect_project_intent(content)
+        email["intent_analysis"] = intent_analysis
+        
+        # Adjust weight based on intent analysis
+        if intent_analysis["has_project_intent"]:
+            email["search_weight"] *= 1.5
+        
+        # Boost weight for category-specific matches
+        if "project_category" in email:
+            email["search_weight"] *= 1.2
+    
+    # Sort by date and weight
+    unique_emails.sort(key=lambda x: (x.get('date', ''), x.get('search_weight', 0)), reverse=True)
+    
+    # Limit results
+    unique_emails = unique_emails[:max_results]
+    
+    # Group results by category
+    categorized_results = {
+        "web_development": [],
+        "ecommerce": [],
+        "automation": [],
+        "saas": [],
+        "mobile": [],
+        "api": [],
+        "other": []
+    }
+    
+    for email in unique_emails:
+        category = email.get("project_category", "other")
+        if category in categorized_results:
+            categorized_results[category].append(email)
+        else:
+            categorized_results["other"].append(email)
+    
+    return {
+        "status": "success",
+        "report": f"Found {len(unique_emails)} project-related emails across {len(accounts_with_results)} accounts",
+        "emails": unique_emails,
+        "categorized_results": categorized_results,
+        "accounts_searched": list(set(accounts_searched)),
+        "accounts_with_results": accounts_with_results,
+        "total_accounts": len(accounts),
+        "search_strategies": [s["query"] for s in search_strategies],
+        "time_filter": time_filter
+    } 
+
+def get_gmail_spam(account_id: Optional[str] = None, max_results: int = 100) -> GmailMessageResponse:
+    """Get spam messages from Gmail account."""
+    try:
+        service_response = get_gmail_service(account_id)
+        if service_response["status"] == "error":
+            return GmailMessageResponse(
+                status="error",
+                error_message=service_response["error_message"],
+                account=account_id,
+                messages=[],
+                report=None
+            )
+
+        service = service_response["service"]
+
+        # Get message list
+        request = service.users().messages().list(
+            userId='me',
+            labelIds=['SPAM'],
+            maxResults=max_results
+        )
+        results = execute_with_retry(request)
+        
+        if not results or 'messages' not in results:
+            return GmailMessageResponse(
+                status="success",
+                error_message=None,
+                account=account_id,
+                messages=[],
+                report=f"No spam messages found in account {account_id}"
+            )
+
+        # Get message details in batches
+        messages = results['messages']
+        batch = service.new_batch_http_request()
+        message_details = {}
+        batch_errors = []
+        
+        def callback(request_id, response, exception):
+            if exception:
+                logger.error(f"Batch request failed for message {request_id}: {exception}")
+                batch_errors.append(str(exception))
+                return
+            if response is None:
+                logger.error(f"Batch request returned None for message {request_id}")
+                return
+            message_details[request_id] = response
+            
+        # Add requests to batch
+        for msg in messages:
+            request = service.users().messages().get(
+                userId='me',
+                id=msg['id'],
+                format='full'
+            )
+            batch.add(request, callback=callback, request_id=msg['id'])
+            
+        # Execute batch with retry
+        try:
+            execute_with_retry(batch)
+        except Exception as e:
+            logger.error(f"Batch execution failed: {e}")
+            return GmailMessageResponse(
+                status="error",
+                error_message=f"Failed to retrieve message details: {str(e)}",
+                account=account_id,
+                messages=[],
+                report=None
+            )
+        
+        if batch_errors:
+            return GmailMessageResponse(
+                status="error",
+                error_message=f"Some messages failed to retrieve: {'; '.join(batch_errors)}",
+                account=account_id,
+                messages=[],
+                report=None
+            )
+        
+        # Process results
+        gmail_messages = []
+        for msg in messages:
+            if msg['id'] in message_details:
+                details = message_details[msg['id']]
+                headers = {h['name']: h['value'] for h in details['payload']['headers']}
+                
+                # Extract body
+                body = ""
+                if 'parts' in details['payload']:
+                    for part in details['payload']['parts']:
+                        if part['mimeType'] == 'text/plain':
+                            body_data = part['body'].get('data', '')
+                            if body_data:
+                                body = base64.urlsafe_b64decode(body_data).decode('utf-8')
+                                break
+                elif 'body' in details['payload'] and 'data' in details['payload']['body']:
+                    body_data = details['payload']['body']['data']
+                    body = base64.urlsafe_b64decode(body_data).decode('utf-8')
+                
+                gmail_messages.append({
+                    'id': details['id'],
+                    'subject': headers.get('Subject', 'No subject'),
+                    'from_': headers.get('From', 'Unknown sender'),
+                    'date': headers.get('Date', 'Unknown date'),
+                    'snippet': details.get('snippet', ''),
+                    'body': body[:500] + ('...' if len(body) > 500 else '')
+                })
+
+        return GmailMessageResponse(
+            status="success",
+            error_message=None,
+            account=account_id,
+            messages=gmail_messages,
+            report=f"Found {len(gmail_messages)} spam messages in account {account_id}"
+        )
+
+    except Exception as e:
+        logger.error(f"Error getting spam messages: {e}")
+        return GmailMessageResponse(
+            status="error",
+            error_message=str(e),
+            account=account_id,
+            messages=[],
+            report=None
+        )
 
 
         
