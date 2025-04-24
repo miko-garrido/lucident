@@ -303,20 +303,12 @@ def get_credentials(account_id: str = DEFAULT_ACCOUNT) -> Optional[Credentials]:
         Valid credentials or None if failed
     """
     try:
-        # Load tokens
-        if not os.path.exists(TOKEN_FILE):
-            logger.error("Token file not found")
+        # Get token data from Supabase
+        token_data = account_manager.get_account_credentials(account_id)
+        if not token_data:
+            logger.error(f"Account {account_id} not found in Supabase")
             return None
             
-        with open(TOKEN_FILE, 'r') as f:
-            all_tokens = json.load(f)
-            
-        if account_id not in all_tokens:
-            logger.error(f"Account {account_id} not found in tokens")
-            return None
-            
-        token_data = all_tokens[account_id]
-        
         # Create credentials object
         creds = Credentials(
             token=token_data['token'],
@@ -332,13 +324,12 @@ def get_credentials(account_id: str = DEFAULT_ACCOUNT) -> Optional[Credentials]:
             if creds.expired and creds.refresh_token:
                 try:
                     creds.refresh(Request())
-                    # Update token file with new credentials
-                    all_tokens[account_id].update({
+                    # Update token in Supabase
+                    token_data.update({
                         'token': creds.token,
                         'expiry': creds.expiry.isoformat() if creds.expiry else None
                     })
-                    with open(TOKEN_FILE, 'w') as f:
-                        json.dump(all_tokens, f, indent=2)
+                    account_manager.add_account(account_id, token_data)
                 except Exception as e:
                     logger.error(f"Failed to refresh credentials: {e}")
                     return None
@@ -379,12 +370,6 @@ def gmail_auth(account_id: str = DEFAULT_ACCOUNT) -> bool:
         return False
     
     try:
-        # Load existing tokens
-        all_tokens = {}
-        if os.path.exists(TOKEN_FILE):
-            with open(TOKEN_FILE, 'r') as f:
-                all_tokens = json.load(f)
-        
         # Create OAuth flow
         flow = InstalledAppFlow.from_client_secrets_file(
             CREDENTIALS_FILE,
@@ -407,8 +392,8 @@ def gmail_auth(account_id: str = DEFAULT_ACCOUNT) -> bool:
             print("Revoke access for this app, then try again.")
             return False
         
-        # Save credentials
-        all_tokens[account_id] = {
+        # Save credentials to Supabase
+        credentials = {
             'token': creds.token,
             'refresh_token': creds.refresh_token,
             'token_uri': creds.token_uri,
@@ -418,8 +403,7 @@ def gmail_auth(account_id: str = DEFAULT_ACCOUNT) -> bool:
             'expiry': creds.expiry.isoformat() if creds.expiry else None
         }
         
-        with open(TOKEN_FILE, 'w') as f:
-            json.dump(all_tokens, f, indent=2)
+        account_manager.add_account(account_id, credentials)
         
         logger.info(f"Authentication successful for account: {account_id}")
         return True
@@ -435,13 +419,13 @@ def get_gmail_messages(account_id: Optional[str] = None, max_results: int = 10) 
     try:
         # Get service for account
         service_response = get_gmail_service(account_id)
-        if service_response.error:
+        if service_response.get('error_message'):
             return GmailMessageResponse(
                 status="error",
                 account=account_id,
-                error=service_response.error
+                error=service_response['error_message']
             )
-        service = service_response.service
+        service = service_response['service']
 
         # Check quota before proceeding
         if not quota_manager.check_quota("users.messages.list", 1):
@@ -1394,29 +1378,16 @@ def add_gmail_account(account_id: str) -> GmailAccountResponse:
 
 def list_gmail_accounts() -> GmailAccountListResponse:
     """List all configured Gmail accounts"""
-    token_file = 'gmail_tokens.json'
-    
-    if not os.path.exists(token_file):
-        return GmailAccountListResponse(
-            status="success",
-            accounts={},
-            error_message=None
-        )
-        
     try:
-        with open(token_file, 'r') as f:
-            all_tokens = json.load(f)
-            
-        accounts = {
-            account_id: {
-                "scopes": token_data["scopes"],
-                "expiry": token_data["expiry"]
-            } for account_id, token_data in all_tokens.items()
-        }
-        
+        accounts = account_manager.get_accounts()
         return GmailAccountListResponse(
             status="success",
-            accounts=accounts,
+            accounts={
+                account_id: {
+                    "scopes": account_data["scopes"],
+                    "expiry": account_data["expiry"]
+                } for account_id, account_data in accounts.items()
+            },
             error_message=None
         )
     except Exception as e:
