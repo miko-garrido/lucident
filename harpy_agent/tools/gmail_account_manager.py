@@ -4,11 +4,14 @@ This module manages Gmail account configurations and credentials using Supabase 
 """
 
 import os
+import pickle
+import base64
 import json
 import logging
 from typing import Dict, Optional, List
 from datetime import datetime
-from supabase import create_client, Client
+from supabase import Client
+from Database import Database
 from dotenv import load_dotenv
 
 # Configure logging
@@ -24,31 +27,18 @@ load_dotenv()
 class GmailAccountManager:
     """Manages Gmail account configurations and credentials."""
     
-    def __init__(self, use_supabase: bool = True):
-        """Initialize the account manager.
+    def __init__(self):
+        """Initialize the GmailAccountManager."""
+        self.use_supabase = True
+        self._init_supabase()
         
-        Args:
-            use_supabase: Whether to use Supabase as primary storage (defaults to True)
-        """
-        self.use_supabase = use_supabase
-        self.supabase: Optional[Client] = None
-        
-        if self.use_supabase:
-            self._init_supabase()
-            
-        self.accounts = self._load_accounts()
-    
     def _init_supabase(self) -> None:
         """Initialize Supabase client."""
         try:
-            self.supabase_url = os.getenv("SUPABASE_URL")
-            self.supabase_key = os.getenv("SUPABASE_ANON_KEY")
-            if not self.supabase_url or not self.supabase_key:
-                logger.warning("SUPABASE_URL and SUPABASE_ANON_KEY not set, falling back to file storage")
-                self.use_supabase = False
-                return
-                
-            self.supabase = create_client(self.supabase_url, self.supabase_key)
+            db = Database()
+            self.supabase = db.client
+            # Test connection
+            self.supabase.table('gmail_tokens').select('*').limit(1).execute()
         except Exception as e:
             logger.error(f"Error initializing Supabase: {e}")
             self.use_supabase = False

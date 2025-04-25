@@ -1,0 +1,174 @@
+commit fdb0ad4a6745f7c4644d5d1f49b9f8119747991a
+Author: Martin Parulan <martin@goremote.ph>
+Date:   Fri Apr 25 08:54:07 2025 +0800
+
+    Remove .cursor/mcp.json and refactor GmailAccountManager to use Database class for Supabase integration. Add check_slack_token function to validate environment variables in Slack tools.
+
+diff --git a/.DS_Store b/.DS_Store
+index edb75f9..e6bdca9 100644
+Binary files a/.DS_Store and b/.DS_Store differ
+diff --git a/.cursor/mcp.json b/.cursor/mcp.json
+deleted file mode 100644
+index a7a33bd..0000000
+--- a/.cursor/mcp.json
++++ /dev/null
+@@ -1,13 +0,0 @@
+-{
+-  "mcpServers": {
+-    "supabase": {
+-      "command": "npx",
+-      "args": [
+-        "-y",
+-        "@supabase/mcp-server-supabase@latest",
+-        "--access-token",
+-        "sbp_b6971c27ea5a388f3e04f953b9f46820a042bfd4"
+-      ]
+-    }
+-  }
+-} 
+\ No newline at end of file
+diff --git a/Database.py b/Database.py
+new file mode 100644
+index 0000000..4cb4986
+--- /dev/null
++++ b/Database.py
+@@ -0,0 +1,30 @@
++from dotenv import load_dotenv, find_dotenv
++from supabase import create_client, Client
++import os
++import logging
++
++# Configure logging
++logging.basicConfig(level=logging.INFO)
++logger = logging.getLogger(__name__)
++
++class Database:
++    def __init__(self):
++        dotenv_path = find_dotenv()
++        load_dotenv(dotenv_path)
++        
++        self._url = os.getenv("SUPABASE_URL")
++        self._key = os.getenv("SUPABASE_KEY")
++        
++        if not self._url or not self._key:
++            logger.error("Missing Supabase environment variables. Please set SUPABASE_URL and SUPABASE_KEY")
++            raise ValueError("Missing Supabase environment variables")
++            
++        # Initialize without proxy for v2.3.5
++        self._client = create_client(
++            supabase_url=self._url,
++            supabase_key=self._key
++        )
++    
++    @property
++    def client(self) -> Client:
++        return self._client
+\ No newline at end of file
+diff --git a/harpy_agent/tools/gmail_account_manager.py b/harpy_agent/tools/gmail_account_manager.py
+index 79c5bed..4c256fc 100644
+--- a/harpy_agent/tools/gmail_account_manager.py
++++ b/harpy_agent/tools/gmail_account_manager.py
+@@ -8,8 +8,8 @@ import json
+ import logging
+ from typing import Dict, Optional, List
+ from datetime import datetime
+-from supabase import create_client, Client
+-from dotenv import load_dotenv
++from supabase import Client
++from Database import Database
+ 
+ # Configure logging
+ logging.basicConfig(level=logging.INFO)
+@@ -18,9 +18,6 @@ logger = logging.getLogger(__name__)
+ # Constants
+ TOKEN_FILE = 'gmail_tokens.json'
+ 
+-# Load environment variables
+-load_dotenv()
+-
+ class GmailAccountManager:
+     """Manages Gmail account configurations and credentials."""
+     
+@@ -41,14 +38,10 @@ class GmailAccountManager:
+     def _init_supabase(self) -> None:
+         """Initialize Supabase client."""
+         try:
+-            self.supabase_url = os.getenv("SUPABASE_URL")
+-            self.supabase_key = os.getenv("SUPABASE_ANON_KEY")
+-            if not self.supabase_url or not self.supabase_key:
+-                logger.warning("SUPABASE_URL and SUPABASE_ANON_KEY not set, falling back to file storage")
+-                self.use_supabase = False
+-                return
+-                
+-            self.supabase = create_client(self.supabase_url, self.supabase_key)
++            db = Database()
++            self.supabase = db.client
++            # Test connection
++            self.supabase.table('gmail_tokens').select('*').limit(1).execute()
+         except Exception as e:
+             logger.error(f"Error initializing Supabase: {e}")
+             self.use_supabase = False
+diff --git a/harpy_agent/tools/slack_tools/slack_tools.py b/harpy_agent/tools/slack_tools/slack_tools.py
+index 45a7b40..d133889 100644
+--- a/harpy_agent/tools/slack_tools/slack_tools.py
++++ b/harpy_agent/tools/slack_tools/slack_tools.py
+@@ -24,6 +24,13 @@ SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
+ CONTEXT_FILE = os.path.join(os.path.dirname(__file__), "context.txt")
+ context_data = ""
+ 
++def check_slack_token():
++    """Check if Slack token is available."""
++    if not SLACK_BOT_TOKEN:
++        raise ValueError("SLACK_BOT_TOKEN environment variable is not set")
++    if not openai.api_key:
++        raise ValueError("OPENAI_API_KEY environment variable is not set")
++
+ def load_context():
+     """Load context data from the context.txt file."""
+     global context_data
+@@ -59,12 +66,6 @@ def reload_context() -> Dict[str, Any]:
+ # Load context on startup
+ load_context()
+ 
+-# Check required environment variables
+-if not SLACK_BOT_TOKEN:
+-    raise ValueError("SLACK_BOT_TOKEN environment variable is not set")
+-if not openai.api_key:
+-    raise ValueError("OPENAI_API_KEY environment variable is not set")
+-
+ def process_with_gpt4(query: str) -> Dict[str, Any]:
+     """Process a query using OpenAI's GPT-4 model.
+ 
+@@ -74,6 +75,7 @@ def process_with_gpt4(query: str) -> Dict[str, Any]:
+     Returns:
+         dict: status and response or error message.
+     """
++    check_slack_token()  # Only check when function is called
+     try:
+         # Include context in the system message
+         system_message = f"""You are a helpful assistant integrated with Slack.
+@@ -114,6 +116,7 @@ def send_via_mcp(channel_id: str, message: str) -> Dict[str, Any]:
+     Returns:
+         dict: status and message_id or error message.
+     """
++    check_slack_token()  # Only check when function is called
+     try:
+         payload = {
+             "channel_id": channel_id,
+@@ -150,6 +153,7 @@ def get_channel_messages(channel: str, limit: int = 1) -> Dict[str, Any]:
+     Returns:
+         dict: status and messages or error message.
+     """
++    check_slack_token()  # Only check when function is called
+     try:
+         payload = {
+             "channel": channel,
+@@ -182,6 +186,7 @@ def list_users() -> Dict[str, Any]:
+     Returns:
+         dict: status and users or error message.
+     """
++    check_slack_token()  # Only check when function is called
+     try:
+         response = requests.get(
+             f"{MCP_SERVER_URL}/list_users",
+
