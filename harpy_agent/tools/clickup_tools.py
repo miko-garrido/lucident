@@ -1508,4 +1508,78 @@ def get_workspace_structure(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, A
         }
     """
     api = ClickUpAPI()
-    pass
+    
+    # 1. Get Spaces
+    spaces_response = get_spaces(team_id)
+    if isinstance(spaces_response, dict) and "error_code" in spaces_response:
+        return spaces_response # Propagate error
+    
+    spaces_data = spaces_response.get("spaces", [])
+    workspace_structure = {"spaces": []}
+
+    # 2. Iterate through Spaces
+    for space in spaces_data:
+        space_id = space.get("id")
+        space_name = space.get("name")
+        if not space_id or not space_name:
+            logging.warning(f"Skipping space with missing id or name in team {team_id}: {space}")
+            continue
+
+        space_details = {
+            "id": space_id,
+            "name": space_name,
+            "folderless_lists": [],
+            "folders": []
+        }
+
+        # 3. Get Folderless Lists for the Space
+        folderless_lists_response = get_folderless_lists(space_id)
+        if isinstance(folderless_lists_response, dict) and "error_code" in folderless_lists_response:
+            logging.warning(f"Failed to get folderless lists for space {space_id}: {folderless_lists_response}")
+            # Continue building structure, but note the failure
+        else:
+            folderless_lists_data = folderless_lists_response.get("lists", [])
+            space_details["folderless_lists"] = [
+                {"id": lst.get("id"), "name": lst.get("name")}
+                for lst in folderless_lists_data if lst.get("id") and lst.get("name")
+            ]
+
+        # 4. Get Folders for the Space
+        folders_response = get_folders(space_id)
+        if isinstance(folders_response, dict) and "error_code" in folders_response:
+            logging.warning(f"Failed to get folders for space {space_id}: {folders_response}")
+            # Continue building structure, but note the failure
+        else:
+            folders_data = folders_response.get("folders", [])
+            
+            # 5. Iterate through Folders
+            for folder in folders_data:
+                folder_id = folder.get("id")
+                folder_name = folder.get("name")
+                if not folder_id or not folder_name:
+                    logging.warning(f"Skipping folder with missing id or name in space {space_id}: {folder}")
+                    continue
+
+                folder_details = {
+                    "id": folder_id,
+                    "name": folder_name,
+                    "lists": []
+                }
+
+                # 6. Get Lists for the Folder
+                lists_response = get_lists(folder_id)
+                if isinstance(lists_response, dict) and "error_code" in lists_response:
+                    logging.warning(f"Failed to get lists for folder {folder_id}: {lists_response}")
+                    # Continue building structure, but note the failure
+                else:
+                    lists_data = lists_response.get("lists", [])
+                    folder_details["lists"] = [
+                        {"id": lst.get("id"), "name": lst.get("name")}
+                        for lst in lists_data if lst.get("id") and lst.get("name")
+                    ]
+                
+                space_details["folders"].append(folder_details)
+
+        workspace_structure["spaces"].append(space_details)
+
+    return {"data": workspace_structure}
