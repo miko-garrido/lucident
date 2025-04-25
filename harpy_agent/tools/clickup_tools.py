@@ -1442,3 +1442,70 @@ def get_tagged_users_for_message(message_id: str, team_id: str = CLICKUP_TEAM_ID
     api = ClickUpAPI()
     endpoint = f"/v3/workspaces/{team_id}/chat/messages/{message_id}/tagged_users"
     return api._make_request("GET", endpoint)
+
+# --- Custom Tools ---
+
+def get_workspace_structure(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    """
+    Retrieves the structure of spaces, folders, lists, and folderless lists ina specific workspace.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team.
+    
+    Returns:
+        Dict[str, Any]: A dictionary containing the spaces, folders, lists, and folderless lists of the workspace under the 'data' key.
+    
+    Example:
+        {
+            "data": {
+                "spaces": [
+                    {
+                        "id": "1234567890",
+                        "name": "Space 1",
+                        "folderless_lists": [
+                            {
+                                "id": "1234567890",
+                                "name": "Folderless List 1"
+                            }
+                        ],
+                        "folders": [
+                            {
+                                "id": "1234567890",
+                                "name": "Folder 1",
+                                "lists": [
+                                    {
+                                        "id": "1234567890",
+                                        "name": "List 1"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "id": "1234567890",
+                        "name": "Space 2",
+                        "folderless_lists": [
+                            {
+                                "id": "1234567890",
+                                "name": "Folderless List 2"
+                            }
+                        ],
+                        "folders": [
+                            {
+                                "id": "1234567890",
+                                "name": "Folder 2",
+                                "lists": [
+                                    {
+                                        "id": "1234567890",
+                                        "name": "List 2"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    """
+    api = ClickUpAPI()
+    pass
