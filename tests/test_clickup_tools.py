@@ -1109,3 +1109,52 @@ def test_get_bulk_tasks_time_in_status_live():
         assert isinstance(task_status_data, dict)
         assert "current_status" in task_status_data
         assert "status_history" in task_status_data
+
+def test_get_workspace_structure_live():
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.")
+
+    rate_limit_delay()
+    result = clickup_tools.get_workspace_structure(
+        # team_id=TEST_TEAM_ID
+        )
+
+    if is_api_error(result):
+        pytest.fail(f"API Error getting workspace structure: {result['error_message']} (Code: {result['error_code']})")
+
+    assert isinstance(result, dict)
+    assert "data" in result
+    structure = result["data"]
+    assert isinstance(structure, dict)
+    assert "spaces" in structure
+    spaces = structure["spaces"]
+    assert isinstance(spaces, list)
+
+    if spaces:
+        first_space = spaces[0]
+        assert isinstance(first_space, dict)
+        assert "id" in first_space
+        assert "name" in first_space
+        assert "folderless_lists" in first_space
+        assert isinstance(first_space["folderless_lists"], list)
+        assert "folders" in first_space
+        assert isinstance(first_space["folders"], list)
+
+        if first_space["folders"]:
+            first_folder = first_space["folders"][0]
+            assert isinstance(first_folder, dict)
+            assert "id" in first_folder
+            assert "name" in first_folder
+            assert "lists" in first_folder
+            assert isinstance(first_folder["lists"], list)
+            if first_folder["lists"]:
+                first_list = first_folder["lists"][0]
+                assert isinstance(first_list, dict)
+                assert "id" in first_list
+                assert "name" in first_list
+
+        if first_space["folderless_lists"]:
+            first_folderless_list = first_space["folderless_lists"][0]
+            assert isinstance(first_folderless_list, dict)
+            assert "id" in first_folderless_list
+            assert "name" in first_folderless_list
