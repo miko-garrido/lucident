@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-Gmail Agent
-
-This is the main agent for Gmail functionality, built with Google's Agent Development Kit (ADK).
-"""
 from config import Config
 AGENT_MODEL = Config.MODEL_NAME
 
