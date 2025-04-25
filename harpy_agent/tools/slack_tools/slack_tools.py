@@ -17,12 +17,19 @@ logger = logging.getLogger(__name__)
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 # MCP Server configuration
-MCP_SERVER_URL = os.environ.get("MCP_SERVER_URL", "http://localhost:8080")
+MCP_SERVER_URL = "http://localhost:3000/slack"
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
 
 # Load context from file
 CONTEXT_FILE = os.path.join(os.path.dirname(__file__), "context.txt")
 context_data = ""
+
+def check_slack_token():
+    """Check if Slack token is available."""
+    if not SLACK_BOT_TOKEN:
+        raise ValueError("SLACK_BOT_TOKEN environment variable is not set")
+    if not openai.api_key:
+        raise ValueError("OPENAI_API_KEY environment variable is not set")
 
 def load_context():
     """Load context data from the context.txt file."""
@@ -74,6 +81,7 @@ def process_with_gpt4(query: str) -> Dict[str, Any]:
     Returns:
         dict: status and response or error message.
     """
+    check_slack_token()  # Only check when function is called
     try:
         # Include context in the system message
         system_message = f"""You are a helpful assistant integrated with Slack.
@@ -114,6 +122,7 @@ def send_via_mcp(channel_id: str, message: str) -> Dict[str, Any]:
     Returns:
         dict: status and message_id or error message.
     """
+    check_slack_token()  # Only check when function is called
     try:
         payload = {
             "channel_id": channel_id,
@@ -150,6 +159,7 @@ def get_channel_messages(channel: str, limit: int = 1) -> Dict[str, Any]:
     Returns:
         dict: status and messages or error message.
     """
+    check_slack_token()  # Only check when function is called
     try:
         payload = {
             "channel": channel,
@@ -182,6 +192,7 @@ def list_users() -> Dict[str, Any]:
     Returns:
         dict: status and users or error message.
     """
+    check_slack_token()  # Only check when function is called
     try:
         response = requests.get(
             f"{MCP_SERVER_URL}/list_users",
