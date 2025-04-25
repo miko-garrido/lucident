@@ -1,4 +1,4 @@
- from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv, find_dotenv
 from supabase import create_client, Client
 import os
 import logging
