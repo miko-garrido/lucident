@@ -432,7 +432,7 @@ def get_folders(space_id: str, archived: Optional[bool] = False) -> Union[Dict[s
     
     Args:
         space_id (str): The ID of the Space.
-        archived (Optional[bool]): Whether to include archived Folders (default: False).
+        archived (Optional[bool]): True includes ONLY archived Folders. False includes ONLY Folders not archived (default: False).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of Folders.
@@ -517,7 +517,7 @@ def get_lists(folder_id: str, archived: Optional[bool] = False) -> Union[Dict[st
     
     Args:
         folder_id (str): The ID of the Folder.
-        archived (Optional[bool]): Whether to include archived Lists (default: False).
+        archived (Optional[bool]): True includes ONLY archived Lists. False includes ONLY Lists not archived (default: False).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of Lists in the Folder.
@@ -534,7 +534,7 @@ def get_folderless_lists(space_id: str, archived: Optional[bool] = False) -> Uni
     
     Args:
         space_id (str): The ID of the Space.
-        archived (Optional[bool]): Whether to include archived Lists (default: False).
+        archived (Optional[bool]): True includes ONLY archived Lists. False includes ONLY Lists not archived (default: False).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of folderless Lists in the Space.
@@ -622,7 +622,7 @@ def get_spaces(team_id: str = CLICKUP_TEAM_ID, archived: Optional[bool] = False)
     
     Args:
         team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
-        archived (Optional[bool]): Whether to include archived Spaces (default: False).
+        archived (Optional[bool]): True includes ONLY archived Spaces. False includes ONLY Spaces not archived (default: False).
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of Spaces.
@@ -685,7 +685,7 @@ def get_tasks(list_id: str, archived: Optional[bool] = False,
     
     Args:
         list_id (str): The ID of the List to get tasks from.
-        archived (Optional[bool]): Whether to include archived tasks (default: False).
+        archived (Optional[bool]): True includes ONLY archived tasks. False includes ONLY tasks not archived (default: False).
         include_markdown_description (Optional[bool]): Return description in Markdown format (optional).
         page (Optional[int]): Page number for pagination (optional).
         order_by (Optional[str]): Field to order tasks by (e.g., 'due_date', 'priority') (optional).

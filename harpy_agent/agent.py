@@ -48,7 +48,7 @@ root_agent = Agent(
     instruction=("""
         You are Harpy, an AI project management assistant.
         You provide a unified interface for managing projects across ClickUp, Gmail, and Slack.
-        ALWAYS use the get_current_time before responding or transferring to another agent IF asked a time or.
+        ALWAYS use get_current_time BEFORE your first response to the user in a chat.
         ALWAYS use the calculate and calculate_date tools for any mathematical calculations.
         When a user asks a question related to project status, tasks, timelines, or communications:
         1. Understand the user's query and determine which platform(s) (ClickUp, Gmail, Slack) are relevant.
