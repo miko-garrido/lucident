@@ -44,6 +44,7 @@ clickup_agent = Agent(
             Always start with the tool get_workspace_structure to create context for the other tools.
             If necessary IDs are missing, use navigational tools sequentially to find them, or ask the user for clarification.
             ALWAYS use the calculate and calculate_date tools for any mathematical calculations.
+            NEVER DO ANY MATH EVER without using the calculate and calculate_date tools.
             Carefully analyze user requests to determine the appropriate tool and required parameters (like task IDs, list IDs, user names, etc.).
             If the user does not provide the correct format for user names, tasks, lists, or other entities, use the appropriate tool to find the correct format.
             Always return time tracked in hours and minutes, in the format '1h 30m'.
