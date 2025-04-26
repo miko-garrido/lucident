@@ -4,15 +4,11 @@ This module manages Gmail account configurations and credentials using Supabase 
 """
 
 import os
-import pickle
-import base64
 import json
 import logging
 from typing import Dict, Optional, List
 from datetime import datetime
-from supabase import Client
 from Database import Database
-from dotenv import load_dotenv
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,9 +17,6 @@ logger = logging.getLogger(__name__)
 # Constants
 TOKEN_FILE = 'gmail_tokens.json'
 
-# Load environment variables
-load_dotenv()
-
 class GmailAccountManager:
     """Manages Gmail account configurations and credentials."""
     
@@ -31,12 +24,12 @@ class GmailAccountManager:
         """Initialize the GmailAccountManager."""
         self.use_supabase = True
         self._init_supabase()
+        self.accounts = self._load_accounts()
         
     def _init_supabase(self) -> None:
         """Initialize Supabase client."""
         try:
-            db = Database()
-            self.supabase = db.client
+            self.supabase = Database().client
             # Test connection
             self.supabase.table('gmail_tokens').select('*').limit(1).execute()
         except Exception as e:
@@ -104,27 +97,32 @@ class GmailAccountManager:
             logger.error(f"Error saving accounts to file: {e}")
     
     def add_account(self, account_id: str, credentials: Dict) -> None:
-        """Add a new Gmail account or update existing one.
-        
-        Args:
-            account_id: Account identifier (email)
-            credentials: Account credentials
-        """
+        """Add a new Gmail account or update existing one. Prioritizes Supabase."""
         logger.info(f"Adding/updating account: {account_id}")
+        # Update in-memory cache first
         self.accounts[account_id] = credentials
-        
+
         if self.use_supabase:
             try:
+                logger.info(f"Attempting to upsert account {account_id} to Supabase.")
                 self.supabase.table('gmail_tokens').upsert({
                     'email': account_id,
                     **credentials
                 }).execute()
+                logger.info(f"Successfully upserted account {account_id} to Supabase.")
+                # If Supabase succeeds, maybe sync the file? Or rely on loading from Supabase next time?
+                # Let's remove explicit file save here if Supabase works.
+                # self._save_to_file() # Optional: keep file in sync?
             except Exception as e:
-                logger.error(f"Error saving to Supabase: {e}")
+                # Log Supabase error clearly, then fallback to file
+                logger.error(f"Error saving account {account_id} to Supabase: {e}", exc_info=True)
+                logger.warning(f"Falling back to saving account {account_id} to local file {TOKEN_FILE}.")
                 self._save_to_file()
         else:
+            # If Supabase is not configured/failed init, save to file
+            logger.info(f"Supabase not in use. Saving account {account_id} to local file {TOKEN_FILE}.")
             self._save_to_file()
-        
+
     def get_accounts(self) -> Dict[str, Dict]:
         """Get all configured accounts."""
         return self.accounts
@@ -139,4 +137,35 @@ class GmailAccountManager:
 
     def get_all_account_ids(self) -> List[str]:
         """Get all account IDs."""
-        return list(self.accounts.keys()) 
+        return list(self.accounts.keys())
+
+    def remove_account(self, account_id: str) -> bool:
+        """Remove a Gmail account. Prioritizes Supabase."""
+        removed_from_memory = False
+        if account_id in self.accounts:
+            del self.accounts[account_id]
+            removed_from_memory = True
+            logger.info(f"Removed account {account_id} from in-memory cache.")
+
+        removed_from_supabase = False
+        if self.use_supabase:
+            try:
+                logger.info(f"Attempting to delete account {account_id} from Supabase.")
+                # Check how many rows were affected (PostgREST might return empty data on success)
+                response = self.supabase.table('gmail_tokens').delete().eq('email', account_id).execute()
+                # Simple check: if no exception, assume delete worked or row didn't exist.
+                removed_from_supabase = True
+                logger.info(f"Delete operation for account {account_id} executed on Supabase.")
+            except Exception as e:
+                logger.error(f"Error deleting account {account_id} from Supabase: {e}", exc_info=True)
+                # If Supabase delete fails, should we still modify the file?
+                # Let's log the error and continue to update the file based on memory state.
+
+        # Update the local file only if Supabase is not the primary or if we want it as a backup
+        # reflecting the in-memory state.
+        if not self.use_supabase or removed_from_memory: # Update file if Supabase isn't used OR if memory changed
+             logger.info(f"Updating local file {TOKEN_FILE} after removal attempt for {account_id}.")
+             self._save_to_file()
+
+        # Return true if it was removed from memory (main indicator of existence)
+        return removed_from_memory 
