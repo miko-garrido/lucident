@@ -153,6 +153,7 @@ class GmailMessageResponse(TypedDict):
     account: str
     messages: List[GmailMessage]
     report: Optional[str]
+    error_message: Optional[str]
 
 class GmailSearchResponse(TypedDict):
     status: Literal['success', 'error']
@@ -344,16 +345,9 @@ def get_credentials(account_id: str = DEFAULT_ACCOUNT) -> Optional[Credentials]:
         return None
 
 def gmail_auth(account_id: str = DEFAULT_ACCOUNT) -> bool:
-    """Authenticate with Gmail API and save credentials.
-    
-    Args:
-        account_id: Account identifier to use. Defaults to 'default'.
-        
-    Returns:
-        bool: True if authentication successful, False otherwise.
-    """
-    logger.info(f"Starting Gmail authentication for account: {account_id}")
-    
+    """Authenticate with Gmail API using InstalledAppFlow (works with Web App credentials if http://localhost is authorized redirect URI)."""
+    logger.info(f"Starting InstalledAppFlow authentication for account: {account_id}")
+
     if not os.path.exists(CREDENTIALS_FILE):
         logger.error("Credentials file not found")
         print("\nERROR: 'credentials.json' file not found!")
@@ -364,35 +358,73 @@ def gmail_auth(account_id: str = DEFAULT_ACCOUNT) -> bool:
         print("4. Search for 'Gmail API' and enable it")
         print("5. Go to 'APIs & Services' > 'Credentials'")
         print("6. Click 'Create Credentials' > 'OAuth client ID'")
-        print("7. Set Application type to 'Desktop application'")
+        print("7. Set Application type to 'Web application'")
         print("8. Name your client and click 'Create'")
         print("9. Download the JSON file and save it as 'credentials.json'")
+        print("Ensure this credentials.json is for a 'Web application' type OAuth client.")
+        print("Ensure that 'http://localhost' or 'http://localhost:<port>' is added as an Authorized redirect URI in Google Cloud Console for these credentials.")
         return False
-    
+
+    # --- DEBUG: Load credentials and print client_id --- #
     try:
-        # Create OAuth flow
+        with open(CREDENTIALS_FILE, 'r') as f:
+            creds_data = json.load(f)
+        # The structure might be {"installed": {...}} or {"web": {...}}
+        if 'web' in creds_data:
+            client_id = creds_data['web']['client_id']
+        elif 'installed' in creds_data: # Should be web, but check installed just in case
+             client_id = creds_data['installed']['client_id']
+        else:
+            client_id = '[Could not find client_id in credentials.json]'
+        logger.info(f"DEBUG: Attempting to use credentials for Client ID: {client_id}")
+        print(f"\nDEBUG: Using Client ID: {client_id}")
+        print("DEBUG: Please verify this Client ID matches the one configured in Google Cloud Console.\n")
+    except Exception as read_err:
+        logger.error(f"DEBUG: Failed to read or parse {CREDENTIALS_FILE}: {read_err}")
+        print(f"DEBUG: Could not read {CREDENTIALS_FILE} to verify Client ID.")
+    # --- END DEBUG --- #
+
+    creds = None
+    try:
+        # Use InstalledAppFlow again
+        logger.info(f"Creating InstalledAppFlow for account: {account_id}")
         flow = InstalledAppFlow.from_client_secrets_file(
             CREDENTIALS_FILE,
             SCOPES
+            # Note: redirect_uri is typically managed internally by run_local_server for localhost
         )
-        
-        # Run local server for authentication
-        creds = flow.run_local_server(
-            port=0,  # Let the system choose an available port
-            open_browser=True,
-            success_message="Authentication successful! You can close this window.",
-            access_type='offline',
-            prompt='consent'
-        )
-        
+
+        # Run local server for authentication - Use port 8085 to find a free port
+        logger.info("Attempting to run local server for authentication via InstalledAppFlow.")
+        print("\n>>> Please look for a browser window/tab opening for Google Authorization.")
+        print(">>> The flow will attempt to automatically receive the redirect on localhost:8085.")
+
+        try:
+            creds = flow.run_local_server(
+                port=8085,  # Use the fixed port configured in Google Cloud Console
+                open_browser=True,
+                access_type='offline', # Request refresh token
+                prompt='consent'       # Ensure user always sees consent screen
+                # success_message="Authentication successful! You can close the browser tab/window.",
+                # timeout_seconds=120
+            )
+            logger.info("InstalledAppFlow local server flow completed.")
+        except Exception as server_err:
+            logger.error(f"Error during run_local_server with InstalledAppFlow: {server_err}", exc_info=True)
+            print(f"\nError occurred during the authentication server step: {server_err}")
+            print(f"Please ensure 'http://localhost:8085' is the authorized redirect URI in Google Cloud Console.")
+            print("Also ensure no other program is blocking port 8085 and check firewall settings.")
+            return False # Exit if server fails
+
         if not creds or not creds.refresh_token:
-            logger.error("Failed to obtain refresh token")
+            logger.error("Failed to obtain valid credentials or refresh token after InstalledAppFlow.")
             print("\nWARNING: Did not receive valid credentials or refresh token!")
-            print("Please go to https://myaccount.google.com/permissions")
-            print("Revoke access for this app, then try again.")
+            print("This might happen if you denied access or closed the browser too early.")
+            print("Please go to https://myaccount.google.com/permissions, revoke access for this app, then try again.")
             return False
-        
-        # Save credentials to Supabase
+
+        # Save credentials to Supabase via Account Manager
+        logger.info(f"Credentials obtained. Saving for account: {account_id}")
         credentials = {
             'token': creds.token,
             'refresh_token': creds.refresh_token,
@@ -402,37 +434,58 @@ def gmail_auth(account_id: str = DEFAULT_ACCOUNT) -> bool:
             'scopes': creds.scopes,
             'expiry': creds.expiry.isoformat() if creds.expiry else None
         }
-        
+
         account_manager.add_account(account_id, credentials)
-        
-        logger.info(f"Authentication successful for account: {account_id}")
+
+        logger.info(f"Authentication and saving successful for account: {account_id}")
+        print(f"\nSuccessfully authenticated and saved credentials for {account_id}.")
         return True
-        
+
     except Exception as e:
-        logger.error(f"Authentication failed: {e}")
-        print(f"\nError during authentication: {e}")
+        # Catch other potential errors (e.g., reading credentials.json, creating flow)
+        logger.error(f"General authentication failed for {account_id} using InstalledAppFlow: {e}", exc_info=True)
+        print(f"\nAn unexpected error occurred during authentication setup: {e}")
         return False
 
 # Gmail functionality
 def get_gmail_messages(account_id: Optional[str] = None, max_results: int = 10) -> GmailMessageResponse:
     """Get Gmail messages using batch operations."""
+    # Determine target account early
+    target_account_id = account_id or account_manager.get_default_account()
+    if not target_account_id:
+        logger.error("get_gmail_messages called with no account_id and no default account.")
+        return GmailMessageResponse(
+            status="error",
+            account=None,
+            messages=[],
+            report="No account specified and no default account found.",
+            error_message="No account ID provided and no default account found"
+        )
+
     try:
         # Get service for account
-        service_response = get_gmail_service(account_id)
-        if service_response.get('error_message'):
+        service_response = get_gmail_service(target_account_id)
+        if service_response.get('status') == 'error':
+            logger.error(f"Failed to get Gmail service for {target_account_id} in get_gmail_messages.")
             return GmailMessageResponse(
                 status="error",
-                account=account_id,
-                error=service_response['error_message']
+                account=target_account_id,
+                messages=[],
+                report=f"Error accessing account {target_account_id}",
+                error_message=service_response.get('error_message', 'Failed to get Gmail service')
             )
         service = service_response['service']
+        actual_account_id = service_response['account'] # Use the account ID returned by get_gmail_service
 
         # Check quota before proceeding
-        if not quota_manager.check_quota("users.messages.list", 1):
+        if not quota_manager.check_quota("users.messages.list", actual_account_id):
+            logger.warning(f"Quota possibly exceeded for users.messages.list on account {actual_account_id}")
             return GmailMessageResponse(
                 status="error",
-                account=account_id,
-                error="API quota exceeded. Please try again later."
+                account=actual_account_id,
+                messages=[],
+                report="API quota exceeded. Please try again later.",
+                error_message="API quota exceeded. Please try again later."
             )
 
         # Create request objects first
@@ -444,67 +497,140 @@ def get_gmail_messages(account_id: Optional[str] = None, max_results: int = 10) 
         # Execute list request with retry
         result = execute_with_retry(list_request)
         if not result:
+            logger.error(f"Failed to retrieve message list for account {actual_account_id}")
             return GmailMessageResponse(
                 status="error",
-                account=account_id,
-                error="Failed to retrieve message list"
+                account=actual_account_id,
+                messages=[],
+                report="Failed to retrieve message list",
+                error_message="Failed to retrieve message list after retries."
             )
 
         messages = result.get("messages", [])
         if not messages:
             return GmailMessageResponse(
                 status="success",
-                account=account_id,
+                account=actual_account_id,
                 messages=[],
-                report=f"No messages found for account {account_id}"
+                report=f"No messages found for account {actual_account_id}",
+                error_message=None
             )
 
         # Create batch request
         batch = service.new_batch_http_request()
-        message_details = []
+        message_details_list = [] # Renamed from message_details to avoid confusion
+        batch_errors = []
 
         def callback(request_id, response, exception):
+            nonlocal batch_errors # Allow modifying outer scope variable
             if exception:
-                logger.error(f"Error in batch request {request_id}: {exception}")
-                if "Too many concurrent requests" in str(exception):
-                    time.sleep(5)  # Wait before retrying
-                    raise exception
+                error_msg = f"Error in batch request {request_id}: {exception}"
+                logger.error(error_msg)
+                batch_errors.append(error_msg)
+                # Don't raise here, just record the error
+                # If needed, could try to re-raise specific retryable errors
                 return
             if response:
-                message_details.append(response)
+                # Process valid response here
+                try:
+                    headers = {h['name']: h['value'] for h in response['payload']['headers']}
+                    body = ""
+                    if 'parts' in response['payload']:
+                        for part in response['payload']['parts']:
+                            if part['mimeType'] == 'text/plain':
+                                body_data = part['body'].get('data', '')
+                                if body_data:
+                                    body = base64.urlsafe_b64decode(body_data).decode('utf-8')
+                                    break
+                    elif 'body' in response['payload'] and 'data' in response['payload']['body']:
+                        body_data = response['payload']['body']['data']
+                        body = base64.urlsafe_b64decode(body_data).decode('utf-8')
 
-        # Add requests to batch with delay between batches
-        batch_size = 5  # Process 5 messages at a time
-        for i in range(0, len(messages), batch_size):
-            batch_messages = messages[i:i + batch_size]
-            for msg in batch_messages:
-                batch.add(
-                    service.users().messages().get(
-                        userId="me",
-                        id=msg["id"],
-                        format="full"
-                    ),
-                    callback=callback
-                )
-            # Execute batch and wait
-            batch.execute()
-            batch = service.new_batch_http_request()  # Create new batch for next group
-            if i + batch_size < len(messages):
-                time.sleep(2)  # Wait between batches
+                    message_details_list.append({
+                        'id': response['id'],
+                        'subject': headers.get('Subject', 'No subject'),
+                        'from_': headers.get('From', 'Unknown sender'),
+                        'date': headers.get('Date', 'Unknown date'),
+                        'snippet': response.get('snippet', ''),
+                        'body': body[:500] + ('...' if len(body) > 500 else '') # Truncate body
+                    })
+                except Exception as proc_err:
+                    error_msg = f"Error processing message {response.get('id', '[unknown ID]')} in batch callback: {proc_err}"
+                    logger.error(error_msg, exc_info=True)
+                    batch_errors.append(error_msg)
+
+        # Add requests to batch (Consider smaller batch sizes if needed)
+        batch_size = 10 # Increased batch size slightly
+        current_batch = service.new_batch_http_request()
+        request_count = 0
+
+        for msg in messages:
+            current_batch.add(
+                service.users().messages().get(
+                    userId="me",
+                    id=msg["id"],
+                    format="full" # Fetch full details
+                ),
+                callback=callback,
+                request_id=msg["id"] # Use message ID as request ID
+            )
+            request_count += 1
+
+            # Execute batch if size limit reached or it's the last message
+            if request_count == batch_size or msg == messages[-1]:
+                try:
+                    logger.info(f"Executing batch of {request_count} requests for {actual_account_id}")
+                    # execute_with_retry might be needed here too if batches fail often
+                    current_batch.execute()
+                    # Consider a small sleep ONLY if hitting rate limits frequently
+                    # time.sleep(1)
+                except Exception as batch_exec_err:
+                    error_msg = f"Batch execution failed for account {actual_account_id}: {batch_exec_err}"
+                    logger.error(error_msg, exc_info=True)
+                    # Decide if this is fatal or if we should continue with other batches
+                    # For now, return error for the whole operation if a batch fails
+                    return GmailMessageResponse(
+                        status="error",
+                        account=actual_account_id,
+                        messages=[],
+                        report="Failed to execute batch request for message details.",
+                        error_message=error_msg
+                    )
+                # Reset for next batch
+                current_batch = service.new_batch_http_request()
+                request_count = 0
+
+        # After all batches
+        if batch_errors:
+            # Report success but mention errors
+             report_msg = f"Retrieved {len(message_details_list)} messages for account {actual_account_id}, but encountered {len(batch_errors)} errors during detail fetch."
+             logger.warning(report_msg + " Errors: " + "; ".join(batch_errors[:3])) # Log first few errors
+             # Decide if this should be status='error' or 'success' with caveats
+             # Let's keep it success, but include errors in the report
+             return GmailMessageResponse(
+                status="success", # Or maybe 'partial_success'? For now, 'success'.
+                account=actual_account_id,
+                messages=message_details_list,
+                report=report_msg,
+                error_message="Errors occurred during batch processing. Check logs."
+             )
 
         return GmailMessageResponse(
             status="success",
-            account=account_id,
-            messages=message_details,
-            report=f"Retrieved {len(message_details)} messages for account {account_id}"
+            account=actual_account_id,
+            messages=message_details_list,
+            report=f"Retrieved {len(message_details_list)} messages for account {actual_account_id}",
+            error_message=None
         )
 
     except Exception as e:
-        logger.error(f"Error in get_gmail_messages: {e}")
+        logger.error(f"Error in get_gmail_messages for account {target_account_id}: {e}", exc_info=True)
         return GmailMessageResponse(
             status="error",
-            account=account_id,
-            error=str(e)
+            account=target_account_id,
+            messages=[],
+            report=f"An unexpected error occurred while getting messages for {target_account_id}.",
+            error_message=str(e)
         )
 
 def get_gmail_messages_for_account(account_id: str, max_results: int = 10) -> Union[GmailMessageResponse, GmailErrorResponse]:
@@ -1361,36 +1487,106 @@ def check_upcoming_deadlines() -> GmailDeadlineResponse:
             error_message=str(e)
         )
 
-def add_gmail_account(account_id: str) -> GmailAccountResponse:
-    """Add new Gmail account"""
-    success = gmail_auth(account_id)
-    if success:
+def add_new_gmail_account(account_id: Optional[str] = None) -> GmailAccountResponse:
+    """Add a new Gmail account by providing the Gmail address (account_id). Triggers OAuth login flow and browser redirect for authorization. If not provided, the agent should prompt the user for the email address."""
+    try:
+        if not account_id:
+            # Return an error response instead of raising ValueError
+            logger.error("Attempted to add account without providing account_id.")
+            return GmailAccountResponse(
+                status="error",
+                message="Account ID (email address) is required.",
+                error_message="Account ID (email address) is required."
+            )
+
+        # Check if credentials file exists *before* calling gmail_auth
+        if not os.path.exists(CREDENTIALS_FILE):
+            logger.error(f"{CREDENTIALS_FILE} not found. Cannot authenticate.")
+            return GmailAccountResponse(
+                status="error",
+                message=f"{CREDENTIALS_FILE} not found. Please ensure it is present.",
+                error_message=f"{CREDENTIALS_FILE} not found."
+            )
+
+        success = gmail_auth(account_id)
+        if success:
+            return GmailAccountResponse(
+                status="success",
+                message=f"Successfully added Gmail account: {account_id}",
+                error_message=None
+            )
+        else:
+            # gmail_auth logs the specific error, return a generic failure message
+            return GmailAccountResponse(
+                status="error",
+                message=f"Failed to authenticate new account: {account_id}. Check logs for details.",
+                error_message="Authentication failed during OAuth flow."
+            )
+    except Exception as e:
+        logger.error(f"Unexpected error in add_new_gmail_account for {account_id}: {e}", exc_info=True)
+        return GmailAccountResponse(
+            status="error",
+            message=f"An unexpected error occurred while adding account {account_id}.",
+            error_message=str(e)
+        )
+
+def remove_gmail_account(account_id: str) -> GmailAccountResponse:
+    """Remove a Gmail account by email (account_id) from Supabase and local file."""
+    if not account_id:
+        return GmailAccountResponse(
+            status="error",
+            message="No account_id provided",
+            error_message="No account_id provided"
+        )
+    removed = account_manager.remove_account(account_id)
+    if removed:
         return GmailAccountResponse(
             status="success",
-            message=f"Successfully added Gmail account: {account_id}",
+            message=f"Successfully removed Gmail account: {account_id}",
             error_message=None
         )
     return GmailAccountResponse(
         status="error",
-        message="Failed to authenticate new account",
-        error_message="Authentication failed"
+        message=f"Account {account_id} not found",
+        error_message="Account not found"
     )
 
 def list_gmail_accounts() -> GmailAccountListResponse:
     """List all configured Gmail accounts"""
     try:
         accounts = account_manager.get_accounts()
+        # Ensure expiry is serializable, default to None if missing or problematic
+        account_details = {}
+        for account_id, account_data in accounts.items():
+            expiry = account_data.get("expiry")
+            # Basic check if expiry looks like an ISO format string
+            if expiry and isinstance(expiry, str):
+                try:
+                    # Attempt parsing to validate format, but store the original string
+                    datetime.datetime.fromisoformat(expiry.replace('Z', '+00:00'))
+                    serializable_expiry = expiry
+                except ValueError:
+                    logger.warning(f"Invalid expiry format for {account_id}: {expiry}. Setting expiry to None.")
+                    serializable_expiry = None
+            elif expiry is None:
+                 serializable_expiry = None
+            else:
+                 # Handle cases where expiry might be datetime object already (though unlikely from JSON)
+                 logger.warning(f"Unexpected expiry type for {account_id}: {type(expiry)}. Setting expiry to None.")
+                 serializable_expiry = None
+
+            account_details[account_id] = {
+                "scopes": account_data.get("scopes", []), # Default to empty list
+                "expiry": serializable_expiry
+            }
+
         return GmailAccountListResponse(
             status="success",
-            accounts={
-                account_id: {
-                    "scopes": account_data["scopes"],
-                    "expiry": account_data["expiry"]
-                } for account_id, account_data in accounts.items()
-            },
+            accounts=account_details,
             error_message=None
         )
     except Exception as e:
+        logger.error(f"Error listing Gmail accounts: {e}", exc_info=True) # Log traceback
         return GmailAccountListResponse(
             status="error",
             accounts={},

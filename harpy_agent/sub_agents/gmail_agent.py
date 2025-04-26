@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-Gmail Agent
-
-This is the main agent for Gmail functionality, built with Google's Agent Development Kit (ADK).
-"""
 from config import Config
 AGENT_MODEL = Config.MODEL_NAME
 
@@ -18,7 +12,7 @@ from harpy_agent.tools.gmail_tools import (
     categorized_search_gmail,
     analyze_email_content,
     extract_email_metadata,
-    add_gmail_account,
+    add_new_gmail_account,
     list_gmail_accounts,
     search_gmail_with_query
 )
@@ -63,7 +57,7 @@ gmail_agent = Agent(
         categorized_search_gmail,
         analyze_email_content,
         extract_email_metadata,
-        add_gmail_account,
+        add_new_gmail_account,
         search_gmail_with_query,
         get_current_time,
         calculate,
