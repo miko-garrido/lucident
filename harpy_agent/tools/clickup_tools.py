@@ -979,21 +979,21 @@ def get_task_templates(page: int, team_id: str = CLICKUP_TEAM_ID, space_id: Opti
     return api._make_request("GET", endpoint, params=params)
 
 # --- Time Tracking ---
-def get_time_entries(team_id: str = CLICKUP_TEAM_ID, start_date: Optional[int] = None,
-                     end_date: Optional[int] = None, assignee: Optional[str] = None,
+def get_time_entries(user_ids: list[str], team_id: str = CLICKUP_TEAM_ID,
+                     start_date: Optional[int] = None, end_date: Optional[int] = None,
                      include_task_tags: Optional[bool] = None, include_location_names: Optional[bool] = None,
                      space_id: Optional[str] = None, folder_id: Optional[str] = None,
                      list_id: Optional[str] = None, task_id: Optional[str] = None,
                      custom_task_ids: Optional[bool] = None, task_team_id: Optional[str] = CLICKUP_TEAM_ID
                      ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
-    Gets time entries within a date range for a Workspace (Team).
+    Gets time entries for specific users for a Workspace (Team).
     
     Args:
-        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team.
+        user_ids (list[str]): List of user IDs whose time entries to include. Users not included will not have time entries returned. At least one user ID required.
         start_date (Optional[int]): Start timestamp (Unix time in ms) (optional).
         end_date (Optional[int]): End timestamp (Unix time in ms) (optional).
-        assignee (Optional[str]): Filter by user ID(s) (comma-separated string or list) (optional).
         include_task_tags (Optional[bool]): Include task tags in the response (optional).
         include_location_names (Optional[bool]): Include Folder and List names (optional).
         space_id (Optional[str]): Filter by Space ID (optional).
@@ -1010,12 +1010,13 @@ def get_time_entries(team_id: str = CLICKUP_TEAM_ID, start_date: Optional[int] =
     api = ClickUpAPI()
     endpoint = f"/v2/team/{team_id}/time_entries"
     params: Dict[str, Any] = {}
+
+    params["assignee"] = ",".join(map(str, user_ids)) # Called assignee in the API, but it's actually the user_ids.
+
     if start_date is not None:
         params["start_date"] = start_date
     if end_date is not None:
         params["end_date"] = end_date
-    if assignee:
-         params["assignee"] = assignee if isinstance(assignee, str) else ",".join(map(str, assignee))
     if include_task_tags is not None:
         params["include_task_tags"] = str(include_task_tags).lower()
     if include_location_names is not None:
