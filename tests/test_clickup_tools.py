@@ -5,6 +5,7 @@ import sys
 from dotenv import load_dotenv
 import time
 from datetime import datetime, timezone, timedelta
+import logging
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
@@ -46,12 +47,13 @@ TEST_TIMER_ID = "4492931707339476846"
 TEST_CHANNEL_ID = "3hm11-57378"
 TEST_MESSAGE_ID = "80180002933247"
 TEST_FOLDERLESS_LIST_ID = "901805379671"
+TEST_TASK_IDS = ["86et1a9yj", "86erk6jef", "86erwfmbz", "invalid-id"]
 
 # Helper function to check for API error responses
 def is_api_error(response):
     return isinstance(response, dict) and "error_code" in response
 
-def test_get_tasks_live():
+def test_get_tasks_from_list_live():
     if not TEST_LIST_ID or TEST_LIST_ID == "YOUR_REAL_LIST_ID":
         pytest.skip("TEST_LIST_ID not set.")
 
@@ -60,7 +62,7 @@ def test_get_tasks_live():
     thirty_days_ago = now - timedelta(days=30)
     start_timestamp_ms = int(thirty_days_ago.timestamp() * 1000)
 
-    result = clickup_tools.get_tasks(list_id=TEST_LIST_ID, date_updated_gt=start_timestamp_ms)
+    result = clickup_tools.get_tasks_from_list(list_id=TEST_LIST_ID, date_updated_gt=start_timestamp_ms)
 
     if is_api_error(result):
         pytest.fail(f"API Error: {result['error_message']} (Code: {result['error_code']})")
@@ -159,12 +161,12 @@ def test_get_threaded_comments_live():
 
 # Note: This test also uses the `clickup_tools.get_tasks` function,
 # specifically testing the retrieval of subtasks using the `parent` parameter.
-def test_get_subtasks_via_get_tasks_live():
+def test_get_subtasks_via_get_tasks_from_list_live():
     if not TEST_PARENT_TASK_ID or TEST_PARENT_TASK_ID == "YOUR_PARENT_TASK_ID":
         pytest.skip("TEST_PARENT_TASK_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_tasks(list_id=TEST_LIST_ID, parent=TEST_PARENT_TASK_ID)
+    result = clickup_tools.get_tasks_from_list(list_id=TEST_LIST_ID, parent=TEST_PARENT_TASK_ID)
     
     assert isinstance(result, dict)
     assert "tasks" in result
@@ -1158,3 +1160,32 @@ def test_get_workspace_structure_live():
             assert isinstance(first_folderless_list, dict)
             assert "id" in first_folderless_list
             assert "name" in first_folderless_list
+
+def test_get_many_tasks_live():
+    if not TEST_TASK_IDS: # Check if the list itself is populated
+        pytest.skip("TEST_TASK_IDS list is empty.")
+
+    task_ids_to_test = TEST_TASK_IDS # Use the constant directly
+
+    rate_limit_delay()
+    result = clickup_tools.get_many_tasks(task_ids=task_ids_to_test)
+
+    if is_api_error(result):
+        pytest.fail(f"API Error getting many tasks: {result['error_message']} (Code: {result['error_code']})")
+
+    assert isinstance(result, dict)
+    assert "data" in result
+    task_results = result["data"]
+    assert isinstance(task_results, list)
+    assert len(task_results) == len(task_ids_to_test)
+
+    # Check that exactly one task retrieval resulted in an error
+    # and all valid IDs were retrieved successfully.
+    valid_task_ids = {tid for tid in task_ids_to_test if tid != "invalid-id"}
+    error_results = [r for r in task_results if "error_code" in r]
+    successful_results = [r for r in task_results if "error_code" not in r]
+    retrieved_successful_ids = {r["id"] for r in successful_results}
+
+    assert len(error_results) == 1, f"Expected exactly one error result, but got {len(error_results)}: {error_results}"
+    assert valid_task_ids == retrieved_successful_ids, \
+        f"Expected successful IDs {valid_task_ids}, but got {retrieved_successful_ids}"

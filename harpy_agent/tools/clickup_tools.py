@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import json
 import logging
 from config import Config
+import concurrent.futures
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -665,12 +666,12 @@ def get_space_tags(space_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]
     return api._make_request("GET", endpoint)
 
 # --- Tasks ---
-def get_tasks(list_id: str, archived: Optional[bool] = False,
+def get_tasks_from_list(list_id: str, archived: Optional[bool] = False,
               include_markdown_description: Optional[bool] = None, page: Optional[int] = None,
               order_by: Optional[str] = None, reverse: Optional[bool] = None,
               subtasks: Optional[bool] = None, space_ids: Optional[List[str]] = None,
               project_ids: Optional[List[str]] = None, list_ids: Optional[List[str]] = None,
-              statuses: Optional[List[str]] = None, include_closed: Optional[bool] = None,
+              statuses: Optional[List[str]] = None, include_closed: Optional[bool] = True,
               assignees: Optional[List[str]] = None, tags: Optional[List[str]] = None,
               due_date_gt: Optional[int] = None, due_date_lt: Optional[int] = None,
               date_created_gt: Optional[int] = None, date_created_lt: Optional[int] = None,
@@ -695,7 +696,7 @@ def get_tasks(list_id: str, archived: Optional[bool] = False,
         project_ids (Optional[List[str]]): Filter by Folder IDs (previously Projects) (optional).
         list_ids (Optional[List[str]]): Filter by List IDs (optional).
         statuses (Optional[List[str]]): Filter by task statuses (case-insensitive) (optional).
-        include_closed (Optional[bool]): Include closed tasks (optional).
+        include_closed (Optional[bool]): Include closed tasks (optional). Defaults to True.
         assignees (Optional[List[str]]): Filter by assignee user IDs (optional).
         tags (Optional[List[str]]): Filter by tag names (optional).
         due_date_gt (Optional[int]): Filter by due date greater than (Unix time in ms) (optional).
@@ -810,7 +811,7 @@ def get_filtered_team_tasks(team_id: str = CLICKUP_TEAM_ID, page: Optional[int] 
                              order_by: Optional[str] = None, reverse: Optional[bool] = None,
                              subtasks: Optional[bool] = None, space_ids: Optional[List[str]] = None,
                              project_ids: Optional[List[str]] = None, list_ids: Optional[List[str]] = None,
-                             statuses: Optional[List[str]] = None, include_closed: Optional[bool] = None,
+                             statuses: Optional[List[str]] = None, include_closed: Optional[bool] = True,
                              assignees: Optional[List[str]] = None, tags: Optional[List[str]] = None,
                              due_date_gt: Optional[int] = None, due_date_lt: Optional[int] = None,
                              date_created_gt: Optional[int] = None, date_created_lt: Optional[int] = None,
@@ -833,7 +834,7 @@ def get_filtered_team_tasks(team_id: str = CLICKUP_TEAM_ID, page: Optional[int] 
         project_ids (Optional[List[str]]): Filter by Folder IDs (previously Projects) (optional).
         list_ids (Optional[List[str]]): Filter by List IDs (optional).
         statuses (Optional[List[str]]): Filter by task statuses (case-insensitive) (optional).
-        include_closed (Optional[bool]): Include closed tasks (optional).
+        include_closed (Optional[bool]): Include closed tasks (optional). Defaults to True.
         assignees (Optional[List[str]]): Filter by assignee user IDs (optional).
         tags (Optional[List[str]]): Filter by tag names (optional).
         due_date_gt (Optional[int]): Filter by due date greater than (Unix time in ms) (optional).
@@ -1445,6 +1446,33 @@ def get_tagged_users_for_message(message_id: str, team_id: str = CLICKUP_TEAM_ID
 
 # --- Custom Tools ---
 
+def get_many_tasks(task_ids: List[str]) -> Dict[str, Any]:
+    """
+    Retrieves multiple tasks by their IDs.
+
+    Args:
+        task_ids (List[str]): A list of task IDs to retrieve.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing a list of the results (task data or error dictionaries) 
+                        for each task ID under the 'data' key. Returns an error dictionary if 
+                        initialization fails.
+    """
+    results = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        future_to_task_id = {executor.submit(get_task, task_id): task_id for task_id in task_ids}
+        
+        for future in concurrent.futures.as_completed(future_to_task_id):
+            task_id = future_to_task_id[future]
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as exc:
+                logging.error(f'Task {task_id} generated an exception during fetch: {exc}', exc_info=True)
+                results.append({"error_code": 500, "error_message": f"Failed to fetch task {task_id}: {exc}"})
+
+    return {"data": results}
+
 def get_workspace_structure(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Retrieves the structure of spaces, folders, lists, and folderless lists ina specific workspace.
@@ -1507,8 +1535,6 @@ def get_workspace_structure(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, A
             }
         }
     """
-    api = ClickUpAPI()
-    
     # 1. Get Spaces
     spaces_response = get_spaces(team_id)
     if isinstance(spaces_response, dict) and "error_code" in spaces_response:
