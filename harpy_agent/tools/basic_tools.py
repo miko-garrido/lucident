@@ -103,7 +103,8 @@ def calculate_date(start_date_str: str, operation: str, duration_str: str) -> st
 
 def calculate(expressions: list[str]) -> list[str]:
     """
-    Calculates the result of any number of mathematical expressions in parallel.
+    Calculate multiple math expressions in parallel.
+    When you have multiple expressions to calculate, use this tool once to calculate all of them at once.
 
     Args:
         expressions (list[str]): A list of mathematical expressions to evaluate.
@@ -162,3 +163,20 @@ def calculate_unix_ms_timestamp(date_str: str, time_zone: str) -> str: # not cur
         return f"Error making date timezone-aware: {ve}"
     except Exception as e:
         return f"Error calculating Unix timestamp: {e}"
+    
+def convert_ms_to_hhmmss(ms: int) -> str:
+    """
+    Converts a duration in milliseconds into a human-readable string 
+    using H:MM:SS format.
+
+    Args:
+        ms (int): Duration in milliseconds.
+
+    Returns:
+        str: A string like "2:03:04".
+    """
+    seconds_total = ms // 1000
+    hours, remainder = divmod(seconds_total, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    return f"{hours}:{minutes:02d}:{seconds:02d}"

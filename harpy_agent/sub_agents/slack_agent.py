@@ -10,7 +10,8 @@ from typing import Dict, Any, Optional
 from harpy_agent.tools.basic_tools import (
     get_current_time,
     calculate,
-    calculate_date
+    calculate_date,
+    convert_ms_to_hhmmss
 )
 
 load_dotenv()
@@ -32,7 +33,8 @@ slack_agent = Agent(
     tools=[
         get_current_time,
         calculate,
-        calculate_date
+        calculate_date,
+        convert_ms_to_hhmmss
     ]
 )
 

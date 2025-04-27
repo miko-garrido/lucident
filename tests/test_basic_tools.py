@@ -153,3 +153,27 @@ def test_calculate_unix_ms_timestamp_invalid_timezone():
     tz_str = "Invalid/Timezone"
     result = basic_tools.calculate_unix_ms_timestamp(date_str, tz_str)
     assert f"Error: Unknown timezone '{tz_str}'." in result
+
+# --- Test convert_ms_to_hhmmss ---
+
+def test_convert_ms_to_hhmmss_zero():
+    assert basic_tools.convert_ms_to_hhmmss(0) == "0:00:00"
+
+def test_convert_ms_to_hhmmss_less_than_second():
+    assert basic_tools.convert_ms_to_hhmmss(500) == "0:00:00"
+
+def test_convert_ms_to_hhmmss_seconds():
+    assert basic_tools.convert_ms_to_hhmmss(5000) == "0:00:05"
+    assert basic_tools.convert_ms_to_hhmmss(59999) == "0:00:59"
+
+def test_convert_ms_to_hhmmss_minutes_seconds():
+    assert basic_tools.convert_ms_to_hhmmss(65000) == "0:01:05" # 1 min 5 sec
+    assert basic_tools.convert_ms_to_hhmmss(3599000) == "0:59:59" # 59 min 59 sec
+
+def test_convert_ms_to_hhmmss_hours_minutes_seconds():
+    assert basic_tools.convert_ms_to_hhmmss(3600000) == "1:00:00" # 1 hour
+    assert basic_tools.convert_ms_to_hhmmss(3661000) == "1:01:01" # 1 hour 1 min 1 sec
+    assert basic_tools.convert_ms_to_hhmmss(86399000) == "23:59:59" # 23 hours 59 min 59 sec
+
+def test_convert_ms_to_hhmmss_multiple_hours():
+    assert basic_tools.convert_ms_to_hhmmss(90000000) == "25:00:00" # 25 hours
