@@ -26,8 +26,7 @@ from ..tools.clickup_tools import (
 from harpy_agent.tools.basic_tools import (
     get_current_time,
     calculate,
-    calculate_date,
-    calculate_many
+    calculate_date
 )
 
 load_dotenv()
@@ -77,7 +76,6 @@ clickup_agent = Agent(
             get_chat_channel, get_chat_channel_followers, get_chat_channel_members,
             get_chat_messages, get_message_reactions, get_message_replies,
             get_tagged_users_for_message, get_current_time, calculate, calculate_date,
-            calculate_many,
             #custom tools
             get_many_tasks, get_time_entries_for_list, get_workspace_structure
         ],

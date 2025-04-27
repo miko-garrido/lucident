@@ -27,7 +27,7 @@ def get_current_time(time_zone: str = Config.TIMEZONE) -> str:
     except Exception as e:
         return f"Error getting time: {e}"
 
-def calculate(expression: str) -> str:
+def calculate_one(expression: str) -> str: # removed from agents so calculate is preferred
     """
     Calculates the result of a single mathematical expression.
 
@@ -101,9 +101,9 @@ def calculate_date(start_date_str: str, operation: str, duration_str: str) -> st
     except Exception as e:
         return f"Error calculating date: {e}"
 
-def calculate_many(expressions: list[str]) -> list[str]:
+def calculate(expressions: list[str]) -> list[str]:
     """
-    Calculates the result of multiple mathematical expressions in parallel.
+    Calculates the result of any number of mathematical expressions in parallel.
 
     Args:
         expressions (list[str]): A list of mathematical expressions to evaluate.
@@ -116,7 +116,7 @@ def calculate_many(expressions: list[str]) -> list[str]:
     expression_map = {expr: i for i, expr in enumerate(expressions)} # Map expression to original index
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        future_to_expr = {executor.submit(calculate, expr): expr for expr in expressions}
+        future_to_expr = {executor.submit(calculate_one, expr): expr for expr in expressions}
         
         for future in concurrent.futures.as_completed(future_to_expr):
             expr = future_to_expr[future]

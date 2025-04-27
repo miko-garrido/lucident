@@ -25,19 +25,19 @@ def test_get_current_time_invalid_tz():
 
 # --- Test calculate ---
 
-def test_calculate_simple_addition():
-    assert basic_tools.calculate("2 + 2") == "Result: 4"
+def test_calculate_one_simple_addition():
+    assert basic_tools.calculate_one("2 + 2") == "Result: 4"
 
-def test_calculate_complex_expression():
-    assert basic_tools.calculate("(5 * 3) / (2 + 1)") == "Result: 5.0"
+def test_calculate_one_complex_expression():
+    assert basic_tools.calculate_one("(5 * 3) / (2 + 1)") == "Result: 5.0"
 
-def test_calculate_invalid_expression():
-    result = basic_tools.calculate("2 +")
+def test_calculate_one_invalid_expression():
+    result = basic_tools.calculate_one("2 +")
     assert "Error calculating expression:" in result
 
-def test_calculate_division_by_zero():
+def test_calculate_one_division_by_zero():
     # numexpr handles division by zero, often resulting in inf
-    result = basic_tools.calculate("1 / 0")
+    result = basic_tools.calculate_one("1 / 0")
     # Update assertion to check for the actual error message
     assert "Error calculating expression: division by zero" in result
 
@@ -89,26 +89,26 @@ def test_calculate_date_unparsable_duration():
 
 # --- Test calculate_many ---
 
-def test_calculate_many_success():
+def test_calculate_success():
     expressions = ["1 + 1", "10 / 2", "(2+3)*4"]
     expected = ["Result: 2", "Result: 5.0", "Result: 20"]
-    assert basic_tools.calculate_many(expressions) == expected
+    assert basic_tools.calculate(expressions) == expected
 
-def test_calculate_many_with_errors():
+def test_calculate_with_errors():
     expressions = ["2 * 5", "1 / 0", "3 + "]
-    results = basic_tools.calculate_many(expressions)
+    results = basic_tools.calculate(expressions)
     assert results[0] == "Result: 10"
     assert "Error calculating expression: division by zero" in results[1]
     assert "Error calculating expression: invalid syntax" in results[2]
 
-def test_calculate_many_empty_list():
+def test_calculate_empty_list():
     expressions = []
     expected = []
-    assert basic_tools.calculate_many(expressions) == expected
+    assert basic_tools.calculate(expressions) == expected
 
-def test_calculate_many_mixed():
+def test_calculate_mixed():
     expressions = ["sqrt(16)", "5 - ", "2**3"]
-    results = basic_tools.calculate_many(expressions)
+    results = basic_tools.calculate(expressions)
     assert results[0] == "Result: 4.0"
     assert "Error calculating expression: invalid syntax" in results[1]
     assert results[2] == "Result: 8" 

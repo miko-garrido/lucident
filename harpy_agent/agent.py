@@ -14,8 +14,7 @@ from datetime import datetime
 from harpy_agent.tools.basic_tools import (
     get_current_time,
     calculate,
-    calculate_date,
-    calculate_many
+    calculate_date
 )
 from google.adk.sessions import InMemorySessionService
 
@@ -61,5 +60,5 @@ root_agent = Agent(
         """
         ),
     sub_agents=[gmail_agent, slack_agent, clickup_agent],
-    tools=[get_current_time, calculate, calculate_date, calculate_many]
+    tools=[get_current_time, calculate, calculate_date]
 )
