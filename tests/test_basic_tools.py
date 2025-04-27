@@ -86,3 +86,29 @@ def test_calculate_date_invalid_duration_unit():
 def test_calculate_date_unparsable_duration():
     result = basic_tools.calculate_date("2024-01-01", "add", "three days")
     assert "Error: Could not parse duration string." in result # Because 'three' is not int 
+
+# --- Test calculate_many ---
+
+def test_calculate_many_success():
+    expressions = ["1 + 1", "10 / 2", "(2+3)*4"]
+    expected = ["Result: 2", "Result: 5.0", "Result: 20"]
+    assert basic_tools.calculate_many(expressions) == expected
+
+def test_calculate_many_with_errors():
+    expressions = ["2 * 5", "1 / 0", "3 + "]
+    results = basic_tools.calculate_many(expressions)
+    assert results[0] == "Result: 10"
+    assert "Error calculating expression '1 / 0'" in results[1]
+    assert "Error calculating expression '3 + '" in results[2]
+
+def test_calculate_many_empty_list():
+    expressions = []
+    expected = []
+    assert basic_tools.calculate_many(expressions) == expected
+
+def test_calculate_many_mixed():
+    expressions = ["sqrt(16)", "5 - ", "2**3"]
+    results = basic_tools.calculate_many(expressions)
+    assert results[0] == "Result: 4.0"
+    assert "Error calculating expression '5 - '" in results[1]
+    assert results[2] == "Result: 8" 

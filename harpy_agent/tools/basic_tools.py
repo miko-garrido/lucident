@@ -4,6 +4,8 @@ import numexpr
 from decimal import InvalidOperation
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
+import concurrent.futures
+import logging
 from config import Config
 
 def get_current_time(time_zone: str = Config.TIMEZONE) -> str:
@@ -27,7 +29,7 @@ def get_current_time(time_zone: str = Config.TIMEZONE) -> str:
 
 def calculate(expression: str) -> str:
     """
-    Calculates the result of a mathematical expression.
+    Calculates the result of a single mathematical expression.
 
     Uses the 'numexpr' library for safe evaluation of mathematical expressions.
 
@@ -98,3 +100,32 @@ def calculate_date(start_date_str: str, operation: str, duration_str: str) -> st
         return f"Error: Could not parse start date '{start_date_str}'. Use a recognizable format (e.g., YYYY-MM-DD, MM/DD/YYYY)."
     except Exception as e:
         return f"Error calculating date: {e}"
+
+def calculate_many(expressions: list[str]) -> list[str]:
+    """
+    Calculates the result of multiple mathematical expressions in parallel.
+
+    Args:
+        expressions (list[str]): A list of mathematical expressions to evaluate.
+
+    Returns:
+        list[str]: A list of strings containing the results of the calculations, 
+                   or error messages for individual failures.
+    """
+    results = [None] * len(expressions) # Preallocate list for results in original order
+    expression_map = {expr: i for i, expr in enumerate(expressions)} # Map expression to original index
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_to_expr = {executor.submit(calculate, expr): expr for expr in expressions}
+        
+        for future in concurrent.futures.as_completed(future_to_expr):
+            expr = future_to_expr[future]
+            original_index = expression_map[expr]
+            try:
+                result = future.result()
+                results[original_index] = result
+            except Exception as exc:
+                logging.error(f'Expression "{expr}" generated an exception during calculation: {exc}', exc_info=True)
+                results[original_index] = f"Error calculating expression '{expr}': {exc}"
+
+    return results
