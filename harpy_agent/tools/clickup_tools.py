@@ -774,7 +774,7 @@ def get_tasks_from_list(list_id: str, archived: Optional[bool] = False,
     return api._make_request("GET", endpoint, params=params)
 
 def get_task(task_id: str, include_subtasks: Optional[bool] = None,
-             include_markdown_description: Optional[bool] = None, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+             include_markdown_description: Optional[bool] = None, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets details about a specific task.
     
@@ -783,7 +783,7 @@ def get_task(task_id: str, include_subtasks: Optional[bool] = None,
         include_subtasks (Optional[bool]): Include subtasks in the response (optional).
         include_markdown_description (Optional[bool]): Return description in Markdown format (optional).
         custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires team_id. (optional)
-        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. Defaults to Dorxata team..
+        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true.
 
     Returns:
         Dict[str, Any]: A dictionary containing the task details.
@@ -906,14 +906,14 @@ def get_filtered_team_tasks(team_id: str = CLICKUP_TEAM_ID, page: Optional[int] 
 
     return api._make_request("GET", endpoint, params=params)
 
-def get_task_time_in_status(task_id: str, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_task_time_in_status(task_id: str, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the time spent by a task in each status.
     
     Args:
         task_id (str): The ID of the task (can be the canonical ID or custom task ID).
         custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires team_id. (optional)
-        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. Defaults to Dorxata team..
+        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true.
 
     Returns:
         Dict[str, Any]: A dictionary containing the time in status details for the task.
@@ -925,20 +925,20 @@ def get_task_time_in_status(task_id: str, custom_task_ids: Optional[bool] = None
     if custom_task_ids:
         if not team_id:
             # Keep raising config error here if CLICKUP_TEAM_ID is not set
-            raise ValueError("team_id is required when custom_task_ids is true, and CLICKUP_TEAM_ID seems not configured.")
+            raise ValueError("team_id is required when custom_task_ids is true.")
         params["custom_task_ids"] = "true"
         params["team_id"] = team_id
 
     return api._make_request("GET", endpoint, params=params)
 
-def get_bulk_tasks_time_in_status(task_ids: List[str], custom_task_ids: Optional[bool] = None, team_id: Optional[str] = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_bulk_tasks_time_in_status(task_ids: List[str], custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets the time spent in status for multiple tasks.
     
     Args:
         task_ids (List[str]): A list of task IDs (canonical or custom).
         custom_task_ids (Optional[bool]): If true, treats task_ids as custom task IDs. Requires team_id. (optional)
-        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true. Defaults to Dorxata team..
+        team_id (Optional[str]): The Workspace (Team) ID, required if custom_task_ids is true.
 
     Returns:
         Dict[str, Any]: A dictionary containing the time in status details for the specified tasks.
@@ -950,7 +950,7 @@ def get_bulk_tasks_time_in_status(task_ids: List[str], custom_task_ids: Optional
     if custom_task_ids:
          if not team_id:
              # Keep raising config error here if CLICKUP_TEAM_ID is not set
-             raise ValueError("team_id is required when custom_task_ids is true, and CLICKUP_TEAM_ID seems not configured.")
+             raise ValueError("team_id is required when custom_task_ids is true.")
          params["custom_task_ids"] = "true"
          params["team_id"] = team_id
 
@@ -979,12 +979,34 @@ def get_task_templates(page: int, team_id: str = CLICKUP_TEAM_ID, space_id: Opti
     return api._make_request("GET", endpoint, params=params)
 
 # --- Time Tracking ---
-def get_time_entries(user_ids: list[str], team_id: str = CLICKUP_TEAM_ID,
+
+def get_time_entries_for_task(task_id: str, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    """
+    Retrieves time entries for a specific task.
+
+    Args:
+        task_id (str): The ID of the task.
+        custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires team_id. (optional)
+        team_id (Optional[str]): The Workspace (Team) ID for the custom task ID lookup. Required if custom_task_ids is true.
+    """
+    # Reference: https://developer.clickup.com/reference/gettrackedtime
+    # LEGACY ENDPOINT, but it's better for getting time entries for a task.
+    api = ClickUpAPI()
+    endpoint = f"/v2/task/{task_id}/time" # Corrected endpoint path
+    params = {}
+    if custom_task_ids:
+        if not team_id:
+            raise ValueError("team_id is required when custom_task_ids is true.")
+        params["custom_task_ids"] = "true"
+        params["team_id"] = team_id
+    return api._make_request("GET", endpoint, params=params)
+
+def get_time_entries_for_users(user_ids: list[str], team_id: str = CLICKUP_TEAM_ID,
                      start_date: Optional[int] = None, end_date: Optional[int] = None,
                      include_task_tags: Optional[bool] = None, include_location_names: Optional[bool] = None,
                      space_id: Optional[str] = None, folder_id: Optional[str] = None,
                      list_id: Optional[str] = None, task_id: Optional[str] = None,
-                     custom_task_ids: Optional[bool] = None, task_team_id: Optional[str] = CLICKUP_TEAM_ID
+                     custom_task_ids: Optional[bool] = None, task_team_id: Optional[str] = None
                      ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Gets time entries for specific users for a Workspace (Team).
@@ -1001,7 +1023,7 @@ def get_time_entries(user_ids: list[str], team_id: str = CLICKUP_TEAM_ID,
         list_id (Optional[str]): Filter by List ID (optional).
         task_id (Optional[str]): Filter by Task ID (canonical or custom) (optional).
         custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires task_team_id. (optional)
-        task_team_id (Optional[str]): The Workspace (Team) ID for the custom task ID lookup. Required if custom_task_ids is true and task_id is provided. Defaults to Dorxata team..
+        task_team_id (Optional[str]): The Workspace (Team) ID for the custom task ID lookup. Required if custom_task_ids is true and task_id is provided.
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of time entries matching the criteria.
