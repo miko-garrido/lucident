@@ -218,11 +218,15 @@ def test_get_time_entries_for_task_live():
     assert isinstance(entries, list)
 
     if entries:
-        assert isinstance(entries[0], dict)
-        assert "id" in entries[0]
-        assert "user" in entries[0]
-        assert "task" in entries[0]
-        assert entries[0]["task"].get("id") == TEST_TASK_ID
+        entry = entries[0]
+        assert isinstance(entry, dict)
+        # Legacy endpoint returns entries with 'intervals', 'time', and 'user' fields
+        assert "intervals" in entry
+        assert "time" in entry
+        assert "user" in entry
+        # Verify user structure
+        assert isinstance(entry["user"], dict)
+        assert "id" in entry["user"]
 
 def test_get_time_entries_for_users_live():
     # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
@@ -235,6 +239,7 @@ def test_get_time_entries_for_users_live():
     end_timestamp_ms = int(now.timestamp() * 1000)
 
     result = clickup_tools.get_time_entries_for_users(
+        user_ids=[str(TEST_USER_ID)],
         # team_id=TEST_TEAM_ID,
         start_date=start_timestamp_ms,
         end_date=end_timestamp_ms
@@ -1204,15 +1209,14 @@ def test_get_time_entries_for_list_live():
     assert isinstance(entries, list)
 
     if entries:
-        assert isinstance(entries[0], dict)
-        assert "id" in entries[0]
-        assert "user" in entries[0]
-        assert "task" in entries[0]
-        # Check if the task belongs to the correct list (might require fetching task details, could be complex)
-        # For now, just check the structure
-        assert "list" in entries[0]["task"]
-        # This assertion might be too strict if tasks moved, but good for basic check
-        # assert entries[0]["task"]["list"].get("id") == TEST_LIST_ID
+        entry = entries[0]
+        assert isinstance(entry, dict)
+        # Legacy endpoint entries contain 'intervals', 'time', and 'user'
+        assert "intervals" in entry
+        assert "time" in entry
+        assert "user" in entry
+        assert isinstance(entry["user"], dict)
+        assert "id" in entry["user"]
 
 def test_get_many_tasks_live():
     if not TEST_TASK_IDS: # Check if the list itself is populated
