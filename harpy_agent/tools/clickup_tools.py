@@ -669,7 +669,7 @@ def get_space_tags(space_id: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]
 def get_tasks_from_list(list_id: str, archived: Optional[bool] = False,
               include_markdown_description: Optional[bool] = None, page: Optional[int] = None,
               order_by: Optional[str] = None, reverse: Optional[bool] = None,
-              subtasks: Optional[bool] = None, space_ids: Optional[List[str]] = None,
+              subtasks: Optional[bool] = True, space_ids: Optional[List[str]] = None,
               project_ids: Optional[List[str]] = None, list_ids: Optional[List[str]] = None,
               statuses: Optional[List[str]] = None, include_closed: Optional[bool] = True,
               assignees: Optional[List[str]] = None, tags: Optional[List[str]] = None,
@@ -691,7 +691,7 @@ def get_tasks_from_list(list_id: str, archived: Optional[bool] = False,
         page (Optional[int]): Page number for pagination (optional).
         order_by (Optional[str]): Field to order tasks by (e.g., 'due_date', 'priority') (optional).
         reverse (Optional[bool]): Reverse the order of tasks (optional).
-        subtasks (Optional[bool]): Include subtasks (true), exclude subtasks (false), or include both tasks and subtasks ('true_all') (optional).
+        subtasks (Optional[bool]): Include subtasks (True) or exclude subtasks (False) (optional). Defaults to True.
         space_ids (Optional[List[str]]): Filter by Space IDs (optional).
         project_ids (Optional[List[str]]): Filter by Folder IDs (previously Projects) (optional).
         list_ids (Optional[List[str]]): Filter by List IDs (optional).
@@ -1495,6 +1495,67 @@ def get_many_tasks(task_ids: List[str]) -> Dict[str, Any]:
                 results.append({"error_code": 500, "error_message": f"Failed to fetch task {task_id}: {exc}"})
 
     return {"data": results}
+
+def get_time_entries_for_list(list_id: str) -> List[Dict[str, Any]]:
+    """
+    Retrieves all time entries for all tasks within a specific list.
+
+    Args:
+        list_id (str): The ID of the list.
+
+    Returns:
+        List[Dict[str, Any]]: A list containing all time entry dictionaries for the list.
+    """
+    tasks_response = get_tasks_from_list(list_id=list_id, subtasks=True, include_closed=True)
+    
+    if isinstance(tasks_response, dict) and tasks_response.get("error_code"):
+        logging.error(f"Failed to retrieve tasks for list {list_id}: {tasks_response}")
+        return [] # Return empty list on initial task fetch error
+
+    tasks = tasks_response.get("tasks", [])
+    if not tasks:
+        logging.info(f"No tasks found for list {list_id}")
+        # Return empty list as success, no time entries to fetch
+        return [] 
+
+    task_ids = [task['id'] for task in tasks if 'id' in task]
+    
+    all_time_entries = []
+    errors = []
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        future_to_task_id = {executor.submit(get_time_entries_for_task, task_id): task_id for task_id in task_ids}
+        
+        for future in concurrent.futures.as_completed(future_to_task_id):
+            task_id = future_to_task_id[future]
+            try:
+                result = future.result()
+                # The endpoint returns a dict with a 'data' key containing the list of entries
+                if isinstance(result, dict) and "data" in result and isinstance(result["data"], list):
+                     all_time_entries.extend(result["data"])
+                # Handle cases where the result might be an error dict from the API call
+                elif isinstance(result, dict) and result.get("error_code"):
+                    logging.warning(f"Failed to fetch time entries for task {task_id}: {result}")
+                    # Append detailed error info to errors list
+                    errors.append({"task_id": task_id, "error": result}) 
+                # Handle unexpected result format from get_time_entries_for_task
+                else:
+                     logging.warning(f"Unexpected result format for time entries of task {task_id}: {result}")
+                     # Append detailed error info to errors list
+                     errors.append({"task_id": task_id, "error": {"error_code": 500, "error_message": "Unexpected result format received from get_time_entries_for_task"}}) 
+
+            except Exception as exc:
+                logging.error(f'Fetching time entries for task {task_id} generated an exception: {exc}', exc_info=True)
+                # Append detailed error info to errors list
+                errors.append({"task_id": task_id, "error": {"error_code": 500, "error_message": f"Exception during fetch: {exc}"}}) 
+
+    # If errors occurred during time entry fetching, return data and errors
+    if errors:
+         logging.warning(f"Encountered errors fetching time entries for some tasks in list {list_id}. Returning partial data with errors.")
+         return {"data": all_time_entries, "errors": errors} 
+
+    # If no errors, return just the list of time entries
+    return all_time_entries
 
 def get_workspace_structure(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
