@@ -1,8 +1,10 @@
 import pytest
+import pytz
 from harpy_agent.tools import basic_tools
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from dateutil.relativedelta import relativedelta
 from unittest.mock import patch, MagicMock
+from config import Config
 
 # --- Test get_current_time ---
 
@@ -112,3 +114,42 @@ def test_calculate_mixed():
     assert results[0] == "Result: 4.0"
     assert "Error calculating expression: invalid syntax" in results[1]
     assert results[2] == "Result: 8" 
+
+# --- Test calculate_unix_ms_timestamp ---
+
+def test_calculate_unix_ms_timestamp_valid_ny():
+    date_str = "2023-10-27 10:00:00"
+    tz_str = "America/New_York"
+    # Expected timestamp for 2023-10-27 10:00:00 EDT (UTC-4)
+    expected_ts = 1698415200000
+    result = basic_tools.calculate_unix_ms_timestamp(date_str, tz_str)
+    assert f"Unix timestamp in milliseconds for {date_str} ({tz_str}): {expected_ts}" == result
+
+def test_calculate_unix_ms_timestamp_valid_utc():
+    date_str = "2023-10-27 14:00:00"
+    tz_str = "UTC"
+    # Expected timestamp for 2023-10-27 14:00:00 UTC
+    expected_ts = 1698415200000
+    result = basic_tools.calculate_unix_ms_timestamp(date_str, tz_str)
+    assert f"Unix timestamp in milliseconds for {date_str} ({tz_str}): {expected_ts}" == result
+
+def test_calculate_unix_ms_timestamp_just_date():
+    # Assumes midnight if time is not provided
+    date_str = "2024-01-15"
+    tz_str = "Asia/Manila" # UTC+8
+    # Expected timestamp for 2024-01-15 00:00:00 PHT (UTC+8)
+    expected_ts = 1705248000000
+    result = basic_tools.calculate_unix_ms_timestamp(date_str, tz_str)
+    assert f"Unix timestamp in milliseconds for {date_str} ({tz_str}): {expected_ts}" == result
+
+def test_calculate_unix_ms_timestamp_invalid_date():
+    date_str = "Invalid Date String"
+    tz_str = "UTC"
+    result = basic_tools.calculate_unix_ms_timestamp(date_str, tz_str)
+    assert f"Error: Could not parse date string '{date_str}'." in result
+
+def test_calculate_unix_ms_timestamp_invalid_timezone():
+    date_str = "2023-10-27 10:00:00"
+    tz_str = "Invalid/Timezone"
+    result = basic_tools.calculate_unix_ms_timestamp(date_str, tz_str)
+    assert f"Error: Unknown timezone '{tz_str}'." in result

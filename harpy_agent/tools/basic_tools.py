@@ -129,3 +129,36 @@ def calculate(expressions: list[str]) -> list[str]:
                 results[original_index] = f"Error calculating expression '{expr}': {exc}"
 
     return results
+
+def calculate_unix_ms_timestamp(date_str: str, time_zone: str) -> str: # not currently used
+    """
+    Calculates the Unix timestamp in milliseconds for a given date string, considering the specified timezone.
+
+    Args:
+        date_str (str): The date string to convert (e.g., "2023-10-27 14:30:00", "10/27/2023").
+        time_zone (str, optional): The IANA timezone name (e.g., 'America/New_York', 'UTC').
+
+    Returns:
+        str: A string containing the Unix timestamp in milliseconds.
+    """
+    try:
+        # Parse the date string
+        naive_date = parser.parse(date_str)
+
+        # Get the timezone object
+        tz = pytz.timezone(time_zone)
+
+        # Make the datetime object timezone-aware
+        aware_date = tz.localize(naive_date)
+
+        # Calculate the timestamp (timestamp() method returns UTC seconds since epoch)
+        timestamp = int(aware_date.timestamp() * 1000)
+        return f"Unix timestamp in milliseconds for {date_str} ({time_zone}): {timestamp}"
+    except pytz.UnknownTimeZoneError:
+        return f"Error: Unknown timezone '{time_zone}'. Use IANA timezone names (e.g., 'America/New_York', 'UTC')."
+    except parser.ParserError:
+        return f"Error: Could not parse date string '{date_str}'."
+    except ValueError as ve: # Handle cases where localize might fail (e.g., during DST transitions)
+        return f"Error making date timezone-aware: {ve}"
+    except Exception as e:
+        return f"Error calculating Unix timestamp: {e}"

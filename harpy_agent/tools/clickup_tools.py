@@ -980,14 +980,18 @@ def get_task_templates(page: int, team_id: str = CLICKUP_TEAM_ID, space_id: Opti
 
 # --- Time Tracking ---
 
-def get_time_entries_for_task(task_id: str, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+def get_time_entries_for_task(task_id: str, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None,
+                               start_date: Optional[int] = None, end_date: Optional[int] = None
+                               ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
-    Retrieves time entries for a specific task.
+    Retrieves time entries for a specific task, optionally filtering by date range.
 
     Args:
         task_id (str): The ID of the task.
         custom_task_ids (Optional[bool]): If true, treats task_id as a custom task ID. Requires team_id. (optional)
         team_id (Optional[str]): The Workspace (Team) ID for the custom task ID lookup. Required if custom_task_ids is true.
+        start_date (Optional[int]): Start timestamp (Unix time in ms) to filter entries (inclusive). Filtering is done client-side. (optional).
+        end_date (Optional[int]): End timestamp (Unix time in ms) to filter entries (inclusive). Filtering is done client-side. (optional).
     """
     # Reference: https://developer.clickup.com/reference/gettrackedtime
     # LEGACY ENDPOINT, but it's better for getting time entries for a task.
@@ -999,7 +1003,65 @@ def get_time_entries_for_task(task_id: str, custom_task_ids: Optional[bool] = No
             raise ValueError("team_id is required when custom_task_ids is true.")
         params["custom_task_ids"] = "true"
         params["team_id"] = team_id
-    return api._make_request("GET", endpoint, params=params)
+    
+    response = api._make_request("GET", endpoint, params=params)
+
+    # Handle errors from API request
+    if isinstance(response, dict) and "error_code" in response:
+        return response
+
+    # Extract data safely, assuming structure {"data": [...]}
+    all_entries = response.get("data", [])
+    if not isinstance(all_entries, list):
+        logging.warning(f"Unexpected data format in response for task {task_id} time entries: {response}")
+        return {"error_code": 500, "error_message": "Unexpected data format received from API."}
+
+    # Filter client-side if start_date or end_date is provided
+    filtered_entries = [] # Always start empty if filtering
+    if start_date is not None or end_date is not None:
+        for entry_group in all_entries: # Iterate over list returned by API (usually contains one dict per task? No, per time entry record)
+            intervals = entry_group.get("intervals", [])
+            if not intervals:
+                continue # Skip if no intervals in this entry group
+            
+            user_info = entry_group.get("user") # Keep user info associated
+
+            # Check each interval within the entry group
+            passed_intervals = []
+            total_passed_time = 0
+            for interval in intervals:
+                interval_start = interval.get("start")
+                if interval_start is None:
+                    continue
+                
+                try:
+                    interval_start_ts = int(interval_start)
+                except (ValueError, TypeError):
+                    logging.warning(f"Could not parse start timestamp for interval in task {task_id}: {interval}")
+                    continue
+                
+                passes_start_filter = start_date is None or interval_start_ts >= start_date
+                passes_end_filter = end_date is None or interval_start_ts <= end_date
+
+                if passes_start_filter and passes_end_filter:
+                    passed_intervals.append(interval)
+                    try:
+                         total_passed_time += int(interval.get("time", 0) or 0)
+                    except (ValueError, TypeError):
+                         logging.warning(f"Could not parse time for interval: {interval}")
+            
+            # If any intervals passed the filter, add a reconstructed entry to results
+            if passed_intervals:
+                filtered_entries.append({
+                    "user": user_info,
+                    "time": total_passed_time, # Sum of time for passed intervals
+                    "intervals": passed_intervals
+                })
+    else:
+         # If no filtering, return all original entries
+         filtered_entries = all_entries
+
+    return {"data": filtered_entries}
 
 def get_time_entries_for_users(user_ids: list[str], team_id: str = CLICKUP_TEAM_ID,
                      start_date: Optional[int] = None, end_date: Optional[int] = None,
