@@ -5,7 +5,6 @@ import sys
 from dotenv import load_dotenv
 import time
 from datetime import datetime, timezone, timedelta
-import logging
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
@@ -202,7 +201,30 @@ def test_get_filtered_team_tasks_for_user_live():
     user_tasks = result["tasks"]
     assert isinstance(user_tasks, list)
 
-def test_get_time_entries_live():
+def test_get_time_entries_for_task_live():
+    if not TEST_TASK_ID or TEST_TASK_ID == "YOUR_REAL_TASK_ID":
+        pytest.skip("TEST_TASK_ID not set.")
+
+    rate_limit_delay()
+    result = clickup_tools.get_time_entries_for_task(task_id=TEST_TASK_ID)
+
+    if is_api_error(result):
+        pytest.fail(f"API Error getting time entries for task: {result['error_message']} (Code: {result['error_code']})")
+
+    assert isinstance(result, dict)
+    # The legacy endpoint often returns a list directly under 'data'
+    assert "data" in result
+    entries = result["data"]
+    assert isinstance(entries, list)
+
+    if entries:
+        assert isinstance(entries[0], dict)
+        assert "id" in entries[0]
+        assert "user" in entries[0]
+        assert "task" in entries[0]
+        assert entries[0]["task"].get("id") == TEST_TASK_ID
+
+def test_get_time_entries_for_users_live():
     # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
     #     pytest.skip("TEST_TEAM_ID not set.")
 
@@ -212,7 +234,7 @@ def test_get_time_entries_live():
     start_timestamp_ms = int(seven_days_ago.timestamp() * 1000)
     end_timestamp_ms = int(now.timestamp() * 1000)
 
-    result = clickup_tools.get_time_entries(
+    result = clickup_tools.get_time_entries_for_users(
         # team_id=TEST_TEAM_ID,
         start_date=start_timestamp_ms,
         end_date=end_timestamp_ms
@@ -1160,6 +1182,37 @@ def test_get_workspace_structure_live():
             assert isinstance(first_folderless_list, dict)
             assert "id" in first_folderless_list
             assert "name" in first_folderless_list
+
+def test_get_time_entries_for_list_live():
+    if not TEST_LIST_ID or TEST_LIST_ID == "YOUR_REAL_LIST_ID":
+        pytest.skip("TEST_LIST_ID not set.")
+
+    rate_limit_delay()
+    result = clickup_tools.get_time_entries_for_list(list_id=TEST_LIST_ID)
+
+    # This function handles internal API errors and returns list or dict with data/errors
+    if isinstance(result, dict) and "errors" in result:
+        # Log the errors but don't fail the test unless data is also missing completely
+        print(f"Warnings encountered during get_time_entries_for_list: {result['errors']}")
+        assert "data" in result, "Result has errors but no data key."
+        entries = result["data"]
+    elif isinstance(result, list):
+        entries = result
+    else:
+        pytest.fail(f"Unexpected return type from get_time_entries_for_list: {type(result)}")
+
+    assert isinstance(entries, list)
+
+    if entries:
+        assert isinstance(entries[0], dict)
+        assert "id" in entries[0]
+        assert "user" in entries[0]
+        assert "task" in entries[0]
+        # Check if the task belongs to the correct list (might require fetching task details, could be complex)
+        # For now, just check the structure
+        assert "list" in entries[0]["task"]
+        # This assertion might be too strict if tasks moved, but good for basic check
+        # assert entries[0]["task"]["list"].get("id") == TEST_LIST_ID
 
 def test_get_many_tasks_live():
     if not TEST_TASK_IDS: # Check if the list itself is populated
