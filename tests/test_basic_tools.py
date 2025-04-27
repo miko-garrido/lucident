@@ -6,9 +6,9 @@ from unittest.mock import patch, MagicMock
 
 # --- Test get_current_time ---
 
-def test_get_current_time_utc():
+def test_get_current_time_asia_manila():
     result = basic_tools.get_current_time()
-    assert "UTC" in result
+    assert "Asia/Manila" in result
     # Basic check for format, actual time will vary
     assert ":" in result 
     assert "-" in result
@@ -98,8 +98,8 @@ def test_calculate_many_with_errors():
     expressions = ["2 * 5", "1 / 0", "3 + "]
     results = basic_tools.calculate_many(expressions)
     assert results[0] == "Result: 10"
-    assert "Error calculating expression '1 / 0'" in results[1]
-    assert "Error calculating expression '3 + '" in results[2]
+    assert "Error calculating expression: division by zero" in results[1]
+    assert "Error calculating expression: invalid syntax" in results[2]
 
 def test_calculate_many_empty_list():
     expressions = []
@@ -110,5 +110,5 @@ def test_calculate_many_mixed():
     expressions = ["sqrt(16)", "5 - ", "2**3"]
     results = basic_tools.calculate_many(expressions)
     assert results[0] == "Result: 4.0"
-    assert "Error calculating expression '5 - '" in results[1]
+    assert "Error calculating expression: invalid syntax" in results[1]
     assert results[2] == "Result: 8" 

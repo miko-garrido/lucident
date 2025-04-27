@@ -19,7 +19,8 @@ from harpy_agent.tools.gmail_tools import (
 from harpy_agent.tools.basic_tools import (
     get_current_time,
     calculate,
-    calculate_date
+    calculate_date,
+    calculate_many
 )
 
 load_dotenv()
@@ -61,7 +62,8 @@ gmail_agent = Agent(
         search_gmail_with_query,
         get_current_time,
         calculate,
-        calculate_date
+        calculate_date,
+        calculate_many
     ]
 )
 
