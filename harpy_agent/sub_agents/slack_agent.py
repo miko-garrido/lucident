@@ -16,7 +16,8 @@ from harpy_agent.tools.basic_tools import (
 
 load_dotenv()
 
-MODEL_NAME = Config.MODEL_NAME
+OPENAI_MODEL = Config.OPENAI_MODEL
+GEMINI_MODEL = Config.GEMINI_MODEL
 APP_NAME = Config.APP_NAME
 USER_ID = Config.USER_ID
 SESSION_ID = Config.SESSION_ID
@@ -27,7 +28,8 @@ logger = logging.getLogger(__name__)
 # Create the root agent
 slack_agent = Agent(
     name="slack_agent",
-    model=LiteLlm(model=MODEL_NAME),
+    # model=LiteLlm(model=OPENAI_MODEL),
+    model=GEMINI_MODEL,
     description="Agent to process Slack messages using GPT-4 and MCP server.",
     instruction="I can process Slack messages and respond using GPT-4.",
     tools=[

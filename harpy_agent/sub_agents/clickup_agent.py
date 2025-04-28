@@ -33,26 +33,31 @@ from harpy_agent.tools.basic_tools import (
 
 load_dotenv()
 
-MODEL_NAME = Config.MODEL_NAME
+workspace_structure = get_workspace_structure()
+
+OPENAI_MODEL = Config.OPENAI_MODEL
+GEMINI_MODEL = Config.GEMINI_MODEL
 APP_NAME = Config.APP_NAME
 USER_ID = Config.USER_ID
 SESSION_ID = Config.SESSION_ID
 
 clickup_agent = Agent(
-        model=LiteLlm(model=MODEL_NAME),
+        # model=LiteLlm(model=OPENAI_MODEL),
+        model=GEMINI_MODEL,
         name="clickup_agent",
         instruction=(
-            """
+            f"""
             You are a specialized ClickUp assistant. Your primary function is to interact with the ClickUp API using the provided tools
             to manage and retrieve information about tasks, comments, time entries, users.
-            Always start with the tool get_workspace_structure to create context for the other tools.
             If necessary IDs are missing, use navigational tools sequentially to find them, or ask the user for clarification.
-            ALWAYS use the calculate, calculate_date, convert_ms_to_hhmmss, convert_datetime_to_unix tools for any math or date calculations.
-            NEVER DO ANY MATH EVER without using a calculation tool.
             Carefully analyze user requests to determine the appropriate tool and required parameters (like task IDs, list IDs, user names, etc.).
             If the user does not provide the correct format for user names, tasks, lists, or other entities, use the appropriate tool to find the correct format.
             Always return time tracked in hours and minutes, in the format '1h 30m'.
             Focus solely on ClickUp-related actions defined by your tools. Do not perform actions outside of ClickUp management.
+            Below is the workspace structure:
+            ```json
+            {workspace_structure}
+            ```
             """
         ),
         description=(

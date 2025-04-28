@@ -1,6 +1,6 @@
 class Config:
-    MODEL_NAME = "openai/gpt-4.1"
-    # GEMINI_MODEL = "gemini-2.5-flash"
+    OPENAI_MODEL = "openai/gpt-4.1"
+    GEMINI_MODEL = "gemini-2.0-flash"
     APP_NAME = "harpy"
     USER_ID = "user_001"
     SESSION_ID = "session_001"

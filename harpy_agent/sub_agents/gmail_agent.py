@@ -1,6 +1,4 @@
 from config import Config
-AGENT_MODEL = Config.MODEL_NAME
-
 from google.adk.models.lite_llm import LiteLlm
 from google.adk.agents import Agent
 from google.genai import types
@@ -25,7 +23,8 @@ from harpy_agent.tools.basic_tools import (
 
 load_dotenv()
 
-MODEL_NAME = Config.MODEL_NAME
+OPENAI_MODEL = Config.OPENAI_MODEL
+GEMINI_MODEL = Config.GEMINI_MODEL
 APP_NAME = Config.APP_NAME
 USER_ID = Config.USER_ID
 SESSION_ID = Config.SESSION_ID
@@ -33,7 +32,8 @@ SESSION_ID = Config.SESSION_ID
 # Create the agent instance
 gmail_agent = Agent(
     name="gmail_agent",
-    model=LiteLlm(model=MODEL_NAME),
+    # model=LiteLlm(model=OPENAI_MODEL),
+    model=GEMINI_MODEL,
     description=(
         "Manages and retrieves information from Gmail accounts, including emails, search, and account management. "
         "Checks accounts one by one and provides clear responses for each account."
