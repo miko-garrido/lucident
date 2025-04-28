@@ -32,8 +32,8 @@ SESSION_ID = Config.SESSION_ID
 # Create the agent instance
 gmail_agent = Agent(
     name="gmail_agent",
-    # model=LiteLlm(model=OPENAI_MODEL),
-    model=GEMINI_MODEL,
+    model=LiteLlm(model=OPENAI_MODEL),
+    #model=GEMINI_MODEL,
     description=(
         "Manages and retrieves information from Gmail accounts, including emails, search, and account management. "
         "Checks accounts one by one and provides clear responses for each account."

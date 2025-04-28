@@ -42,8 +42,8 @@ USER_ID = Config.USER_ID
 SESSION_ID = Config.SESSION_ID
 
 clickup_agent = Agent(
-        # model=LiteLlm(model=OPENAI_MODEL),
-        model=GEMINI_MODEL,
+        model=LiteLlm(model=OPENAI_MODEL),
+        # model=GEMINI_MODEL,
         name="clickup_agent",
         instruction=(
             f"""

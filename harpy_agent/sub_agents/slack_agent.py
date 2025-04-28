@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 # Create the root agent
 slack_agent = Agent(
     name="slack_agent",
-    # model=LiteLlm(model=OPENAI_MODEL),
-    model=GEMINI_MODEL,
+    model=LiteLlm(model=OPENAI_MODEL),
+    #model=GEMINI_MODEL,
     description="Agent to process Slack messages using GPT-4 and MCP server.",
     instruction="I can process Slack messages and respond using GPT-4.",
     tools=[
