@@ -131,9 +131,9 @@ def calculate(expressions: list[str]) -> list[str]:
 
     return results
 
-def calculate_unix_ms_timestamp(date_str: str, time_zone: str) -> str: # not currently used
+def convert_datetime_to_unix(date_str: str, time_zone: str) -> str:
     """
-    Calculates the Unix timestamp in milliseconds for a given date string, considering the specified timezone.
+    Converts a datetime string with timezone to a Unix timestamp in milliseconds.
 
     Args:
         date_str (str): The date string to convert (e.g., "2023-10-27 14:30:00", "10/27/2023").
@@ -166,8 +166,7 @@ def calculate_unix_ms_timestamp(date_str: str, time_zone: str) -> str: # not cur
     
 def convert_ms_to_hhmmss(ms: int) -> str:
     """
-    Converts a duration in milliseconds into a human-readable string 
-    using H:MM:SS format.
+    Converts a duration in milliseconds into a human-readable string using H:MM:SS format.
 
     Args:
         ms (int): Duration in milliseconds.

@@ -27,7 +27,8 @@ from harpy_agent.tools.basic_tools import (
     get_current_time,
     calculate,
     calculate_date,
-    convert_ms_to_hhmmss
+    convert_ms_to_hhmmss,
+    convert_datetime_to_unix
 )
 
 load_dotenv()
@@ -43,11 +44,11 @@ clickup_agent = Agent(
         instruction=(
             """
             You are a specialized ClickUp assistant. Your primary function is to interact with the ClickUp API using the provided tools
-            to manage and retrieve information about tasks, comments, time entries, users, and the ClickUp organizational structure (teams, spaces, folders, lists).
+            to manage and retrieve information about tasks, comments, time entries, users.
             Always start with the tool get_workspace_structure to create context for the other tools.
             If necessary IDs are missing, use navigational tools sequentially to find them, or ask the user for clarification.
-            ALWAYS use the calculate and calculate_date tools for any mathematical calculations.
-            NEVER DO ANY MATH EVER without using the calculate and calculate_date tools.
+            ALWAYS use the calculate, calculate_date, convert_ms_to_hhmmss, convert_datetime_to_unix tools for any math or date calculations.
+            NEVER DO ANY MATH EVER without using a calculation tool.
             Carefully analyze user requests to determine the appropriate tool and required parameters (like task IDs, list IDs, user names, etc.).
             If the user does not provide the correct format for user names, tasks, lists, or other entities, use the appropriate tool to find the correct format.
             Always return time tracked in hours and minutes, in the format '1h 30m'.
@@ -76,9 +77,12 @@ clickup_agent = Agent(
             get_list_views, get_view, get_view_tasks, get_chat_channels,
             get_chat_channel, get_chat_channel_followers, get_chat_channel_members,
             get_chat_messages, get_message_reactions, get_message_replies,
-            get_tagged_users_for_message, get_current_time, calculate, calculate_date,
-            convert_ms_to_hhmmss,
-            #custom tools
-            get_many_tasks, get_time_entries_for_list, get_workspace_structure
+            get_tagged_users_for_message,
+            #custom clickup tools
+            get_many_tasks, get_time_entries_for_list, get_workspace_structure,
+            #basic tools
+            get_current_time, calculate, calculate_date,
+            convert_ms_to_hhmmss, convert_datetime_to_unix
+            
         ],
     )
