@@ -39,21 +39,12 @@ load_dotenv()
 
 current_time = get_current_time(TIMEZONE)
 
-sample_json = {
-    "password": "boomshakalaka",
-    "username": "harpy"
-}
-
 root_agent = Agent(
     name="harpy_agent",
     model=LiteLlm(model=OPENAI_MODEL),
     # model=GEMINI_MODEL,
     description=(
         f"""
-        Here's some context for the other tools:
-        ```json
-        {sample_json}
-        ```
         Harpy is an AI-powered project management assistant that provides a unified interface 
         for managing projects across ClickUp, Gmail, and Slack, intelligently understanding 
         and responding to user queries about project status, tasks, and communications.
