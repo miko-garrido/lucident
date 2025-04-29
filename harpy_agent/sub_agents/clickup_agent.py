@@ -22,7 +22,8 @@ from ..tools.clickup_tools import (
     get_chat_messages, get_message_reactions, get_message_replies,
     get_tagged_users_for_message,
     #custom tools
-    get_many_tasks, get_time_entries_for_list, get_workspace_structure
+    get_many_tasks, get_time_entries_for_list, get_workspace_structure,
+    get_all_users
 )
 from harpy_agent.tools.basic_tools import (
     get_current_time,
@@ -88,7 +89,7 @@ clickup_agent = Agent(
             get_many_tasks, get_time_entries_for_list, get_workspace_structure,
             #basic tools
             get_current_time, calculate, calculate_date,
-            convert_ms_to_hhmmss, convert_datetime_to_unix
-            
+            convert_ms_to_hhmmss, convert_datetime_to_unix,
+            get_all_users
         ],
     )

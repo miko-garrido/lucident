@@ -1883,3 +1883,18 @@ def get_workspace_structure(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, A
         workspace_structure["spaces"].append(space_details)
 
     return {"data": workspace_structure}
+
+def get_all_users(team_id: str = CLICKUP_TEAM_ID) -> List[Dict[str, Any]]:
+    """
+    Retrieves all users in a specific workspace.
+    
+    Args:
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team.
+    
+    Returns:
+        List[Dict[str, Any]]: A list of dictionaries containing user information.
+    """
+    # {base_url}/team/{workspace_id}
+    api = ClickUpAPI()
+    endpoint = f"/v2/team/{team_id}"
+    return api._make_request("GET", endpoint)

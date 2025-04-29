@@ -1324,3 +1324,32 @@ def test_get_many_tasks_live():
     assert len(error_results) == 1, f"Expected exactly one error result, but got {len(error_results)}: {error_results}"
     assert valid_task_ids == retrieved_successful_ids, \
         f"Expected successful IDs {valid_task_ids}, but got {retrieved_successful_ids}"
+
+def test_get_all_users_live():
+    """Tests retrieving all users from the workspace."""
+    # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
+    #     pytest.skip("TEST_TEAM_ID not set.") # Assuming default is okay for now
+
+    rate_limit_delay()
+    result = clickup_tools.get_all_users()
+
+    if is_api_error(result):
+        pytest.fail(f"API Error getting all users: {result['error_message']} (Code: {result['error_code']})")
+
+    assert isinstance(result, dict)
+    assert "team" in result
+    team_data = result["team"]
+    assert isinstance(team_data, dict)
+    assert "members" in team_data
+    members = team_data["members"]
+    assert isinstance(members, list)
+
+    if members:
+        first_member = members[0]
+        assert isinstance(first_member, dict)
+        assert "user" in first_member
+        user_data = first_member["user"]
+        assert isinstance(user_data, dict)
+        assert "id" in user_data
+        assert "username" in user_data
+        assert "email" in user_data
