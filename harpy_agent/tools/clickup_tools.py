@@ -7,6 +7,7 @@ import json
 import logging
 from config import Config
 import concurrent.futures
+from collections import defaultdict
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -982,9 +983,10 @@ def get_task_templates(page: int, team_id: str = CLICKUP_TEAM_ID, space_id: Opti
 
 def get_time_entries_for_task(task_id: str, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None,
                                start_date: Optional[int] = None, end_date: Optional[int] = None
-                               ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+                               ) -> Dict[str, Any]: # Changed return type hint
     """
     Retrieves time entries for a specific task, optionally filtering by date range.
+    Includes totals for time tracked.
 
     Args:
         task_id (str): The ID of the task.
@@ -992,6 +994,12 @@ def get_time_entries_for_task(task_id: str, custom_task_ids: Optional[bool] = No
         team_id (Optional[str]): The Workspace (Team) ID for the custom task ID lookup. Required if custom_task_ids is true.
         start_date (Optional[int]): Start timestamp (Unix time in ms) to filter entries (inclusive). Filtering is done client-side. (optional).
         end_date (Optional[int]): End timestamp (Unix time in ms) to filter entries (inclusive). Filtering is done client-side. (optional).
+
+    Returns:
+        Dict[str, Any]: A dictionary containing:
+                        'data': The list of filtered time entries.
+                        'totals': A dict with 'grand_total', 'user_totals' (by user ID), and 'task_totals' (for this task).
+                        Returns an error dictionary on failure.
     """
     # Reference: https://developer.clickup.com/reference/gettrackedtime
     # LEGACY ENDPOINT, but it's better for getting time entries for a task.
@@ -1019,7 +1027,7 @@ def get_time_entries_for_task(task_id: str, custom_task_ids: Optional[bool] = No
     # Filter client-side if start_date or end_date is provided
     filtered_entries = [] # Always start empty if filtering
     if start_date is not None or end_date is not None:
-        for entry_group in all_entries: # Iterate over list returned by API (usually contains one dict per task? No, per time entry record)
+        for entry_group in all_entries: # Iterate over list returned by API (usually contains one dict per time entry record)
             intervals = entry_group.get("intervals", [])
             if not intervals:
                 continue # Skip if no intervals in this entry group
@@ -1061,7 +1069,26 @@ def get_time_entries_for_task(task_id: str, custom_task_ids: Optional[bool] = No
          # If no filtering, return all original entries
          filtered_entries = all_entries
 
-    return {"data": filtered_entries}
+    # Calculate totals
+    grand_total_ms = 0
+    user_totals_ms = {} # {user_id: total_time}
+
+    for entry in filtered_entries:
+        entry_time = entry.get("time", 0)
+        grand_total_ms += entry_time
+        user_info = entry.get("user")
+        if user_info and isinstance(user_info, dict):
+            user_id = user_info.get("id")
+            if user_id is not None:
+                 user_totals_ms[user_id] = user_totals_ms.get(user_id, 0) + entry_time
+
+    totals = {
+        "grand_total": grand_total_ms,
+        "user_totals": user_totals_ms,
+        "task_totals": {task_id: grand_total_ms} # Only one task in this function's scope
+    }
+
+    return {"data": filtered_entries, "totals": totals}
 
 def get_time_entries_for_users(user_ids: list[str], team_id: str = CLICKUP_TEAM_ID,
                      start_date: Optional[int] = None, end_date: Optional[int] = None,
@@ -1069,10 +1096,11 @@ def get_time_entries_for_users(user_ids: list[str], team_id: str = CLICKUP_TEAM_
                      space_id: Optional[str] = None, folder_id: Optional[str] = None,
                      list_id: Optional[str] = None, task_id: Optional[str] = None,
                      custom_task_ids: Optional[bool] = None, task_team_id: Optional[str] = None
-                     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+                     ) -> Dict[str, Any]: # Changed return type hint
     """
     Gets time entries for specific users for a Workspace (Team).
-    
+    Includes totals for time tracked.
+
     Args:
         team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team.
         user_ids (list[str]): List of user IDs whose time entries to include. Users not included will not have time entries returned. At least one user ID required.
@@ -1088,7 +1116,10 @@ def get_time_entries_for_users(user_ids: list[str], team_id: str = CLICKUP_TEAM_
         task_team_id (Optional[str]): The Workspace (Team) ID for the custom task ID lookup. Required if custom_task_ids is true and task_id is provided.
 
     Returns:
-        Dict[str, Any]: A dictionary containing the list of time entries matching the criteria.
+        Dict[str, Any]: A dictionary containing:
+                        'data': The list of time entries matching the criteria.
+                        'totals': A dict with 'grand_total', 'user_totals', and 'task_totals'.
+                        Returns an error dictionary on failure.
     """
     # Reference: https://developer.clickup.com/reference/gettimeentrieswithinadaterange
     api = ClickUpAPI()
@@ -1121,7 +1152,58 @@ def get_time_entries_for_users(user_ids: list[str], team_id: str = CLICKUP_TEAM_
             # Use the provided or defaulted task_team_id. API param is 'team_id' in this context.
             params["team_id"] = task_team_id
 
-    return api._make_request("GET", endpoint, params=params)
+    response = api._make_request("GET", endpoint, params=params)
+
+    # Handle API errors
+    if isinstance(response, dict) and "error_code" in response:
+        return response
+
+    # Extract data, default to empty list if key missing or not a list
+    time_entries = response.get("data", [])
+    if not isinstance(time_entries, list):
+        logging.warning(f"Unexpected data format in time entries response for users {user_ids}: {response}")
+        # Return data as is but add empty totals
+        return {"data": time_entries, "totals": {"grand_total": 0, "user_totals": {}, "task_totals": {}}}
+
+    # Calculate totals
+    grand_total_ms = 0
+    user_totals_ms = {} # {user_id: total_time}
+    task_totals_ms = {} # {task_id: total_time}
+
+    for entry in time_entries:
+        duration = entry.get("duration")
+        # Ensure duration is a valid number, treat None/non-numeric as 0
+        try:
+            entry_duration = int(duration) if duration is not None else 0
+        except (ValueError, TypeError):
+            entry_duration = 0
+            logging.warning(f"Could not parse duration '{duration}' for time entry {entry.get('id')}. Treating as 0.")
+
+        grand_total_ms += entry_duration
+
+        # User totals
+        user_info = entry.get("user")
+        if user_info and isinstance(user_info, dict):
+            user_id = user_info.get("id")
+            if user_id is not None:
+                user_totals_ms[user_id] = user_totals_ms.get(user_id, 0) + entry_duration
+
+        # Task totals
+        task_info = entry.get("task")
+        if task_info and isinstance(task_info, dict):
+            task_id_entry = task_info.get("id")
+            if task_id_entry:
+                task_totals_ms[task_id_entry] = task_totals_ms.get(task_id_entry, 0) + entry_duration
+        # Consider entries without tasks? Decide based on requirements, currently only tasks with IDs are counted.
+
+    totals = {
+        "grand_total": grand_total_ms,
+        "user_totals": user_totals_ms,
+        "task_totals": task_totals_ms
+    }
+
+    # Return original data structure along with totals
+    return {"data": time_entries, "totals": totals}
 
 def get_singular_time_entry(timer_id: str, team_id: str = CLICKUP_TEAM_ID, include_task_tags: Optional[bool] = None,
                             include_location_names: Optional[bool] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
@@ -1558,9 +1640,10 @@ def get_many_tasks(task_ids: List[str]) -> Dict[str, Any]:
 
     return {"data": results}
 
-def get_time_entries_for_list(list_id: str, start_date: Optional[int] = None, end_date: Optional[int] = None) -> List[Dict[str, Any]]:
+def get_time_entries_for_list(list_id: str, start_date: Optional[int] = None, end_date: Optional[int] = None) -> Dict[str, Any]: # Changed return type
     """
     Retrieves all time entries for all tasks within a specific list, optionally filtering by date range.
+    Includes totals for time tracked across the list.
 
     Args:
         list_id (str): The ID of the list.
@@ -1568,19 +1651,28 @@ def get_time_entries_for_list(list_id: str, start_date: Optional[int] = None, en
         end_date (Optional[int]): End timestamp (Unix time in ms) to filter entries (inclusive). (optional).
 
     Returns:
-        List[Dict[str, Any]]: A list containing all time entry dictionaries for the list, potentially filtered by date.
+        Dict[str, Any]: A dictionary containing:
+                        'data': Aggregated list of time entries (each entry augmented with 'task_id').
+                        'totals': A dict with 'grand_total', 'user_totals', and 'task_totals' for the list.
+                        'errors': List of errors encountered during fetching for individual tasks.
+                        Returns an error dictionary if initial task fetch fails.
     """
     tasks_response = get_tasks_from_list(list_id=list_id, subtasks=True, include_closed=True)
     
     if isinstance(tasks_response, dict) and tasks_response.get("error_code"):
         logging.error(f"Failed to retrieve tasks for list {list_id}: {tasks_response}")
-        return [] # Return empty list on initial task fetch error
+        # Return the error dictionary from get_tasks_from_list
+        return tasks_response
 
     tasks = tasks_response.get("tasks", [])
     if not tasks:
         logging.info(f"No tasks found for list {list_id}")
-        # Return empty list as success, no time entries to fetch
-        return [] 
+        # Return success, but with empty data and zeroed totals
+        return {
+            "data": [],\
+            "totals": {"grand_total": 0, "user_totals": {}, "task_totals": {}},\
+            "errors": []\
+        }
 
     task_ids = [task['id'] for task in tasks if 'id' in task]
     
@@ -1589,38 +1681,71 @@ def get_time_entries_for_list(list_id: str, start_date: Optional[int] = None, en
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         # Pass start_date and end_date to the submitted task
+        # Note: get_time_entries_for_task now returns Dict[str, Any]
         future_to_task_id = {executor.submit(get_time_entries_for_task, task_id, start_date=start_date, end_date=end_date): task_id for task_id in task_ids}
         
         for future in concurrent.futures.as_completed(future_to_task_id):
             task_id = future_to_task_id[future]
             try:
+                # Result is now a Dict, potentially with 'data', 'totals', or 'error_code'
                 result = future.result()
-                # The endpoint returns a dict with a 'data' key containing the list of entries
-                if isinstance(result, dict) and "data" in result and isinstance(result["data"], list):
-                     all_time_entries.extend(result["data"])
-                # Handle cases where the result might be an error dict from the API call
-                elif isinstance(result, dict) and result.get("error_code"):
+
+                # Handle cases where the result might be an error dict from the API call within get_time_entries_for_task
+                if isinstance(result, dict) and result.get("error_code"):
                     logging.warning(f"Failed to fetch time entries for task {task_id}: {result}")
-                    # Append detailed error info to errors list
-                    errors.append({"task_id": task_id, "error": result}) 
-                # Handle unexpected result format from get_time_entries_for_task
+                    errors.append({"task_id": task_id, "error": result})
+                    continue # Skip processing this task's entries
+
+                # Check for expected 'data' key and that it's a list
+                task_entries = result.get("data")
+                if isinstance(task_entries, list):
+                    # Add task_id to each entry before appending
+                    for entry in task_entries:
+                        if isinstance(entry, dict):
+                             entry["task_id"] = task_id
+                             all_time_entries.append(entry)
+                        else:
+                             logging.warning(f"Skipping non-dict item in time entries data for task {task_id}: {entry}")
                 else:
-                     logging.warning(f"Unexpected result format for time entries of task {task_id}: {result}")
-                     # Append detailed error info to errors list
-                     errors.append({"task_id": task_id, "error": {"error_code": 500, "error_message": "Unexpected result format received from get_time_entries_for_task"}}) 
+                    # Log unexpected format but don't necessarily treat as hard error unless 'error_code' was present
+                    logging.warning(f"Unexpected result format (missing or non-list 'data') for time entries of task {task_id}: {result}")
+                    # Optionally add an error if this case should be treated as failure
+                    # errors.append({"task_id": task_id, "error": {"error_code": 500, "error_message": "Unexpected result format received from get_time_entries_for_task"}}
 
             except Exception as exc:
                 logging.error(f'Fetching time entries for task {task_id} generated an exception: {exc}', exc_info=True)
-                # Append detailed error info to errors list
-                errors.append({"task_id": task_id, "error": {"error_code": 500, "error_message": f"Exception during fetch: {exc}"}}) 
+                errors.append({"task_id": task_id, "error": {"error_code": 500, "error_message": f"Exception during fetch: {exc}"}})
 
-    # If errors occurred during time entry fetching, return data and errors
-    if errors:
-         logging.warning(f"Encountered errors fetching time entries for some tasks in list {list_id}. Returning partial data with errors.")
-         return {"data": all_time_entries, "errors": errors} 
+    # Calculate totals from all_time_entries (which now include task_id)
+    grand_total_ms = 0
+    user_totals_ms = defaultdict(int) # Use defaultdict for easier aggregation
+    task_totals_ms = defaultdict(int)
 
-    # If no errors, return just the list of time entries
-    return all_time_entries
+    for entry in all_time_entries:
+        entry_time = entry.get("time", 0) # Time comes from get_time_entries_for_task aggregation
+        current_task_id = entry.get("task_id")
+
+        grand_total_ms += entry_time
+
+        # User totals
+        user_info = entry.get("user")
+        if user_info and isinstance(user_info, dict):
+            user_id = user_info.get("id")
+            if user_id is not None:
+                user_totals_ms[user_id] += entry_time
+
+        # Task totals
+        if current_task_id:
+             task_totals_ms[current_task_id] += entry_time
+
+    totals = {
+        "grand_total": grand_total_ms,
+        "user_totals": dict(user_totals_ms), # Convert back to regular dict
+        "task_totals": dict(task_totals_ms)
+    }
+
+    # Return structure includes data, totals, and any errors
+    return {"data": all_time_entries, "totals": totals, "errors": errors}
 
 def get_workspace_structure(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """

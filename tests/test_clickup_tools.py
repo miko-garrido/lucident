@@ -206,37 +206,59 @@ def test_get_time_entries_for_task_live():
         pytest.skip("TEST_TASK_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_time_entries_for_task(task_id=TEST_TASK_ID)
+    # Using specific date range April 20-28, 2025
+    start_timestamp_ms = 1745059200000
+    end_timestamp_ms = 1745836799999
+
+    result = clickup_tools.get_time_entries_for_task(
+        task_id=TEST_TASK_ID,
+        start_date=start_timestamp_ms,
+        end_date=end_timestamp_ms
+    )
 
     if is_api_error(result):
         pytest.fail(f"API Error getting time entries for task: {result['error_message']} (Code: {result['error_code']})")
 
     assert isinstance(result, dict)
-    # The legacy endpoint often returns a list directly under 'data'
     assert "data" in result
-    entries = result["data"]
-    assert isinstance(entries, list)
+    assert "totals" in result
 
+    entries = result["data"]
+    totals = result["totals"]
+
+    assert isinstance(entries, list)
+    assert isinstance(totals, dict)
+    assert "grand_total" in totals
+    assert isinstance(totals["grand_total"], int)
+    assert "user_totals" in totals
+    assert isinstance(totals["user_totals"], dict)
+    assert "task_totals" in totals
+    assert isinstance(totals["task_totals"], dict)
+    # Check task_totals specifically contains the current task ID
+    assert TEST_TASK_ID in totals["task_totals"]
+    assert isinstance(totals["task_totals"][TEST_TASK_ID], int)
+
+    # Check structure of entries if list is not empty
     if entries:
         entry = entries[0]
         assert isinstance(entry, dict)
-        # Legacy endpoint returns entries with 'intervals', 'time', and 'user' fields
         assert "intervals" in entry
         assert "time" in entry
         assert "user" in entry
-        # Verify user structure
         assert isinstance(entry["user"], dict)
         assert "id" in entry["user"]
+        # Verify user totals contain user IDs from entries
+        if "id" in entry["user"]:
+            assert entry["user"]["id"] in totals["user_totals"]
 
 def test_get_time_entries_for_users_live():
     # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
     #     pytest.skip("TEST_TEAM_ID not set.")
 
     rate_limit_delay()
-    now = datetime.now(timezone.utc)
-    seven_days_ago = now - timedelta(days=7)
-    start_timestamp_ms = int(seven_days_ago.timestamp() * 1000)
-    end_timestamp_ms = int(now.timestamp() * 1000)
+    # Using specific date range April 20-28, 2025
+    start_timestamp_ms = 1745059200000
+    end_timestamp_ms = 1745836799999
 
     result = clickup_tools.get_time_entries_for_users(
         user_ids=[str(TEST_USER_ID)],
@@ -250,8 +272,33 @@ def test_get_time_entries_for_users_live():
 
     assert isinstance(result, dict)
     assert "data" in result
+    assert "totals" in result
+
     entries = result["data"]
+    totals = result["totals"]
+
     assert isinstance(entries, list)
+    assert isinstance(totals, dict)
+    assert "grand_total" in totals
+    assert isinstance(totals["grand_total"], int)
+    assert "user_totals" in totals
+    assert isinstance(totals["user_totals"], dict)
+    assert "task_totals" in totals
+    assert isinstance(totals["task_totals"], dict)
+
+    # Verify totals if entries exist
+    if entries:
+        first_entry = entries[0]
+        assert isinstance(first_entry, dict)
+        # Check user_totals contain the requested user ID if they logged time
+        if totals["user_totals"]:
+            assert str(TEST_USER_ID) in totals["user_totals"]
+
+        # Check structure of entries
+        assert "id" in first_entry
+        assert "duration" in first_entry
+        assert "user" in first_entry
+        assert "task" in first_entry
 
 def test_get_singular_time_entry_live():
     # if not TEST_TEAM_ID or TEST_TEAM_ID == "YOUR_REAL_TEAM_ID":
@@ -1193,30 +1240,61 @@ def test_get_time_entries_for_list_live():
         pytest.skip("TEST_LIST_ID not set.")
 
     rate_limit_delay()
-    result = clickup_tools.get_time_entries_for_list(list_id=TEST_LIST_ID)
+    # Using specific date range April 20-28, 2025
+    start_timestamp_ms = 1745059200000
+    end_timestamp_ms = 1745836799999
 
-    # This function handles internal API errors and returns list or dict with data/errors
-    if isinstance(result, dict) and "errors" in result:
-        # Log the errors but don't fail the test unless data is also missing completely
-        print(f"Warnings encountered during get_time_entries_for_list: {result['errors']}")
-        assert "data" in result, "Result has errors but no data key."
-        entries = result["data"]
-    elif isinstance(result, list):
-        entries = result
-    else:
-        pytest.fail(f"Unexpected return type from get_time_entries_for_list: {type(result)}")
+    result = clickup_tools.get_time_entries_for_list(
+        list_id=TEST_LIST_ID,
+        start_date=start_timestamp_ms,
+        end_date=end_timestamp_ms
+    )
+
+    # Function now returns a dict {'data': [], 'totals': {}, 'errors': []}
+    assert isinstance(result, dict)
+    assert "data" in result
+    assert "totals" in result
+    assert "errors" in result
+
+    entries = result["data"]
+    totals = result["totals"]
+    errors = result["errors"]
 
     assert isinstance(entries, list)
+    assert isinstance(totals, dict)
+    assert isinstance(errors, list)
 
+    # Log errors if any, but don't necessarily fail
+    if errors:
+        print(f"Warnings/Errors encountered during get_time_entries_for_list: {errors}")
+
+    # Check totals structure regardless of errors
+    assert "grand_total" in totals
+    assert isinstance(totals["grand_total"], int)
+    assert "user_totals" in totals
+    assert isinstance(totals["user_totals"], dict)
+    assert "task_totals" in totals
+    assert isinstance(totals["task_totals"], dict)
+
+    # Check structure of entries if list is not empty
     if entries:
         entry = entries[0]
         assert isinstance(entry, dict)
+        # Check that task_id was added
+        assert "task_id" in entry
+        assert isinstance(entry["task_id"], str)
+        # Verify task_totals contain task IDs from entries
+        assert entry["task_id"] in totals["task_totals"]
+
         # Legacy endpoint entries contain 'intervals', 'time', and 'user'
         assert "intervals" in entry
         assert "time" in entry
         assert "user" in entry
         assert isinstance(entry["user"], dict)
         assert "id" in entry["user"]
+        # Verify user totals contain user IDs from entries
+        if "id" in entry["user"]:
+            assert entry["user"]["id"] in totals["user_totals"]
 
 def test_get_many_tasks_live():
     if not TEST_TASK_IDS: # Check if the list itself is populated
