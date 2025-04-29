@@ -1,7 +1,7 @@
 # import os
 # import asyncio
 from google.adk.agents import Agent
-from google.adk.models.lite_llm import LiteLlm # For multi-model support
+from google.adk.models.lite_llm import LiteLlm # ADK PATCH HERE
 from google.adk.sessions import InMemorySessionService
 from google.adk.tools.tool_context import ToolContext
 from google.genai import types # For creating message Content/Parts
