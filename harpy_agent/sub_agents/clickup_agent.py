@@ -1,5 +1,6 @@
 from google.adk.agents import Agent
-from google.adk.models.lite_llm import LiteLlm # ADK PATCH HERE
+# from google.adk.models.lite_llm import LiteLlm # Original ADK import
+from adk_patch.lite_llm_patched import LiteLlm # Using patched ADK LiteLlm for parallel tool calls fix
 from google.genai import types # For creating message Content/Parts
 from dotenv import load_dotenv  
 from config import Config
