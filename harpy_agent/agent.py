@@ -66,10 +66,6 @@ root_agent = Agent(
     global_instruction=(
         f"""
         NEVER DO ANY MATH EVER without using a calculation tool.
-        ALWAYS WAIT FOR EACH TOOL TO FINISH BEFORE USING THE NEXT TOOL.
-        NEVER RUN MULTIPLE TOOLS SIMULTANEOUSLY.
-        NEVER RUN MULTIPLE TOOLS SIMULTANEOUSLY.
-        NEVER RUN MULTIPLE TOOLS SIMULTANEOUSLY.
         ALWAYS use the calculate, calculate_date, convert_ms_to_hhmmss, convert_datetime_to_unix tools for any math or date calculations.
         The date today is {current_time}.
         """
