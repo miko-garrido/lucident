@@ -1,5 +1,5 @@
 from config import Config
-from google.adk.models.lite_llm import LiteLlm
+from google.adk.models.lite_llm import LiteLlm # ADK PATCH HERE
 from google.adk.agents import Agent
 from google.genai import types
 from dotenv import load_dotenv

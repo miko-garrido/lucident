@@ -3,7 +3,7 @@ import os
 import logging
 from dotenv import load_dotenv
 from flask_cors import CORS
-from .agent import root_agent
+from harpy_agent.agent import root_agent
 
 # Load environment variables
 load_dotenv()

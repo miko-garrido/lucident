@@ -1,5 +1,5 @@
 from google.adk.agents import Agent
-from google.adk.models.lite_llm import LiteLlm # For multi-model support
+from google.adk.models.lite_llm import LiteLlm # ADK PATCH HERE
 from google.genai import types # For creating message Content/Parts
 from dotenv import load_dotenv  
 from config import Config
