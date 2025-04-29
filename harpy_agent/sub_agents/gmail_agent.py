@@ -49,7 +49,6 @@ gmail_agent = Agent(
         "4. After checking all accounts, provide a final summary"
         "If list_gmail_accounts() returns no accounts, inform the user they need to add a Gmail account first. "
         "Focus solely on Gmail-related actions defined by your tools. Do not perform actions outside of Gmail management. "
-        "IMPORTANT: You must wait for each tool call to complete before making the next one. Do not make multiple tool calls simultaneously."
     ),
     tools=[
         list_gmail_accounts,
