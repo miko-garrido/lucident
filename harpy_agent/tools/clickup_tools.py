@@ -1558,15 +1558,17 @@ def get_many_tasks(task_ids: List[str]) -> Dict[str, Any]:
 
     return {"data": results}
 
-def get_time_entries_for_list(list_id: str) -> List[Dict[str, Any]]:
+def get_time_entries_for_list(list_id: str, start_date: Optional[int] = None, end_date: Optional[int] = None) -> List[Dict[str, Any]]:
     """
-    Retrieves all time entries for all tasks within a specific list.
+    Retrieves all time entries for all tasks within a specific list, optionally filtering by date range.
 
     Args:
         list_id (str): The ID of the list.
+        start_date (Optional[int]): Start timestamp (Unix time in ms) to filter entries (inclusive). (optional).
+        end_date (Optional[int]): End timestamp (Unix time in ms) to filter entries (inclusive). (optional).
 
     Returns:
-        List[Dict[str, Any]]: A list containing all time entry dictionaries for the list.
+        List[Dict[str, Any]]: A list containing all time entry dictionaries for the list, potentially filtered by date.
     """
     tasks_response = get_tasks_from_list(list_id=list_id, subtasks=True, include_closed=True)
     
@@ -1586,7 +1588,8 @@ def get_time_entries_for_list(list_id: str) -> List[Dict[str, Any]]:
     errors = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        future_to_task_id = {executor.submit(get_time_entries_for_task, task_id): task_id for task_id in task_ids}
+        # Pass start_date and end_date to the submitted task
+        future_to_task_id = {executor.submit(get_time_entries_for_task, task_id, start_date=start_date, end_date=end_date): task_id for task_id in task_ids}
         
         for future in concurrent.futures.as_completed(future_to_task_id):
             task_id = future_to_task_id[future]
