@@ -823,7 +823,7 @@ def get_filtered_team_tasks(team_id: str = CLICKUP_TEAM_ID, page: Optional[int] 
                              parent: Optional[str] = None, include_markdown_description: Optional[bool] = None
                              ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
-    Gets tasks for a Workspace (Team), filtered by various criteria. Similar to get_tasks but workspace-wide.
+    Gets tasks for a Workspace (Team), filtered by various criteria. Response is paginated. Continue to ask for the next page until all tasks are retrieved.
     
     Args:
         team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..

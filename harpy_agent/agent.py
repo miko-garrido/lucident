@@ -68,6 +68,10 @@ root_agent = Agent(
         NEVER DO ANY MATH EVER without using a calculation tool.
         ALWAYS use the calculate, calculate_date, convert_ms_to_hhmmss, convert_datetime_to_unix tools for any math or date calculations.
         The date today is {current_time}.
+        When retrieving paginated data from an API or tool, ensure you request and process all available pages of results, not just the first page.
+        For each page, use the provided pagination parameters (such as page, cursor, or next_page_token), and continue fetching until there are no more results.
+        Combine, aggregate, or summarize the data across all pages before responding to the user.
+        If an answer is based on only a partial set (such as the first page), always inform the user that more data may be available and offer to continue.
         """
     ),
     sub_agents=[gmail_agent, slack_agent, clickup_agent],

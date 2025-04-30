@@ -1,7 +1,7 @@
 from google.adk.agents import Agent
 # from google.adk.models.lite_llm import LiteLlm # Original ADK import
 from adk_patch.lite_llm_patched import LiteLlm # Using patched ADK LiteLlm for parallel tool calls fix
-from google.genai import types # For creating message Content/Parts
+from google.genai import types
 from dotenv import load_dotenv  
 from config import Config
 from ..tools.clickup_tools import (
@@ -35,6 +35,7 @@ from harpy_agent.tools.basic_tools import (
 
 load_dotenv()
 
+all_users = get_all_users()
 workspace_structure = get_workspace_structure()
 
 OPENAI_MODEL = Config.OPENAI_MODEL
@@ -42,6 +43,7 @@ GEMINI_MODEL = Config.GEMINI_MODEL
 APP_NAME = Config.APP_NAME
 USER_ID = Config.USER_ID
 SESSION_ID = Config.SESSION_ID
+TEAM_ID = Config.CLICKUP_TEAM_ID
 
 clickup_agent = Agent(
         model=LiteLlm(model=OPENAI_MODEL),
@@ -56,16 +58,23 @@ clickup_agent = Agent(
             If the user does not provide the correct format for user names, tasks, lists, or other entities, use the appropriate tool to find the correct format.
             Always return time tracked in hours and minutes, in the format '1h 30m'.
             Focus solely on ClickUp-related actions defined by your tools. Do not perform actions outside of ClickUp management.
+            When responding to any prompt asking about a space, ALWAYS search for both folderless lists directly under the space AND for all lists inside every folder within that space.
+            For each list (regardless of whether it is folderless or within a folder), aggregate your results as appropriate for the request.
+            The workspace ID or team ID is {TEAM_ID}.
             Below is the workspace structure:
             ```json
             {workspace_structure}
+            ```
+            Below is the list of all users in the workspace:
+            ```json
+            {all_users}
             ```
             """
         ),
         description=(
             """
-            Manages and retrieves information from ClickUp, including tasks, comments, time entries, users, and organizational structure (teams, spaces, folders, lists).
-            Can create, update, delete, and query various ClickUp entities.
+            Manages and retrieves information from ClickUp, including tasks, comments, time entries,
+            users, and organizational structure (teams, spaces, folders, lists).
             """
         ),
         tools=[
