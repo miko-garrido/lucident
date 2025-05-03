@@ -4,6 +4,9 @@ google-api-python-client
 google-auth
 google-auth-oauthlib
 google-genai
+google-generativeai
+google-cloud-aiplatform
+
 
 # LLM / AI
 litellm
