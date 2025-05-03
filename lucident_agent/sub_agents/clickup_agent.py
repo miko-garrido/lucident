@@ -25,7 +25,7 @@ from ..tools.clickup_tools import (
     get_many_tasks, get_time_entries_for_list, get_workspace_structure,
     get_all_users
 )
-from harpy_agent.tools.basic_tools import (
+from lucident_agent.tools.basic_tools import (
     get_current_time,
     calculate,
     calculate_date,

@@ -4,11 +4,11 @@ from adk_patch.lite_llm_patched import LiteLlm # Using patched ADK LiteLlm for p
 from google.genai import types # For creating message Content/Parts
 from dotenv import load_dotenv  
 from config import Config
-from harpy_agent.tools.slack_tools.slack_tools import *
+from lucident_agent.tools.slack_tools.slack_tools import *
 import os
 import logging
 from typing import Dict, Any, Optional
-from harpy_agent.tools.basic_tools import (
+from lucident_agent.tools.basic_tools import (
     get_current_time,
     calculate,
     calculate_date,

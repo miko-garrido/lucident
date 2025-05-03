@@ -5,6 +5,6 @@ This module contains tools for interacting with various platforms.
 """
 from typing import Any, List
 
-from harpy_agent.tools import gmail_tools, clickup_tools, basic_tools, slack_tools
+from lucident_agent.tools import gmail_tools, clickup_tools, basic_tools, slack_tools
 
 __all__: List[str] = ["gmail_tools", "clickup_tools", "slack_tools", "basic_tools"] 

@@ -4,7 +4,7 @@ from adk_patch.lite_llm_patched import LiteLlm # Using patched ADK LiteLlm for p
 from google.adk.agents import Agent
 from google.genai import types
 from dotenv import load_dotenv
-from harpy_agent.tools.gmail_tools import (
+from lucident_agent.tools.gmail_tools import (
     get_gmail_messages,
     search_by_from,
     search_by_subject,
@@ -15,7 +15,7 @@ from harpy_agent.tools.gmail_tools import (
     list_gmail_accounts,
     search_gmail_with_query
 )
-from harpy_agent.tools.basic_tools import (
+from lucident_agent.tools.basic_tools import (
     get_current_time,
     calculate,
     calculate_date,

@@ -11,7 +11,7 @@ from config import Config
 from .sub_agents.gmail_agent import gmail_agent
 from .sub_agents.slack_agent import slack_agent
 from .sub_agents.clickup_agent import clickup_agent
-from harpy_agent.tools.basic_tools import (
+from lucident_agent.tools.basic_tools import (
     get_current_time,
     calculate,
     calculate_date,
@@ -41,18 +41,18 @@ load_dotenv()
 current_time = get_current_time(TIMEZONE)
 
 root_agent = Agent(
-    name="harpy_agent",
+    name="lucident_agent",
     model=LiteLlm(model=OPENAI_MODEL),
     # model=GEMINI_MODEL,
     description=(
         f"""
-        Harpy is an AI-powered project management assistant that provides a unified interface 
+        Lucident is an AI-powered project management assistant that provides a unified interface 
         for managing projects across ClickUp, Gmail, and Slack, intelligently understanding 
         and responding to user queries about project status, tasks, and communications.
         """
     ),
     instruction=("""
-        You are Harpy, an AI project management assistant.
+        You are Lucident, an AI project management assistant.
         You provide a unified interface for managing projects across ClickUp, Gmail, and Slack.
         When a user asks a question related to project status, tasks, timelines, or communications:
         1. Understand the user's query and determine which platform(s) (ClickUp, Gmail, Slack) are relevant.
