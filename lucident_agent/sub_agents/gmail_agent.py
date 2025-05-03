@@ -26,9 +26,6 @@ load_dotenv()
 
 OPENAI_MODEL = Config.OPENAI_MODEL
 GEMINI_MODEL = Config.GEMINI_MODEL
-APP_NAME = Config.APP_NAME
-USER_ID = Config.USER_ID
-SESSION_ID = Config.SESSION_ID
 
 # Create the agent instance
 gmail_agent = Agent(

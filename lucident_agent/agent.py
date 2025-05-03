@@ -1,5 +1,4 @@
-# import os
-# import asyncio
+import os
 from google.adk.agents import Agent
 # from google.adk.models.lite_llm import LiteLlm # Original ADK import
 from .adk_patch.lite_llm_patched import LiteLlm # Using patched ADK LiteLlm for parallel tool calls fix
@@ -20,9 +19,12 @@ from .tools.basic_tools import (
 )
 from google.adk.sessions import InMemorySessionService
 
+load_dotenv()
+
+APP_NAME = os.getenv("APP_NAME")
+
 OPENAI_MODEL = Config.OPENAI_MODEL
 GEMINI_MODEL = Config.GEMINI_MODEL
-APP_NAME = Config.APP_NAME
 USER_ID = Config.USER_ID
 SESSION_ID = Config.SESSION_ID
 TIMEZONE = Config.TIMEZONE
@@ -35,8 +37,6 @@ session = session_service.create_session(
     session_id=SESSION_ID,
     state=initial_state
 )
-
-load_dotenv()
 
 current_time = get_current_time(TIMEZONE)
 

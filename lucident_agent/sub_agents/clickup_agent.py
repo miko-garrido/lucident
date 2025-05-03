@@ -40,9 +40,6 @@ workspace_structure = get_workspace_structure()
 
 OPENAI_MODEL = Config.OPENAI_MODEL
 GEMINI_MODEL = Config.GEMINI_MODEL
-APP_NAME = Config.APP_NAME
-USER_ID = Config.USER_ID
-SESSION_ID = Config.SESSION_ID
 TEAM_ID = Config.CLICKUP_TEAM_ID
 
 clickup_agent = Agent(
