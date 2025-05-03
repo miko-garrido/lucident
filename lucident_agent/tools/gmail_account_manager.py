@@ -8,7 +8,7 @@ import json
 import logging
 from typing import Dict, Optional, List
 from datetime import datetime
-from Database import Database
+from lucident_agent.Database import Database
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
