@@ -1,18 +1,29 @@
-Flask==3.1.0
-flask_cors==5.0.1
-google_api_python_client==2.168.0
-google_auth_oauthlib==1.2.2
-litellm==1.67.4.post1
-numexpr==2.10.2
-openai==1.76.0
-protobuf==6.30.2
-pydantic==2.11.3
-pytest==8.3.5
-python-dotenv==1.1.0
-python_dateutil==2.9.0.post0
-pytz==2025.2
-Requests==2.32.3
-slack_sdk==3.35.0
-supabase==2.15.1
-tenacity==9.1.2
-typing_extensions==4.13.2
+# Google Cloud & API Clients
+google-adk
+google-api-python-client
+google-auth
+google-auth-oauthlib
+google-genai
+
+# LLM / AI
+litellm
+openai
+
+# Database / Backend
+supabase
+
+# Data & Time Handling
+numexpr
+python-dateutil
+pytz
+
+# Integrations
+slack_sdk
+
+# Testing
+pytest
+
+# Utilities
+python-dotenv
+tenacity
+typing-extensions
