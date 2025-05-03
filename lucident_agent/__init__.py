@@ -1,6 +1,3 @@
-"""
-Harpy Agent: A modular AI agent system with multi-platform integrations.
-"""
 from typing import Any
 
 from . import agent

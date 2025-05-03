@@ -6,7 +6,7 @@ from dateutil import parser
 from dateutil.relativedelta import relativedelta
 import concurrent.futures
 import logging
-from config import Config
+from lucident_agent.config import Config
 
 def get_current_time(time_zone: str = Config.TIMEZONE) -> str:
     """

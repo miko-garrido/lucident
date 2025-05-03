@@ -2,16 +2,16 @@
 # import asyncio
 from google.adk.agents import Agent
 # from google.adk.models.lite_llm import LiteLlm # Original ADK import
-from adk_patch.lite_llm_patched import LiteLlm # Using patched ADK LiteLlm for parallel tool calls fix
+from .adk_patch.lite_llm_patched import LiteLlm # Using patched ADK LiteLlm for parallel tool calls fix
 from google.adk.sessions import InMemorySessionService
 from google.adk.tools.tool_context import ToolContext
 from google.genai import types # For creating message Content/Parts
 from dotenv import load_dotenv  
-from config import Config
+from lucident_agent.config import Config
 from .sub_agents.gmail_agent import gmail_agent
 from .sub_agents.slack_agent import slack_agent
 from .sub_agents.clickup_agent import clickup_agent
-from lucident_agent.tools.basic_tools import (
+from .tools.basic_tools import (
     get_current_time,
     calculate,
     calculate_date,

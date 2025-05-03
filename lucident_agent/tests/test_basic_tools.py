@@ -1,10 +1,10 @@
 import pytest
 import pytz
-from lucident_agent.tools import basic_tools
+from ..tools import basic_tools
 from datetime import date, timedelta, datetime
 from dateutil.relativedelta import relativedelta
 from unittest.mock import patch, MagicMock
-from config import Config
+from lucident_agent.config import Config
 
 # --- Test get_current_time ---
 

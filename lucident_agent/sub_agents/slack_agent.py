@@ -1,9 +1,9 @@
 from google.adk.agents import Agent
 # from google.adk.models.lite_llm import LiteLlm # Original ADK import
-from adk_patch.lite_llm_patched import LiteLlm # Using patched ADK LiteLlm for parallel tool calls fix
+from ..adk_patch.lite_llm_patched import LiteLlm # Using patched ADK LiteLlm for parallel tool calls fix
 from google.genai import types # For creating message Content/Parts
 from dotenv import load_dotenv  
-from config import Config
+from lucident_agent.config import Config
 from lucident_agent.tools.slack_tools.slack_tools import *
 import os
 import logging

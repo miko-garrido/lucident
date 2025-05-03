@@ -1,9 +1,9 @@
 from google.adk.agents import Agent
 # from google.adk.models.lite_llm import LiteLlm # Original ADK import
-from adk_patch.lite_llm_patched import LiteLlm # Using patched ADK LiteLlm for parallel tool calls fix
+from ..adk_patch.lite_llm_patched import LiteLlm # Relative import for patched LiteLlm
 from google.genai import types
 from dotenv import load_dotenv  
-from config import Config
+from lucident_agent.config import Config
 from ..tools.clickup_tools import (
     get_task_comments, get_chat_view_comments, get_list_comments,
     get_threaded_comments, get_custom_task_types, get_list_custom_fields,

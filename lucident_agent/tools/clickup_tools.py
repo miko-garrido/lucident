@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 import json
 import logging
-from config import Config
+from lucident_agent.config import Config
 import concurrent.futures
 from collections import defaultdict
 

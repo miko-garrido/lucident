@@ -9,7 +9,7 @@ from datetime import datetime, timezone, timedelta
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from lucident_agent.tools import clickup_tools
+from ..tools import clickup_tools
 
 load_dotenv()
 
