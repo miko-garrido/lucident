@@ -1,6 +1,6 @@
-# Harpy AI: Project Management Assistant
+# Lucident AI: Project Management Assistant
 
-Harpy is an AI-powered project management assistant built on Google's Agent Development Kit (ADK). It provides a unified interface for managing projects across ClickUp, Gmail, and Slack, intelligently understanding and responding to user queries about project status, tasks, and communications.
+Lucident is an AI-powered project management assistant built on Google's Agent Development Kit (ADK). It provides a unified interface for managing projects across ClickUp, Gmail, and Slack, intelligently understanding and responding to user queries about project status, tasks, and communications.
 
 ## Features
 
@@ -15,17 +15,31 @@ Harpy is an AI-powered project management assistant built on Google's Agent Deve
 
 ## Setup
 
-1. Install dependencies:
+1. **Create and activate a virtual environment:**
+```bash
+# Create the virtual environment
+python3 -m venv .venv
+
+# Activate the virtual environment (run this in your terminal)
+source .venv/bin/activate
+
+# Upgrade pip (recommended)
+pip install --upgrade pip
+```
+
+2. **Install dependencies:**
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Copy `.env.example` to `.env` and fill in your API credentials:
+3. **Configure environment variables:**
 ```bash
+# Copy the example environment file
 cp .env.example .env
+# Fill in your API credentials in the .env file
 ```
 
-3. Start the ADK web interface:
+4. **Start the ADK web interface:**
 ```bash
 adk web
 ```
