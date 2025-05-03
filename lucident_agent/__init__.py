@@ -1,5 +1,3 @@
-from typing import Any
-
 from . import agent
 from .sub_agents import gmail_agent, slack_agent, clickup_agent
 

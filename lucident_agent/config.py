@@ -1,7 +1,9 @@
 class Config:
     OPENAI_MODEL = "openai/gpt-4.1"
     GEMINI_MODEL = "gemini-2.0-flash"
-    APP_NAME = "harpy"
+    APP_NAME = "lucident-app"
+    SERVICE_NAME = "lucident-service"
+    AGENT_PATH = "./lucident_agent"
     USER_ID = "user_001"
     SESSION_ID = "session_001"
     TIMEZONE = "Asia/Manila"
