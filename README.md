@@ -44,7 +44,54 @@ cp .env.example .env
 adk web
 ```
 
-Visit `http://localhost:8000` to interact with Harpy.
+Visit `http://localhost:8000` to interact with Lucident.
+
+## Google Cloud Run Deployment
+
+1. Ensure you have gcloudCLI installed on your machine. You can find instructions here: https://cloud.google.com/sdk/docs/install
+
+2. Authenticate Google Cloud
+```bash
+gcloud auth login
+```
+
+3. Set the project to the project ID
+```bash
+gcloud config set project gen-lang-client-0922281168
+```
+
+3. Export all .env variables
+```bash
+export $(grep -v '^#' .env | xargs)
+```
+
+4. Begin the deployment
+```bash
+gcloud run deploy "$SERVICE_NAME" \
+  --source . \
+  --region "$GOOGLE_CLOUD_LOCATION" \
+  --project "$GOOGLE_CLOUD_PROJECT" \
+  --allow-unauthenticated \
+  --port 8080 \
+  --set-env-vars="\
+CLICKUP_API_KEY=$CLICKUP_API_KEY,\
+CLICKUP_CLIENT_ID=$CLICKUP_CLIENT_ID,\
+CLICKUP_CLIENT_SECRET=$CLICKUP_CLIENT_SECRET,\
+CLICKUP_ACCESS_TOKEN=$CLICKUP_ACCESS_TOKEN,\
+OPENAI_API_KEY=$OPENAI_API_KEY,\
+SLACK_BOT_TOKEN=$SLACK_BOT_TOKEN,\
+GOOGLE_API_KEY=$GOOGLE_API_KEY,\
+GOOGLE_GENAI_USE_VERTEXAI=$GOOGLE_GENAI_USE_VERTEXAI,\
+GOOGLE_CLOUD_PROJECT=$GOOGLE_CLOUD_PROJECT,\
+GOOGLE_CLOUD_LOCATION=$GOOGLE_CLOUD_LOCATION,\
+AGENT_PATH=$AGENT_PATH,\
+SERVICE_NAME=$SERVICE_NAME,\
+APP_NAME=$APP_NAME,\
+SUPABASE_URL=$SUPABASE_URL,\
+SUPABASE_KEY=$SUPABASE_KEY,\
+SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY,\
+SUPABASE_ACCESS_TOKEN=$SUPABASE_ACCESS_TOKEN"
+```
 
 ## Technical Implementation
 

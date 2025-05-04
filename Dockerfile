@@ -11,9 +11,9 @@ COPY . .
 
 USER myuser
 
-ENV PORT=8000
+ENV PORT=8080
 ENV PATH="/home/myuser/.local/bin:$PATH"
 
 EXPOSE $PORT
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
