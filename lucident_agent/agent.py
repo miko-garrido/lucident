@@ -17,27 +17,10 @@ from .tools.basic_tools import (
     convert_ms_to_hhmmss,
     convert_datetime_to_unix
 )
-from google.adk.sessions import InMemorySessionService
-
-load_dotenv()
-
-APP_NAME = os.getenv("APP_NAME")
 
 OPENAI_MODEL = Config.OPENAI_MODEL
 GEMINI_MODEL = Config.GEMINI_MODEL
-USER_ID = Config.USER_ID
-SESSION_ID = Config.SESSION_ID
 TIMEZONE = Config.TIMEZONE
-
-session_service = InMemorySessionService()
-initial_state = {"current_time": get_current_time(TIMEZONE)}
-session = session_service.create_session(
-    app_name=APP_NAME,
-    user_id=USER_ID,
-    session_id=SESSION_ID,
-    state=initial_state
-)
-
 current_time = get_current_time(TIMEZONE)
 
 root_agent = Agent(

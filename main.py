@@ -1,8 +1,25 @@
 import os
-
+from dotenv import load_dotenv
 import uvicorn
 from fastapi import FastAPI
 from google.adk.cli.fast_api import get_fast_api_app
+from google.adk.sessions import InMemorySessionService
+from lucident_agent.config import Config
+
+load_dotenv()
+
+APP_NAME = os.getenv("APP_NAME")
+
+USER_ID = Config.USER_ID
+SESSION_ID = Config.SESSION_ID
+TIMEZONE = Config.TIMEZONE
+
+session_service = InMemorySessionService()
+session = session_service.create_session(
+    app_name=APP_NAME,
+    user_id=USER_ID,
+    session_id=SESSION_ID
+)
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 # SESSION_DB_URL = "sqlite:///./sessions.db"
