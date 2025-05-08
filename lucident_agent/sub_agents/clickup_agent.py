@@ -32,11 +32,12 @@ from lucident_agent.tools.basic_tools import (
     convert_ms_to_hhmmss,
     convert_datetime_to_unix
 )
+from lucident_agent.utils.context_saver import fetch_context_from_supabase
 
 load_dotenv()
 
-all_users = get_all_users()
-workspace_structure = get_workspace_structure()
+all_users = fetch_context_from_supabase("all_users")
+workspace_structure = fetch_context_from_supabase("workspace_structure")
 
 OPENAI_MODEL = Config.OPENAI_MODEL
 GEMINI_MODEL = Config.GEMINI_MODEL

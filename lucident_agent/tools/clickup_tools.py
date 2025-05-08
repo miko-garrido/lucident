@@ -231,7 +231,7 @@ def get_custom_task_types(team_id: str = CLICKUP_TEAM_ID) -> Union[Dict[str, Any
     Gets the Custom Task Types available in a Workspace.
     
     Args:
-        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team..
+        team_id (str): The ID of the Workspace (Team). Defaults to Dorxata team.
 
     Returns:
         Dict[str, Any]: A dictionary containing the list of custom task types under the 'data' key.
