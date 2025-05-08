@@ -1,8 +1,3 @@
-"""Gmail Account Manager Module
-
-This module manages Gmail account configurations and credentials using Supabase with file-based fallback.
-"""
-
 import os
 import json
 import logging
@@ -18,16 +13,13 @@ logger = logging.getLogger(__name__)
 TOKEN_FILE = 'gmail_tokens.json'
 
 class GmailAccountManager:
-    """Manages Gmail account configurations and credentials."""
     
     def __init__(self):
-        """Initialize the GmailAccountManager."""
         self.use_supabase = True
         self._init_supabase()
         self.accounts = self._load_accounts()
         
     def _init_supabase(self) -> None:
-        """Initialize Supabase client."""
         try:
             self.supabase = Database().client
             # Test connection
@@ -37,17 +29,11 @@ class GmailAccountManager:
             self.use_supabase = False
     
     def _load_accounts(self) -> Dict[str, Dict]:
-        """Load account configurations from storage.
-        
-        Returns:
-            Dict mapping account IDs to account details
-        """
         if self.use_supabase:
             return self._load_from_supabase()
         return self._load_from_file()
     
     def _load_from_supabase(self) -> Dict[str, Dict]:
-        """Load accounts from Supabase."""
         accounts = {}
         try:
             response = self.supabase.table('gmail_tokens').select('*').execute()
@@ -77,7 +63,6 @@ class GmailAccountManager:
         return accounts
     
     def _load_from_file(self) -> Dict[str, Dict]:
-        """Load accounts from file."""
         accounts = {}
         try:
             if os.path.exists(TOKEN_FILE):
@@ -89,7 +74,6 @@ class GmailAccountManager:
         return accounts
     
     def _save_to_file(self) -> None:
-        """Save accounts to file."""
         try:
             with open(TOKEN_FILE, 'w') as f:
                 json.dump(self.accounts, f)
@@ -97,7 +81,6 @@ class GmailAccountManager:
             logger.error(f"Error saving accounts to file: {e}")
     
     def add_account(self, account_id: str, credentials: Dict) -> None:
-        """Add a new Gmail account or update existing one. Prioritizes Supabase."""
         logger.info(f"Adding/updating account: {account_id}")
         # Update in-memory cache first
         self.accounts[account_id] = credentials
@@ -124,23 +107,18 @@ class GmailAccountManager:
             self._save_to_file()
 
     def get_accounts(self) -> Dict[str, Dict]:
-        """Get all configured accounts."""
         return self.accounts
         
     def get_default_account(self) -> Optional[str]:
-        """Get the default account ID."""
         return 'default' if 'default' in self.accounts else None
 
     def get_account_credentials(self, account_id: str) -> Optional[Dict]:
-        """Get credentials for a specific account."""
         return self.accounts.get(account_id)
 
     def get_all_account_ids(self) -> List[str]:
-        """Get all account IDs."""
         return list(self.accounts.keys())
 
     def remove_account(self, account_id: str) -> bool:
-        """Remove a Gmail account. Prioritizes Supabase."""
         removed_from_memory = False
         if account_id in self.accounts:
             del self.accounts[account_id]

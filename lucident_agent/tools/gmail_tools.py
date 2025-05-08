@@ -20,6 +20,9 @@ from googleapiclient.errors import HttpError
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
+# Import Database class
+from lucident_agent.Database import Database
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -40,26 +43,14 @@ DEFAULT_ACCOUNT = 'default'
 MAX_RETRIES = 3
 RATE_LIMIT_DELAY = 1  # seconds
 
-# Quota constants
-PROJECT_QUOTA_LIMIT = 1200000  # per minute
-USER_QUOTA_LIMIT = 15000  # per minute
-
-# --- Add Supabase and Google Credentials Config ---
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-if not SUPABASE_URL or not SUPABASE_KEY:
-    logger.error("SUPABASE_URL and SUPABASE_KEY must be set in environment variables or .env file.")
-    # Optionally raise an error or exit if Supabase connection is critical
-    # raise ValueError("Supabase URL and Key not configured.")
-    supabase: Optional[Client] = None
-else:
-    try:
-        supabase: Optional[Client] = create_client(SUPABASE_URL, SUPABASE_KEY)
-        logger.info("Supabase client initialized.")
-    except Exception as e:
-        logger.error(f"Failed to initialize Supabase client: {e}")
-        supabase = None
+# --- Use Database class for Supabase access ---
+try:
+    db = Database()
+    supabase = db.client
+    logger.info("Supabase client initialized via Database class.")
+except Exception as e:
+    logger.error(f"Failed to initialize Supabase client via Database: {e}")
+    supabase = None
 
 # Hardcoded Google Credentials (as requested in the example)
 # Consider moving sensitive parts like client_secret to env variables for better security
@@ -843,8 +834,8 @@ def categorized_search_gmail(category: str, account_id: str = "", max_results: i
     if account_id:
         result = _search_gmail_impl(account_id, query, max_results)
     else:
-        # Search across all accounts
-        account_manager = GmailSupabaseManager(supabase)
+        # Search across all accounts - use the existing account_manager
+        # account_manager = GmailSupabaseManager(supabase)
         all_emails = []
         accounts_searched = []
         accounts_with_results = []
