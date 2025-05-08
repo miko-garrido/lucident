@@ -56,7 +56,7 @@ def fetch_context_from_supabase(context_type, limit=1):
     
     return result.data[0]['body'] if result.data else f"Error: No {context_type} found"
 
-def main():
+def save_context():
     users_markdown = format_users_markdown()
     workspace_structure_markdown = format_workspace_structure_markdown()
     users_response = db.table("saved_context").insert({"type": "all_users", "body": users_markdown}).execute()
@@ -65,4 +65,4 @@ def main():
     print(workspace_structure_response)
 
 if __name__ == "__main__":
-    main()
+    save_context()
