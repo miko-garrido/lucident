@@ -11,6 +11,7 @@ from lucident_agent.tools.slack_tools import (
     get_slack_channel_history,
     get_slack_thread_replies,
     list_slack_channels,
+    list_slack_users,
     update_slack_message
 )
 import os
@@ -36,7 +37,7 @@ slack_agent = Agent(
     name="slack_agent",
     model=LiteLlm(model=OPENAI_MODEL),
     #model=GEMINI_MODEL,
-    description="Agent to process Slack messages using GPT-4 and MCP server.",
+    description="A Slack assistant that can read and respond to messages in channels",
     instruction="""
     I am a Slack assistant that can read and respond to messages in Slack channels.
     I can send messages, read message history, get thread replies, and list available channels.
@@ -68,6 +69,7 @@ slack_agent = Agent(
         get_slack_channel_history,
         get_slack_thread_replies,
         list_slack_channels,
+        list_slack_users,
         update_slack_message,
         
         # Basic tools
