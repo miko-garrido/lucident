@@ -1,8 +1,7 @@
 """
 Slack agent module.
 
-This module provides the main Slack agent for the Lucident system and a factory
-function to create custom Slack agents with various configurations.
+This module provides the main Slack agent for the Lucident system.
 """
 
 from google.adk.agents import Agent
@@ -29,7 +28,6 @@ from lucident_agent.tools.basic_tools import (
 )
 from lucident_agent.utils.context_saver import fetch_context_from_supabase
 import logging
-from typing import Dict, Any, Optional, List
 
 load_dotenv()
 
@@ -39,41 +37,17 @@ GEMINI_MODEL = Config.GEMINI_MODEL
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def create_slack_agent(
-    name: str = "slack_agent",
-    model: str = "openai",
-    custom_description: Optional[str] = None,
-    custom_instruction: Optional[str] = None,
-    additional_tools: Optional[List[Any]] = None
-) -> Agent:
-    """
-    Factory function to create a Slack agent with customizable configuration.
-    
-    Args:
-        name: The name of the agent (default: "slack_agent")
-        model: The model to use ("openai" or "gemini", default: "openai")
-        custom_description: Optional custom description for the agent
-        custom_instruction: Optional custom instruction for the agent
-        additional_tools: Optional list of additional tools to add to the agent
-        
-    Returns:
-        An initialized Agent instance for Slack operations
-    """
-    # Fetch Slack context from Supabase
-    slack_users = fetch_context_from_supabase("slack_users")
-    slack_channels = fetch_context_from_supabase("slack_channels")
-    
-    # Set the model
-    if model.lower() == "gemini":
-        agent_model = GEMINI_MODEL
-    else:
-        agent_model = LiteLlm(model=OPENAI_MODEL)
-    
-    # Set the description
-    description = custom_description or "A Slack assistant that can read and respond to messages in channels"
-    
-    # Set the instruction
-    default_instruction = f"""
+# Fetch Slack context from Supabase
+slack_users = fetch_context_from_supabase("slack_users")
+slack_channels = fetch_context_from_supabase("slack_channels")
+
+# Create the Slack agent instance
+slack_agent = Agent(
+    name="slack_agent",
+    model=LiteLlm(model=OPENAI_MODEL),
+    #model=GEMINI_MODEL,
+    description="A Slack assistant that can read and respond to messages in channels",
+    instruction=f"""
     I am a Slack assistant that can read and respond to messages in Slack channels.
     I can send messages, read message history, get thread replies, and list available channels.
     
@@ -106,12 +80,8 @@ def create_slack_agent(
     ```
     {slack_channels}
     ```
-    """
-    
-    instruction = custom_instruction or default_instruction
-    
-    # Set the tools
-    tools = [
+    """,
+    tools=[
         # Slack tools
         get_slack_bot_info,
         send_slack_message,
@@ -127,22 +97,7 @@ def create_slack_agent(
         calculate_date,
         convert_ms_to_hhmmss
     ]
-    
-    # Add additional tools if provided
-    if additional_tools:
-        tools.extend(additional_tools)
-    
-    # Create and return the agent
-    return Agent(
-        name=name,
-        model=agent_model,
-        description=description,
-        instruction=instruction,
-        tools=tools
-    )
+)
 
-# Create the default agent
-slack_agent = create_slack_agent()
-
-# Export the agent and factory function
-__all__ = ['slack_agent', 'create_slack_agent'] 
+# Export the agent instance
+__all__ = ['slack_agent'] 
