@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import os
 import logging
 import ssl
@@ -20,15 +20,23 @@ ssl_context.verify_mode = ssl.CERT_NONE
 slack_token = os.getenv("SLACK_BOT_TOKEN")
 client = WebClient(token=slack_token, ssl=ssl_context)
 
+# ========== DATABASE OPERATIONS ==========
+
 def get_slack_context_from_supabase(context_type: str) -> Optional[str]:
     """
-    Retrieve saved Slack context from Supabase
+    Retrieve saved Slack context from Supabase database.
+    
+    Use this tool when you need to get cached information about Slack channels or users
+    without making direct API calls to Slack.
     
     Args:
         context_type: The type of context to retrieve ('slack_users' or 'slack_channels')
         
     Returns:
-        The saved context as markdown string if found, None otherwise
+        A dictionary with:
+        - 'success': Boolean indicating if the operation succeeded
+        - 'data': The saved context as markdown string if found
+        - 'error': Error message if unsuccessful
     """
     try:
         db = Database().client
@@ -39,14 +47,21 @@ def get_slack_context_from_supabase(context_type: str) -> Optional[str]:
             .limit(1) \
             .execute()
         
-        return result.data[0]['body'] if result.data else None
+        if result.data:
+            return result.data[0]['body']
+        return None
     except Exception as e:
         logger.error(f"Error retrieving {context_type} from Supabase: {e}")
         return None
 
+# ========== MESSAGE FORMATTING ==========
+
 def replace_user_ids_with_names(message_text: str) -> str:
     """
     Replace user IDs in a Slack message with user names.
+    
+    Use this tool when processing raw Slack messages that contain user IDs
+    in the format <@USER_ID> to make them more readable.
     
     Args:
         message_text: The text of the message containing <@USER_ID> mentions
@@ -80,7 +95,10 @@ def replace_user_ids_with_names(message_text: str) -> str:
 
 def format_slack_message(message_text: str, include_metadata: bool = False) -> str:
     """
-    Format a Slack message by replacing user IDs with names and cleaning up other Slack-specific formatting.
+    Format a Slack message by replacing user IDs with names and cleaning up Slack-specific formatting.
+    
+    Use this tool to convert raw Slack messages into a more readable format
+    for processing or display.
     
     Args:
         message_text: The text of the Slack message to format
@@ -120,32 +138,27 @@ def format_slack_message(message_text: str, include_metadata: bool = False) -> s
     
     return formatted_text
 
-def get_bot_user_id() -> Dict[str, Any]:
+def format_slack_system_message(message_text: str) -> str:
     """
-    Get the bot user ID using the Slack API.
+    Format a Slack system message, such as "<@USER_ID> has joined the channel".
     
-    This function retrieves the bot user ID from Slack, which is needed for 
-    identifying the bot's messages and handling mentions.
+    Use this tool specifically for system notifications rather than general user messages.
     
+    Args:
+        message_text: The text of the system message
+        
     Returns:
-        Dictionary containing the bot user ID or error information.
+        The formatted system message with user IDs replaced by names
     """
-    try:
-        response = client.auth_test()
-        return {
-            "success": True,
-            "user_id": response["user_id"]
-        }
-    except SlackApiError as e:
-        logger.error(f"Error getting bot user ID: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+    return replace_user_ids_with_names(message_text)
+
+# ========== CHANNEL OPERATIONS ==========
 
 def get_channel_id(channel_name: str) -> Optional[str]:
     """
     Get a channel ID from its name.
+    
+    Use this tool when you have a channel name but need its ID for other Slack API operations.
     
     Args:
         channel_name: The name of the channel (with or without the # symbol).
@@ -181,191 +194,44 @@ def get_channel_id(channel_name: str) -> Optional[str]:
         logger.error(f"Error getting channel ID: {e}")
         return None
 
-def get_slack_bot_info() -> Dict[str, Any]:
+def resolve_channel_id(channel: str) -> Tuple[Optional[str], Optional[str]]:
     """
-    Retrieves information about the Slack bot.
+    Resolve a channel name or ID to a channel ID.
     
-    Gets detailed information about the bot itself, including the bot's user ID,
-    name, and other profile details from the Slack API.
-    
-    Returns:
-        A dictionary containing information about the bot, including its user ID.
-    """
-    try:
-        # Get auth info which includes the bot's user ID
-        auth_response = client.auth_test()
-        user_id = auth_response["user_id"]
-        bot_name = auth_response["user"]
-        
-        # Get more detailed information about the bot
-        bot_info = client.users_info(user=user_id)
-        
-        return {
-            "success": True,
-            "bot_id": user_id,
-            "name": bot_name,
-            "info": bot_info["user"]
-        }
-    except SlackApiError as e:
-        logger.error(f"Error getting bot info: {e}")
-        return {"success": False, "error": str(e)}
-
-def send_slack_message(channel: str, message: str) -> Dict[str, Any]:
-    """
-    Sends a message to a Slack channel.
-    
-    This function posts a message to the specified Slack channel using
-    the bot's identity. The channel can be specified by name or ID.
+    Use this utility function to standardize channel identification inputs.
     
     Args:
-        channel: The channel name or ID. If providing a name (without #), 
-                it will be converted to an ID automatically.
-        message: The text content of the message to send.
+        channel: The channel name or ID. If name (without #), it will be converted to ID.
         
     Returns:
-        A dictionary containing the response from the Slack API with
-        success or error information.
+        A tuple containing (channel_id, error_message). If successful, error_message will be None.
     """
-    try:
-        # Check if channel is an ID (starts with C or D or G)
-        if not (channel.startswith('C') or channel.startswith('D') or channel.startswith('G')):
-            # It's a name, convert to ID
-            channel_id = get_channel_id(channel)
-            if not channel_id:
-                return {
-                    "success": False, 
-                    "error": f"Channel '{channel}' not found. Make sure the bot is added to the channel."
-                }
-        else:
-            channel_id = channel
-            
-        response = client.chat_postMessage(
-            channel=channel_id,
-            text=message
-        )
-        return {"success": True, "response": response}
-    except SlackApiError as e:
-        logger.error(f"Error sending message: {e}")
-        return {"success": False, "error": str(e)}
-
-def get_slack_channel_history(channel: str, limit: int = 100) -> Dict[str, Any]:
-    """
-    Retrieves message history from a Slack channel.
+    # Check if channel is already an ID (starts with C, D, or G)
+    if channel.startswith('C') or channel.startswith('D') or channel.startswith('G'):
+        return channel, None
     
-    Fetches recent messages from the specified Slack channel, up to the
-    specified limit. Useful for understanding conversation context.
+    # It's a name, convert to ID
+    channel_id = get_channel_id(channel)
+    if not channel_id:
+        return None, f"Channel '{channel}' not found. Make sure the bot is added to the channel."
     
-    Args:
-        channel: The channel name or ID. If providing a name (without #), 
-                it will be converted to an ID automatically.
-        limit: Maximum number of messages to return (default: 100).
-        
-    Returns:
-        A dictionary containing the message history or error information.
-    """
-    try:
-        # Check if channel is an ID (starts with C or D or G)
-        if not (channel.startswith('C') or channel.startswith('D') or channel.startswith('G')):
-            # It's a name, convert to ID
-            channel_id = get_channel_id(channel)
-            if not channel_id:
-                return {
-                    "success": False, 
-                    "error": f"Channel '{channel}' not found. Make sure the bot is added to the channel."
-                }
-        else:
-            channel_id = channel
-            
-        response = client.conversations_history(
-            channel=channel_id,
-            limit=limit
-        )
-        
-        # Process messages to replace user IDs with names
-        messages = response["messages"]
-        for message in messages:
-            if "user" in message:
-                try:
-                    user_info = client.users_info(user=message["user"])
-                    user_name = user_info["user"].get("real_name") or user_info["user"].get("name", "Unknown User")
-                    message["user_name"] = user_name
-                except SlackApiError as e:
-                    logger.error(f"Error getting user info for {message['user']}: {e}")
-                    message["user_name"] = "Unknown User"
-                    
-            if "text" in message:
-                message["text"] = format_slack_message(message["text"], include_metadata=False)
-                
-        return {"success": True, "messages": messages}
-    except SlackApiError as e:
-        logger.error(f"Error getting channel history: {e}")
-        return {"success": False, "error": str(e)}
-
-def get_slack_thread_replies(channel: str, thread_ts: str, limit: int = 100) -> Dict[str, Any]:
-    """
-    Retrieves replies to a thread in a Slack channel.
-    
-    Fetches messages that are part of a specific thread in a Slack channel,
-    identified by the parent message's timestamp.
-    
-    Args:
-        channel: The channel name or ID. If providing a name (without #), 
-                it will be converted to an ID automatically.
-        thread_ts: The timestamp of the parent message that started the thread.
-        limit: Maximum number of replies to return (default: 100).
-        
-    Returns:
-        A dictionary containing the thread replies or error information.
-    """
-    try:
-        # Check if channel is an ID (starts with C or D or G)
-        if not (channel.startswith('C') or channel.startswith('D') or channel.startswith('G')):
-            # It's a name, convert to ID
-            channel_id = get_channel_id(channel)
-            if not channel_id:
-                return {
-                    "success": False, 
-                    "error": f"Channel '{channel}' not found. Make sure the bot is added to the channel."
-                }
-        else:
-            channel_id = channel
-            
-        response = client.conversations_replies(
-            channel=channel_id,
-            ts=thread_ts,
-            limit=limit
-        )
-        
-        # Process messages to replace user IDs with names
-        messages = response["messages"]
-        for message in messages:
-            if "user" in message:
-                try:
-                    user_info = client.users_info(user=message["user"])
-                    user_name = user_info["user"].get("real_name") or user_info["user"].get("name", "Unknown User")
-                    message["user_name"] = user_name
-                except SlackApiError as e:
-                    logger.error(f"Error getting user info for {message['user']}: {e}")
-                    message["user_name"] = "Unknown User"
-                    
-            if "text" in message:
-                message["text"] = format_slack_message(message["text"], include_metadata=False)
-                
-        return {"success": True, "messages": messages}
-    except SlackApiError as e:
-        logger.error(f"Error getting thread replies: {e}")
-        return {"success": False, "error": str(e)}
+    return channel_id, None
 
 def list_slack_channels() -> Dict[str, Any]:
     """
     Lists all channels in the Slack workspace.
     
-    Retrieves a list of all public and private channels that the bot has access to.
+    Use this tool to get information about all channels the bot has access to.
     First attempts to retrieve from Supabase cache for faster response, then falls 
     back to the Slack API if needed.
     
     Returns:
-        A dictionary containing the list of channels or error information.
+        A dictionary containing:
+        - 'success': Boolean indicating if the operation succeeded
+        - 'channels_markdown': Markdown-formatted channel list if from Supabase
+        - 'channels': List of channel objects if from API
+        - 'source': Where the data came from ('supabase' or 'api')
+        - 'error': Error message if unsuccessful
     """
     # First try to get from Supabase
     channels_markdown = get_slack_context_from_supabase('slack_channels')
@@ -408,55 +274,83 @@ def list_slack_channels() -> Dict[str, Any]:
         logger.error(f"Error listing channels: {e}")
         return {"success": False, "error": str(e)}
 
-def update_slack_message(channel: str, message_ts: str, new_message: str) -> Dict[str, Any]:
+# ========== USER OPERATIONS ==========
+
+def get_bot_user_id() -> Dict[str, Any]:
     """
-    Updates an existing message in a Slack channel.
+    Get the bot user ID using the Slack API.
     
-    Modifies the content of a previously sent message, identified by its
-    timestamp in the specified channel.
+    Use this tool to identify the bot's own user ID, which is needed for 
+    identifying the bot's messages and handling mentions.
     
-    Args:
-        channel: The channel name or ID. If providing a name (without #), 
-                it will be converted to an ID automatically.
-        message_ts: The timestamp of the message to update.
-        new_message: The new text content for the message.
-        
     Returns:
-        A dictionary containing the response from the Slack API or error information.
+        Dictionary containing:
+        - 'success': Boolean indicating if the operation succeeded
+        - 'user_id': The bot's user ID if successful
+        - 'error': Error message if unsuccessful
     """
     try:
-        # Check if channel is an ID (starts with C or D or G)
-        if not (channel.startswith('C') or channel.startswith('D') or channel.startswith('G')):
-            # It's a name, convert to ID
-            channel_id = get_channel_id(channel)
-            if not channel_id:
-                return {
-                    "success": False, 
-                    "error": f"Channel '{channel}' not found. Make sure the bot is added to the channel."
-                }
-        else:
-            channel_id = channel
-            
-        response = client.chat_update(
-            channel=channel_id,
-            ts=message_ts,
-            text=new_message
-        )
-        return {"success": True, "response": response}
+        response = client.auth_test()
+        return {
+            "success": True,
+            "user_id": response["user_id"]
+        }
     except SlackApiError as e:
-        logger.error(f"Error updating message: {e}")
+        logger.error(f"Error getting bot user ID: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+def get_slack_bot_info() -> Dict[str, Any]:
+    """
+    Retrieves detailed information about the Slack bot.
+    
+    Use this tool to get comprehensive information about the bot itself,
+    including its user ID, name, and profile details.
+    
+    Returns:
+        A dictionary containing:
+        - 'success': Boolean indicating if the operation succeeded
+        - 'bot_id': The bot's user ID
+        - 'name': The bot's display name
+        - 'info': Full bot profile information
+        - 'error': Error message if unsuccessful
+    """
+    try:
+        # Get auth info which includes the bot's user ID
+        auth_response = client.auth_test()
+        user_id = auth_response["user_id"]
+        bot_name = auth_response["user"]
+        
+        # Get more detailed information about the bot
+        bot_info = client.users_info(user=user_id)
+        
+        return {
+            "success": True,
+            "bot_id": user_id,
+            "name": bot_name,
+            "info": bot_info["user"]
+        }
+    except SlackApiError as e:
+        logger.error(f"Error getting bot info: {e}")
         return {"success": False, "error": str(e)}
 
 def list_slack_users() -> Dict[str, Any]:
     """
     Lists all users in the Slack workspace.
     
-    Retrieves information about all users in the workspace. First attempts to
-    retrieve from Supabase cache for faster response, then falls back to the
-    Slack API if needed.
+    Use this tool to get information about all users in the workspace.
+    First attempts to retrieve from Supabase cache for faster response,
+    then falls back to the Slack API if needed.
     
     Returns:
-        A dictionary containing the list of users or error information.
+        A dictionary containing:
+        - 'success': Boolean indicating if the operation succeeded
+        - 'users_markdown': Markdown-formatted user list if from Supabase
+        - 'users': List of user objects if from API
+        - 'source': Where the data came from ('supabase' or 'api')
+        - 'error': Error message if unsuccessful
     """
     # First try to get from Supabase
     users_markdown = get_slack_context_from_supabase('slack_users')
@@ -490,18 +384,171 @@ def list_slack_users() -> Dict[str, Any]:
         logger.error(f"Error listing users: {e}")
         return {"success": False, "error": str(e)}
 
-def format_slack_system_message(message_text: str) -> str:
+# ========== MESSAGE OPERATIONS ==========
+
+def send_slack_message(channel: str, message: str) -> Dict[str, Any]:
     """
-    Format a Slack system message, specifically for messages like "<@USER_ID> has joined the channel".
-    This is optimized for system notifications rather than general user messages.
+    Sends a message to a Slack channel.
+    
+    Use this tool when you need to post a new message to a Slack channel
+    using the bot's identity.
     
     Args:
-        message_text: The text of the system message
+        channel: The channel name or ID. If providing a name (without #), 
+                it will be converted to an ID automatically.
+        message: The text content of the message to send.
         
     Returns:
-        The formatted system message with user IDs replaced by names
+        A dictionary containing:
+        - 'success': Boolean indicating if the operation succeeded
+        - 'response': API response if successful
+        - 'error': Error message if unsuccessful
     """
-    return replace_user_ids_with_names(message_text)
+    channel_id, error = resolve_channel_id(channel)
+    if error:
+        return {"success": False, "error": error}
+            
+    try:
+        response = client.chat_postMessage(
+            channel=channel_id,
+            text=message
+        )
+        return {"success": True, "response": response}
+    except SlackApiError as e:
+        logger.error(f"Error sending message: {e}")
+        return {"success": False, "error": str(e)}
+
+def update_slack_message(channel: str, message_ts: str, new_message: str) -> Dict[str, Any]:
+    """
+    Updates an existing message in a Slack channel.
+    
+    Use this tool when you need to modify a previously sent message,
+    identified by its timestamp in the specified channel.
+    
+    Args:
+        channel: The channel name or ID. If providing a name (without #), 
+                it will be converted to an ID automatically.
+        message_ts: The timestamp of the message to update.
+        new_message: The new text content for the message.
+        
+    Returns:
+        A dictionary containing:
+        - 'success': Boolean indicating if the operation succeeded
+        - 'response': API response if successful
+        - 'error': Error message if unsuccessful
+    """
+    channel_id, error = resolve_channel_id(channel)
+    if error:
+        return {"success": False, "error": error}
+            
+    try:
+        response = client.chat_update(
+            channel=channel_id,
+            ts=message_ts,
+            text=new_message
+        )
+        return {"success": True, "response": response}
+    except SlackApiError as e:
+        logger.error(f"Error updating message: {e}")
+        return {"success": False, "error": str(e)}
+
+def get_slack_channel_history(channel: str, limit: int = 100) -> Dict[str, Any]:
+    """
+    Retrieves message history from a Slack channel.
+    
+    Use this tool when you need to understand conversation context or
+    analyze recent messages in a channel.
+    
+    Args:
+        channel: The channel name or ID. If providing a name (without #), 
+                it will be converted to an ID automatically.
+        limit: Maximum number of messages to return (default: 100).
+        
+    Returns:
+        A dictionary containing:
+        - 'success': Boolean indicating if the operation succeeded
+        - 'messages': List of message objects with user names and formatted text
+        - 'error': Error message if unsuccessful
+    """
+    channel_id, error = resolve_channel_id(channel)
+    if error:
+        return {"success": False, "error": error}
+            
+    try:
+        response = client.conversations_history(
+            channel=channel_id,
+            limit=limit
+        )
+        
+        # Process messages to replace user IDs with names
+        messages = response["messages"]
+        for message in messages:
+            if "user" in message:
+                try:
+                    user_info = client.users_info(user=message["user"])
+                    user_name = user_info["user"].get("real_name") or user_info["user"].get("name", "Unknown User")
+                    message["user_name"] = user_name
+                except SlackApiError as e:
+                    logger.error(f"Error getting user info for {message['user']}: {e}")
+                    message["user_name"] = "Unknown User"
+                    
+            if "text" in message:
+                message["text"] = format_slack_message(message["text"], include_metadata=False)
+                
+        return {"success": True, "messages": messages}
+    except SlackApiError as e:
+        logger.error(f"Error getting channel history: {e}")
+        return {"success": False, "error": str(e)}
+
+def get_slack_thread_replies(channel: str, thread_ts: str, limit: int = 100) -> Dict[str, Any]:
+    """
+    Retrieves replies to a thread in a Slack channel.
+    
+    Use this tool when you need to get all messages in a specific thread,
+    identified by the parent message's timestamp.
+    
+    Args:
+        channel: The channel name or ID. If providing a name (without #), 
+                it will be converted to an ID automatically.
+        thread_ts: The timestamp of the parent message that started the thread.
+        limit: Maximum number of replies to return (default: 100).
+        
+    Returns:
+        A dictionary containing:
+        - 'success': Boolean indicating if the operation succeeded
+        - 'messages': List of message objects with user names and formatted text
+        - 'error': Error message if unsuccessful
+    """
+    channel_id, error = resolve_channel_id(channel)
+    if error:
+        return {"success": False, "error": error}
+            
+    try:
+        response = client.conversations_replies(
+            channel=channel_id,
+            ts=thread_ts,
+            limit=limit
+        )
+        
+        # Process messages to replace user IDs with names
+        messages = response["messages"]
+        for message in messages:
+            if "user" in message:
+                try:
+                    user_info = client.users_info(user=message["user"])
+                    user_name = user_info["user"].get("real_name") or user_info["user"].get("name", "Unknown User")
+                    message["user_name"] = user_name
+                except SlackApiError as e:
+                    logger.error(f"Error getting user info for {message['user']}: {e}")
+                    message["user_name"] = "Unknown User"
+                    
+            if "text" in message:
+                message["text"] = format_slack_message(message["text"], include_metadata=False)
+                
+        return {"success": True, "messages": messages}
+    except SlackApiError as e:
+        logger.error(f"Error getting thread replies: {e}")
+        return {"success": False, "error": str(e)}
 
 # Export the functions for direct import
 __all__ = [
@@ -517,5 +564,6 @@ __all__ = [
     'get_slack_context_from_supabase',
     'replace_user_ids_with_names',
     'format_slack_message',
-    'format_slack_system_message'
+    'format_slack_system_message',
+    'resolve_channel_id'
 ]
