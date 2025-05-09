@@ -4,6 +4,7 @@ import logging
 import ssl
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
+from ..Database import Database
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -17,6 +18,30 @@ ssl_context.verify_mode = ssl.CERT_NONE
 # Initialize Slack client with SSL verification disabled
 slack_token = os.getenv("SLACK_BOT_TOKEN")
 client = WebClient(token=slack_token, ssl=ssl_context)
+
+def get_slack_context_from_supabase(context_type: str) -> Optional[str]:
+    """
+    Retrieve saved Slack context from Supabase
+    
+    Args:
+        context_type: The type of context to retrieve ('slack_users' or 'slack_channels')
+        
+    Returns:
+        The saved context as markdown string if found, None otherwise
+    """
+    try:
+        db = Database().client
+        result = db.table('saved_context') \
+            .select('body') \
+            .eq('type', context_type) \
+            .order('"created_at"', desc=True) \
+            .limit(1) \
+            .execute()
+        
+        return result.data[0]['body'] if result.data else None
+    except Exception as e:
+        logger.error(f"Error retrieving {context_type} from Supabase: {e}")
+        return None
 
 def get_bot_user_id():
     """
@@ -199,10 +224,21 @@ def get_slack_thread_replies(channel: str, thread_ts: str, limit: int = 100) -> 
 def list_slack_channels() -> Dict[str, Any]:
     """
     Lists all channels in the Slack workspace.
+    First tries to retrieve from Supabase cache, falls back to Slack API if needed.
     
     Returns:
         A dictionary containing the list of channels.
     """
+    # First try to get from Supabase
+    channels_markdown = get_slack_context_from_supabase('slack_channels')
+    if channels_markdown:
+        return {
+            "success": True, 
+            "channels_markdown": channels_markdown,
+            "source": "supabase"
+        }
+    
+    # Fall back to Slack API
     try:
         channels = []
         # Get public channels
@@ -229,7 +265,7 @@ def list_slack_channels() -> Dict[str, Any]:
             for channel in channels
         ]
         
-        return {"success": True, "channels": formatted_channels}
+        return {"success": True, "channels": formatted_channels, "source": "api"}
     except SlackApiError as e:
         logger.error(f"Error listing channels: {e}")
         return {"success": False, "error": str(e)}
@@ -270,6 +306,46 @@ def update_slack_message(channel: str, message_ts: str, new_message: str) -> Dic
         logger.error(f"Error updating message: {e}")
         return {"success": False, "error": str(e)}
 
+def list_slack_users() -> Dict[str, Any]:
+    """
+    Lists all users in the Slack workspace.
+    First tries to retrieve from Supabase cache, falls back to Slack API if needed.
+    
+    Returns:
+        A dictionary containing the list of users.
+    """
+    # First try to get from Supabase
+    users_markdown = get_slack_context_from_supabase('slack_users')
+    if users_markdown:
+        return {
+            "success": True, 
+            "users_markdown": users_markdown,
+            "source": "supabase"
+        }
+    
+    # Fall back to Slack API
+    try:
+        response = client.users_list()
+        
+        # Format the users to include name and ID
+        formatted_users = [
+            {
+                "id": user["id"],
+                "name": user["name"],
+                "real_name": user.get("real_name", ""),
+                "email": user.get("profile", {}).get("email", ""),
+                "is_bot": user.get("is_bot", False),
+                "is_admin": user.get("is_admin", False)
+            }
+            for user in response["members"]
+            if not user.get("deleted", False)  # Filter out deleted users
+        ]
+        
+        return {"success": True, "users": formatted_users, "source": "api"}
+    except SlackApiError as e:
+        logger.error(f"Error listing users: {e}")
+        return {"success": False, "error": str(e)}
+
 # Export the functions for direct import
 __all__ = [
     'get_bot_user_id',
@@ -279,5 +355,7 @@ __all__ = [
     'get_slack_channel_history',
     'get_slack_thread_replies',
     'list_slack_channels',
-    'update_slack_message'
+    'list_slack_users',
+    'update_slack_message',
+    'get_slack_context_from_supabase'
 ]

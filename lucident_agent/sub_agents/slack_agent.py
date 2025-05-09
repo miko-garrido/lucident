@@ -51,8 +51,13 @@ slack_agent = Agent(
     - Send messages to channels
     - Get channel message history
     - Get thread replies
-    - List available channels
+    - List available channels (using cached data from Supabase when available)
+    - List workspace users (using cached data from Supabase when available)
     - Update existing messages
+    
+    When listing channels or users, I'll first check Supabase for cached information.
+    If available, I'll return the cached markdown-formatted data.
+    Otherwise, I'll fetch the data directly from the Slack API.
     
     I also have general utility tools for time, date calculations, and basic arithmetic.
     """,
