@@ -181,3 +181,5 @@ test_slack.py
 
 # Cursor MCP config
 .cursor/mcp.json
+
+my_agent_data.db
