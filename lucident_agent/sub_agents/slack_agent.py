@@ -23,6 +23,7 @@ from lucident_agent.tools.basic_tools import (
     calculate_date,
     convert_ms_to_hhmmss
 )
+from lucident_agent.utils.context_saver import fetch_context_from_supabase
 
 load_dotenv()
 
@@ -32,13 +33,17 @@ GEMINI_MODEL = Config.GEMINI_MODEL
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Fetch Slack context from Supabase
+slack_users = fetch_context_from_supabase("slack_users")
+slack_channels = fetch_context_from_supabase("slack_channels")
+
 # Create the root agent
 slack_agent = Agent(
     name="slack_agent",
     model=LiteLlm(model=OPENAI_MODEL),
     #model=GEMINI_MODEL,
     description="A Slack assistant that can read and respond to messages in channels",
-    instruction="""
+    instruction=f"""
     I am a Slack assistant that can read and respond to messages in Slack channels.
     I can send messages, read message history, get thread replies, and list available channels.
     
@@ -61,6 +66,16 @@ slack_agent = Agent(
     Otherwise, I'll fetch the data directly from the Slack API.
     
     I also have general utility tools for time, date calculations, and basic arithmetic.
+    
+    Below is the list of all users in the workspace:
+    ```
+    {slack_users}
+    ```
+    
+    Below is the list of all channels in the workspace:
+    ```
+    {slack_channels}
+    ```
     """,
     tools=[
         # Slack tools

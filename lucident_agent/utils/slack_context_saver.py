@@ -11,6 +11,7 @@ from lucident_agent.tools.slack_tools import (
 )
 from lucident_agent.Database import Database
 import logging
+import argparse
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -108,9 +109,9 @@ def format_slack_channels_markdown():
     
     return "\n".join(lines)
 
-def main():
+def save_slack_context():
     """
-    Main function to save Slack context to Supabase
+    Save Slack context to Supabase (without deleting previous records)
     """
     # Format the data
     users_markdown = format_slack_users_markdown()
@@ -130,5 +131,35 @@ def main():
     logger.info(f"Saved {len(users_response.data)} Slack users record to Supabase")
     logger.info(f"Saved {len(channels_response.data)} Slack channels record to Supabase")
 
+def refresh_slack_context():
+    """
+    Force refresh the Slack context in Supabase by deleting existing records first
+    """
+    logger.info("Deleting existing Slack context data...")
+    
+    # Delete existing slack context records
+    delete_channels = db.table("saved_context").delete().eq("type", "slack_channels").execute()
+    delete_users = db.table("saved_context").delete().eq("type", "slack_users").execute()
+    
+    logger.info(f"Deleted {len(delete_channels.data)} channel records")
+    logger.info(f"Deleted {len(delete_users.data)} user records")
+    
+    logger.info("Saving fresh Slack context...")
+    save_slack_context()
+    logger.info("Done! Slack context has been refreshed in Supabase.")
+
+def main():
+    """
+    Main function to save Slack context to Supabase
+    """
+    save_slack_context()
+
 if __name__ == "__main__":
-    main() 
+    parser = argparse.ArgumentParser(description='Save or refresh Slack context in Supabase')
+    parser.add_argument('--refresh', action='store_true', help='Delete existing records before saving new ones')
+    args = parser.parse_args()
+    
+    if args.refresh:
+        refresh_slack_context()
+    else:
+        main() 

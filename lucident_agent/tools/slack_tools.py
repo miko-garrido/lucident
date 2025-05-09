@@ -148,11 +148,15 @@ def get_channel_id(channel_name: str) -> Optional[str]:
     Get a channel ID from its name.
     
     Args:
-        channel_name: The name of the channel (without the # symbol).
+        channel_name: The name of the channel (with or without the # symbol).
         
     Returns:
         The channel ID if found, None otherwise.
     """
+    # Remove # if present
+    if channel_name.startswith('#'):
+        channel_name = channel_name[1:]
+        
     try:
         # First try public channels
         response = client.conversations_list(types="public_channel")
