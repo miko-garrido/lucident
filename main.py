@@ -23,14 +23,14 @@ TIMEZONE = Config.TIMEZONE
 
 db_url = os.getenv("SUPABASE_DB_URL")
 
-generated_session_id = str(uuid.uuid4())
+# generated_session_id = str(uuid.uuid4())
 
-session_service = DatabaseSessionService(db_url=db_url)
-session = session_service.create_session(
-    app_name=APP_NAME,
-    user_id=USER_ID,
-    session_id=generated_session_id
-)
+# session_service = DatabaseSessionService(db_url=db_url)
+# session = session_service.create_session(
+#     app_name=APP_NAME,
+#     user_id=USER_ID,
+#     session_id=generated_session_id
+# )
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 SESSION_DB_URL = db_url
