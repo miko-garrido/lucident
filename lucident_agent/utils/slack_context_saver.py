@@ -6,8 +6,7 @@ from lucident_agent.tools.slack_tools import (
     list_slack_users, 
     list_slack_channels, 
     get_bot_user_id, 
-    get_slack_bot_info,
-    get_slack_context_from_supabase
+    get_slack_bot_info
 )
 from lucident_agent.Database import Database
 import logging
