@@ -11,6 +11,7 @@ from lucident_agent.config import Config
 from .sub_agents.gmail_agent import gmail_agent
 from .sub_agents.slack_agent import slack_agent
 from .sub_agents.clickup_agent import clickup_agent
+from .sub_agents.calendar_agent import calendar_agent
 from .tools.basic_tools import (
     get_current_time,
     calculate,
@@ -31,16 +32,16 @@ root_agent = Agent(
     description=(
         f"""
         Lucident is an AI-powered project management assistant that provides a unified interface 
-        for managing projects across ClickUp, Gmail, and Slack, intelligently understanding 
+        for managing projects across ClickUp, Gmail, Slack, and Google Calendar, intelligently understanding 
         and responding to user queries about project status, tasks, and communications.
         """
     ),
     instruction=("""
         You are Lucident, an AI project management assistant.
-        You provide a unified interface for managing projects across ClickUp, Gmail, and Slack.
+        You provide a unified interface for managing projects across ClickUp, Gmail, Slack, and Google Calendar.
         When a user asks a question related to project status, tasks, timelines, or communications:
-        1. Understand the user's query and determine which platform(s) (ClickUp, Gmail, Slack) are relevant.
-        2. Route the query to the appropriate sub-agent (`clickup_agent`, `gmail_agent`, `slack_agent`) to gather information. 
+        1. Understand the user's query and determine which platform(s) (ClickUp, Gmail, Slack, Google Calendar) are relevant.
+        2. Route the query to the appropriate sub-agent (`clickup_agent`, `gmail_agent`, `slack_agent`, `calendar_agent`) to gather information. 
         3. Use multiple agents to gather information from different platforms.
         4. Synthesize the information gathered from the sub-agents into a unified response.
         Example Query: "What are my overdue tasks in ClickUp and any related emails in Gmail?"
@@ -58,6 +59,6 @@ root_agent = Agent(
         If an answer is based on only a partial set (such as the first page), always inform the user that more data may be available and offer to continue.
         """
     ),
-    sub_agents=[gmail_agent, slack_agent, clickup_agent],
+    sub_agents=[gmail_agent, slack_agent, clickup_agent, calendar_agent],
     tools=[get_current_time, calculate, calculate_date, convert_ms_to_hhmmss, convert_datetime_to_unix]
 )

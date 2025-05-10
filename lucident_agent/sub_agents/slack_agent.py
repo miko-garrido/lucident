@@ -1,8 +1,14 @@
+"""
+Slack agent module.
+
+This module provides the main Slack agent for the Lucident system.
+"""
+
 from google.adk.agents import Agent
-# from google.adk.models.lite_llm import LiteLlm # Original ADK import
-from ..adk_patch.lite_llm_patched import LiteLlm # Using patched ADK LiteLlm for parallel tool calls fix
-from google.genai import types # For creating message Content/Parts
-from dotenv import load_dotenv  
+# from google.adk.models.lite_llm import LiteLlm  # Original ADK import
+from ..adk_patch.lite_llm_patched import LiteLlm  # Using patched ADK LiteLlm for parallel tool calls fix
+from google.genai import types
+from dotenv import load_dotenv
 from lucident_agent.config import Config
 from lucident_agent.tools.slack_tools import (
     get_bot_user_id,
@@ -14,9 +20,6 @@ from lucident_agent.tools.slack_tools import (
     list_slack_users,
     update_slack_message
 )
-import os
-import logging
-from typing import Dict, Any, Optional
 from lucident_agent.tools.basic_tools import (
     get_current_time,
     calculate,
@@ -24,6 +27,7 @@ from lucident_agent.tools.basic_tools import (
     convert_ms_to_hhmmss
 )
 from lucident_agent.utils.context_saver import fetch_context_from_supabase
+import logging
 
 load_dotenv()
 
@@ -37,7 +41,7 @@ logger = logging.getLogger(__name__)
 slack_users = fetch_context_from_supabase("slack_users")
 slack_channels = fetch_context_from_supabase("slack_channels")
 
-# Create the root agent
+# Create the Slack agent instance
 slack_agent = Agent(
     name="slack_agent",
     model=LiteLlm(model=OPENAI_MODEL),

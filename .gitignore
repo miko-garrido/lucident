@@ -183,3 +183,4 @@ test_slack.py
 .cursor/mcp.json
 
 my_agent_data.db
+.DS_Store
