@@ -21,7 +21,7 @@ USER_ID = Config.USER_ID
 SESSION_ID = Config.SESSION_ID
 TIMEZONE = Config.TIMEZONE
 
-db_url = "postgresql://postgres.roarealhyasbrbnovyho:bXjmdvmxOIdJEElv@aws-0-us-east-2.pooler.supabase.com:5432/postgres?sslmode=require"
+db_url = os.getenv("SUPABASE_DB_URL")
 
 generated_session_id = str(uuid.uuid4())
 
