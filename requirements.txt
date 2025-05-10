@@ -30,3 +30,6 @@ pytest
 python-dotenv
 tenacity
 typing-extensions
+
+# Database
+psycopg2-binary
