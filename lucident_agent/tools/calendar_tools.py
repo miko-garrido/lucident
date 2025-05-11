@@ -851,6 +851,24 @@ def delete_calendar_event(account_id: str, event_id: str) -> CalendarAccountResp
             data=None
         )
 
+def format_event_with_link(event: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Formats a calendar event to include a clickable hyperlink.
+    
+    Args:
+        event (Dict[str, Any]): The calendar event data.
+        
+    Returns:
+        Dict[str, Any]: The event data with a formatted link added.
+    """
+    formatted_event = event.copy()
+    
+    # Extract the htmlLink if it exists
+    if 'htmlLink' in event:
+        formatted_event['link'] = event['htmlLink']
+    
+    return formatted_event
+
 def get_calendar_event(account_id: str, event_id: str) -> CalendarAccountResponse:
     """Get details of a specific event from the user's primary calendar."""
     logger.info(f"Getting calendar event {event_id} for account {account_id}")
@@ -872,11 +890,14 @@ def get_calendar_event(account_id: str, event_id: str) -> CalendarAccountRespons
                 eventId=event_id
             ))
             
+            # Format the event to include the link
+            formatted_event = format_event_with_link(event)
+            
             return CalendarAccountResponse(
                 status="success",
                 message=f"Event {event_id} retrieved successfully.",
                 error_message=None,
-                data={"event": event}
+                data={"event": formatted_event}
             )
         except HttpError as e:
             if e.resp.status == 404:

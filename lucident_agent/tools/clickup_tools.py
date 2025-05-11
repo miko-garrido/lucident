@@ -683,16 +683,16 @@ def get_tasks_from_list(list_id: str, archived: Optional[bool] = False,
               parent: Optional[str] = None, include_subtasks: Optional[bool] = None # Deprecated
               ) -> Dict[str, Any]:
     """
-    Gets tasks from a specific List, with extensive filtering options.
+    Gets tasks from a specific List.
     
     Args:
-        list_id (str): The ID of the List to get tasks from.
-        archived (Optional[bool]): True includes ONLY archived tasks. False includes ONLY tasks not archived (default: False).
+        list_id (str): The ID of the List.
+        archived (Optional[bool]): Include archived tasks (optional). Defaults to False.
         include_markdown_description (Optional[bool]): Return description in Markdown format (optional).
         page (Optional[int]): Page number for pagination (optional).
         order_by (Optional[str]): Field to order tasks by (e.g., 'due_date', 'priority') (optional).
         reverse (Optional[bool]): Reverse the order of tasks (optional).
-        subtasks (Optional[bool]): Include subtasks (True) or exclude subtasks (False) (optional). Defaults to True.
+        subtasks (Optional[bool]): Include subtasks (true), exclude subtasks (false), or include both tasks and subtasks ('true_all') (optional).
         space_ids (Optional[List[str]]): Filter by Space IDs (optional).
         project_ids (Optional[List[str]]): Filter by Folder IDs (previously Projects) (optional).
         list_ids (Optional[List[str]]): Filter by List IDs (optional).
@@ -709,13 +709,12 @@ def get_tasks_from_list(list_id: str, archived: Optional[bool] = False,
         date_done_gt (Optional[int]): Filter by completion date greater than (Unix time in ms) (optional).
         date_done_lt (Optional[int]): Filter by completion date less than (Unix time in ms) (optional).
         custom_fields (Optional[str]): Filter by custom fields (JSON string) (optional). Example: '[{"field_id":"...", "operator":"=", "value":"..."}]'
-        custom_items (Optional[List[int]]): Filter by Custom Task Types. Including 0 returns tasks. Including 1 returns milestones. Including other numbers returns custom task types (provide IDs) (optional).
+        custom_items (Optional[List[int]]): Filter by Custom Task Types (provide IDs) (optional).
         parent (Optional[str]): Filter by parent task ID (optional).
-        include_subtasks (Optional[bool]): Deprecated alias for `subtasks` (optional).
+        include_subtasks (Optional[bool]): DEPRECATED - use subtasks parameter instead. Include subtasks or not. Defaults to None.
 
     Returns:
-        Dict[str, Any]: A dictionary containing the list of tasks under the 'tasks' key matching the criteria,
-                        or an error dictionary if the request fails.
+        Dict[str, Any]: A dictionary containing the tasks matching the criteria for the list.
     """
     # Reference: https://developer.clickup.com/reference/gettasks
     api = ClickUpAPI()
@@ -768,11 +767,17 @@ def get_tasks_from_list(list_id: str, archived: Optional[bool] = False,
         params["custom_items[]"] = custom_items
     if parent:
         params["parent"] = parent
-    # Handle deprecated include_subtasks if subtasks not set
-    if include_subtasks is not None and subtasks is None:
-        params["subtasks"] = str(include_subtasks).lower() # Map to subtasks
+    if include_subtasks is not None:
+        logging.warning("The include_subtasks parameter is deprecated. Use the subtasks parameter instead.")
+        params["subtasks"] = str(include_subtasks).lower()
 
-    return api._make_request("GET", endpoint, params=params)
+    response = api._make_request("GET", endpoint, params=params)
+    
+    # Add links to tasks in the response
+    if isinstance(response, dict) and "tasks" in response:
+        response["tasks"] = [add_link_to_task(task) for task in response["tasks"]]
+    
+    return response
 
 def get_task(task_id: str, include_subtasks: Optional[bool] = None,
              include_markdown_description: Optional[bool] = None, custom_task_ids: Optional[bool] = None, team_id: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
@@ -806,7 +811,13 @@ def get_task(task_id: str, include_subtasks: Optional[bool] = None,
         params["custom_task_ids"] = "true"
         params["team_id"] = team_id
 
-    return api._make_request("GET", endpoint, params=params)
+    response = api._make_request("GET", endpoint, params=params)
+    
+    # Add link to the task
+    if isinstance(response, dict) and "error_code" not in response:
+        response = add_link_to_task(response)
+    
+    return response
 
 def get_filtered_team_tasks(team_id: str = CLICKUP_TEAM_ID, page: Optional[int] = None,
                              order_by: Optional[str] = None, reverse: Optional[bool] = None,
@@ -1633,6 +1644,7 @@ def get_many_tasks(task_ids: List[str]) -> Dict[str, Any]:
             task_id = future_to_task_id[future]
             try:
                 result = future.result()
+                # No need to add link here as get_task already does it
                 results.append(result)
             except Exception as exc:
                 logging.error(f'Task {task_id} generated an exception during fetch: {exc}', exc_info=True)
@@ -1898,3 +1910,31 @@ def get_all_users(team_id: str = CLICKUP_TEAM_ID) -> List[Dict[str, Any]]:
     api = ClickUpAPI()
     endpoint = f"/v2/team/{team_id}"
     return api._make_request("GET", endpoint)
+
+def create_clickup_task_link(task_id: str) -> str:
+    """
+    Creates a direct link to a ClickUp task.
+    
+    Args:
+        task_id (str): The ID of the task.
+        
+    Returns:
+        str: URL to the task in ClickUp UI.
+    """
+    return f"https://app.clickup.com/t/{task_id}"
+
+def add_link_to_task(task: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Adds a link to a task dictionary.
+    
+    Args:
+        task (Dict[str, Any]): The task data.
+        
+    Returns:
+        Dict[str, Any]: The task data with a link added.
+    """
+    if task and isinstance(task, dict) and 'id' in task:
+        task_copy = task.copy()
+        task_copy['link'] = create_clickup_task_link(task['id'])
+        return task_copy
+    return task

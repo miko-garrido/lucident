@@ -61,23 +61,80 @@ def get_headers(access_token: str):
     """Return headers for Figma API requests."""
     return {'X-Figma-Token': access_token}
 
+def create_figma_link(file_id: str, node_id: Optional[str] = None) -> str:
+    """
+    Create a URL to a Figma file or node.
+    
+    Args:
+        file_id (str): The Figma file ID
+        node_id (Optional[str]): The node ID within the file, if applicable
+        
+    Returns:
+        str: URL to the Figma file or node
+    """
+    base_url = f"https://www.figma.com/file/{file_id}"
+    if node_id:
+        return f"{base_url}?node-id={node_id}"
+    return base_url
+
 def fetch_file(file_id: str):
+    """
+    Fetch a Figma file with its metadata.
+    
+    Args:
+        file_id (str): The Figma file ID
+        
+    Returns:
+        dict: The file data with an added 'link' field
+    """
     access_token = get_access_token()
     url = f'https://api.figma.com/v1/files/{file_id}'
     headers = get_headers(access_token)
-    return requests.get(url, headers=headers).json()
+    response = requests.get(url, headers=headers).json()
+    
+    # Add link to the file
+    if 'err' not in response:
+        response['link'] = create_figma_link(file_id)
+    
+    return response
 
 def list_projects(team_id: str):
+    """
+    List all projects for a team.
+    
+    Args:
+        team_id (str): The team ID
+        
+    Returns:
+        dict: Projects data
+    """
     access_token = get_access_token()
     url = f'https://api.figma.com/v1/teams/{team_id}/projects'
     headers = get_headers(access_token)
     return requests.get(url, headers=headers).json()
 
 def list_files(project_id: str):
+    """
+    List all files in a project.
+    
+    Args:
+        project_id (str): The project ID
+        
+    Returns:
+        dict: Files data with added links
+    """
     access_token = get_access_token()
     url = f'https://api.figma.com/v1/projects/{project_id}/files'
     headers = get_headers(access_token)
-    return requests.get(url, headers=headers).json()
+    response = requests.get(url, headers=headers).json()
+    
+    # Add links to each file
+    if 'err' not in response and 'files' in response:
+        for file in response['files']:
+            if 'key' in file:
+                file['link'] = create_figma_link(file['key'])
+    
+    return response
 
 # --- Node Traversal ---
 def traverse_nodes(node: dict, node_type: Optional[str] = None):
@@ -100,11 +157,30 @@ def export_asset(access_token: str, file_id: str, node_id: str, format: str = 'p
 
 # --- Comment Handling ---
 def fetch_comments(file_id: str):
-    """Fetch comments for a file."""
+    """
+    Fetch comments for a file.
+    
+    Args:
+        file_id (str): The file ID
+        
+    Returns:
+        dict: Comments data with added links
+    """
     access_token = get_access_token()
     url = f'https://api.figma.com/v1/files/{file_id}/comments'
     headers = get_headers(access_token)
-    return requests.get(url, headers=headers).json()
+    response = requests.get(url, headers=headers).json()
+    
+    # Add links to each comment that references a node
+    if 'err' not in response and 'comments' in response:
+        for comment in response['comments']:
+            if 'client_meta' in comment and comment['client_meta'] and 'node_id' in comment['client_meta']:
+                node_id = comment['client_meta']['node_id']
+                comment['link'] = create_figma_link(file_id, node_id)
+            else:
+                comment['link'] = create_figma_link(file_id)
+    
+    return response
 
 def post_comment(access_token: str, file_id: str, message: str, node_id: Optional[str] = None):
     """Post a comment, optionally linked to a node."""

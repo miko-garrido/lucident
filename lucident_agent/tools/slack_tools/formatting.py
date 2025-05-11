@@ -50,6 +50,30 @@ def replace_user_ids_with_names(message_text: str) -> str:
     
     return message_text
 
+def create_slack_message_link(workspace_id: str, channel_id: str, message_ts: str, thread_ts: str = None) -> str:
+    """
+    Create a direct link to a Slack message.
+    
+    Args:
+        workspace_id: The workspace/team ID (T...)
+        channel_id: The channel ID (C...)
+        message_ts: The message timestamp 
+        thread_ts: The thread timestamp (if message is in a thread)
+        
+    Returns:
+        URL to the message in Slack web client
+    """
+    # Convert timestamp format by replacing dots with underscores
+    formatted_message_ts = message_ts.replace(".", "_")
+    
+    # If it's a thread message
+    if thread_ts:
+        formatted_thread_ts = thread_ts.replace(".", "_")
+        return f"https://app.slack.com/client/{workspace_id}/{channel_id}/thread/{formatted_thread_ts}?thread_ts={formatted_thread_ts}&ts={formatted_message_ts}"
+    
+    # If it's a regular message
+    return f"https://app.slack.com/client/{workspace_id}/{channel_id}/p{formatted_message_ts}"
+
 def format_slack_message(message_text: str, include_metadata: bool = False) -> str:
     """
     Format a Slack message by replacing user IDs with names and cleaning up Slack-specific formatting.
