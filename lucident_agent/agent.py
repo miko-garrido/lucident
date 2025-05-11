@@ -10,6 +10,7 @@ from .sub_agents.gmail_agent import gmail_agent
 from .sub_agents.slack_agent import slack_agent
 from .sub_agents.clickup_agent import clickup_agent
 from .sub_agents.calendar_agent import calendar_agent
+from .sub_agents.figma_agent import figma_agent
 from .tools.basic_tools import (
     get_current_time,
     calculate,
@@ -57,6 +58,6 @@ root_agent = Agent(
         If an answer is based on only a partial set (such as the first page), always inform the user that more data may be available and offer to continue.
         """
     ),
-    sub_agents=[gmail_agent, slack_agent, clickup_agent, calendar_agent],
+    sub_agents=[gmail_agent, slack_agent, clickup_agent, calendar_agent, figma_agent],
     tools=[get_current_time, calculate, calculate_date, convert_ms_to_hhmmss, convert_datetime_to_unix]
 )
