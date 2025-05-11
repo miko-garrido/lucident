@@ -57,12 +57,12 @@ def format_slack_users_markdown():
     lines = []
     for user in users_data.get("users", []):
         lines.extend([
-            f"*{user['name']}*",
-            f"- id: {user['id']}",
-            f"- real_name: {user['real_name']}",
-            f"- email: {user['email']}",
-            f"- is_bot: {user['is_bot']}",
-            f"- is_admin: {user['is_admin']}",
+            f"*{user.get('name', 'Unknown')}*",
+            f"- id: {user.get('id', '')}",
+            f"- real_name: {user.get('real_name', '')}",
+            f"- email: {user.get('email', '')}",
+            f"- is_bot: {user.get('is_bot', False)}",
+            f"- is_admin: {user.get('is_admin', False)}",
             ""  # blank line between users
         ])
     return "\n".join(lines)
@@ -89,9 +89,9 @@ def format_slack_channels_markdown():
     public_channels = [c for c in channels_data.get("channels", []) if not c.get("is_private", False)]
     if public_channels:
         for channel in public_channels:
-            lines.append(f"- **{channel['name']}** (_ID: {channel['id']})")
-            lines.append(f"  - members: {channel['num_members']}")
-            lines.append(f"  - archived: {channel['is_archived']}")
+            lines.append(f"- **{channel.get('name', 'Unknown')}** (_ID: {channel.get('id', '')})")
+            lines.append(f"  - members: {channel.get('num_members', 0)}")
+            lines.append(f"  - archived: {channel.get('is_archived', False)}")
     else:
         lines.append("- _None_")
     
@@ -100,9 +100,9 @@ def format_slack_channels_markdown():
     private_channels = [c for c in channels_data.get("channels", []) if c.get("is_private", False)]
     if private_channels:
         for channel in private_channels:
-            lines.append(f"- **{channel['name']}** (_ID: {channel['id']})")
-            lines.append(f"  - members: {channel['num_members']}")
-            lines.append(f"  - archived: {channel['is_archived']}")
+            lines.append(f"- **{channel.get('name', 'Unknown')}** (_ID: {channel.get('id', '')})")
+            lines.append(f"  - members: {channel.get('num_members', 0)}")
+            lines.append(f"  - archived: {channel.get('is_archived', False)}")
     else:
         lines.append("- _None_")
     
