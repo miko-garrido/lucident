@@ -1173,24 +1173,26 @@ def search_by_from(sender: str, account_id: str = "", max_results: int = 10) -> 
     )
     
 # Simplest possible function with explicit parameter and type annotation
-def search_by_subject(subject_text: str) -> GmailSearchResponse:
+def search_by_subject(subject_text: str, account_id: str = "", max_results: int = 10) -> GmailSearchResponse:
     """Search for emails with specific text in the subject.
     
     Args:
         subject_text: Text to search for in subject
+        account_id: Optional account ID to search in
+        max_results: Maximum number of results to return
         
     Returns:
         GmailSearchResponse: Contains matching messages and search info if successful
     """
     query = f"subject:{subject_text}"
-    result = _search_gmail_impl("default", query, 10)
+    result = _search_gmail_impl(account_id, query, max_results)
     return GmailSearchResponse(
         status=result["status"],
-        account="default",
+        account=account_id or "default",
         report=result.get("report", ""),
         emails=result.get("messages", []),
-        accounts_searched=["default"],
-        accounts_with_results=["default"] if result["status"] == "success" else [],
+        accounts_searched=[account_id] if account_id else [],
+        accounts_with_results=[account_id] if account_id and result["status"] == "success" else [],
         total_accounts=1
     )
 

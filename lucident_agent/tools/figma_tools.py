@@ -3,9 +3,19 @@ from typing import Optional, Dict
 from .figma_account_manager import FigmaAccountManager
 import time
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # --- Account Manager ---
 figma_account_manager = FigmaAccountManager()
+
+# --- Environment Variables ---
+def get_access_token() -> Optional[str]:
+    return os.getenv('FIGMA_PERSONAL_ACCESS_TOKEN')
+
+def get_team_id() -> Optional[str]:
+    return os.getenv('FIGMA_TEAM_ID')
 
 # --- OAuth Helpers ---
 def start_oauth_flow(client_id: str, client_secret: str, redirect_uri: str, scopes: str) -> str:
@@ -45,9 +55,6 @@ def refresh_token(client_id: str, client_secret: str, refresh_token: str) -> Dic
     resp = requests.post(url, data=data)
     resp.raise_for_status()
     return resp.json()
-
-def get_access_token() -> Optional[str]:
-    return os.getenv('FIGMA_PERSONAL_ACCESS_TOKEN')
 
 # --- Authentication & File Access ---
 def get_headers(access_token: str):
@@ -92,9 +99,12 @@ def export_asset(access_token: str, file_id: str, node_id: str, format: str = 'p
     pass
 
 # --- Comment Handling ---
-def fetch_comments(access_token: str, file_id: str):
+def fetch_comments(file_id: str):
     """Fetch comments for a file."""
-    pass
+    access_token = get_access_token()
+    url = f'https://api.figma.com/v1/files/{file_id}/comments'
+    headers = get_headers(access_token)
+    return requests.get(url, headers=headers).json()
 
 def post_comment(access_token: str, file_id: str, message: str, node_id: Optional[str] = None):
     """Post a comment, optionally linked to a node."""

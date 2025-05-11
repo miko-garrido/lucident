@@ -7,10 +7,12 @@ from lucident_agent.Database import Database
 import requests
 import logging
 from dotenv import load_dotenv
+import argparse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+load_dotenv()
 db = Database().client
 figma_account_manager = FigmaAccountManager()
 
@@ -37,6 +39,15 @@ def get_figma_projects(access_token, team_id):
         return resp.json().get("projects", [])
     return []
 
+def get_figma_files(project_id: str, access_token: str):
+    """Helper to get files for a project."""
+    headers = {"X-Figma-Token": access_token}
+    url = f"https://api.figma.com/v1/projects/{project_id}/files"
+    resp = requests.get(url, headers=headers)
+    if resp.status_code == 200:
+        return resp.json().get("files", [])
+    return []
+
 def format_figma_users_markdown():
     lines = []
     for user_id in figma_account_manager.get_all_account_ids():
@@ -55,40 +66,85 @@ def format_figma_users_markdown():
 
 def format_figma_projects_markdown():
     lines = []
+    team_id = os.getenv('FIGMA_TEAM_ID')
+    if not team_id:
+        logger.warning("FIGMA_TEAM_ID not found in .env")
+        return "No team ID configured"
+        
     for user_id in figma_account_manager.get_all_account_ids():
         creds = figma_account_manager.get_account_credentials(user_id)
         access_token = creds.get("access_token")
-        # You must provide team IDs manually or store them somewhere
-        # Example: team_ids = ["your_team_id1", "your_team_id2"]
-        team_ids = creds.get("team_ids", [])
-        for team_id in team_ids:
-            projects = get_figma_projects(access_token, team_id)
-            lines.append(f"**Team {team_id}**")
-            if projects:
-                for proj in projects:
-                    lines.append(f"- {proj.get('name')} (_ID: {proj.get('id')})")
-            else:
-                lines.append("- _No projects found_")
-            lines.append("")
+        projects = get_figma_projects(access_token, team_id)
+        lines.append(f"**Team {team_id}**")
+        if projects:
+            for proj in projects:
+                lines.append(f"- **{proj.get('name')}** (_ID: {proj.get('id')}_)")
+                files = get_figma_files(proj.get('id'), access_token)
+                if files:
+                    for file in files:
+                        lines.append(f"  - [{file.get('name')}](https://www.figma.com/file/{file.get('key')}) (_ID: {file.get('key')}_)")
+                else:
+                    lines.append("  - _No files_")
+        else:
+            lines.append("- _No projects found_")
+        lines.append("")
     return "\n".join(lines)
 
+def fetch_figma_context_from_supabase(context_type: str):
+    """Retrieve saved Figma context from Supabase."""
+    try:
+        result = db.table('saved_context') \
+            .select('body') \
+            .eq('type', context_type) \
+            .order('"created_at"', desc=True) \
+            .limit(1) \
+            .execute()
+        
+        if result.data:
+            return result.data[0]['body']
+        return None
+    except Exception as e:
+        logger.error(f"Error retrieving {context_type} from Supabase: {e}")
+        return None
+
 def save_figma_context():
+    """Save Figma context to Supabase."""
     users_markdown = format_figma_users_markdown()
     projects_markdown = format_figma_projects_markdown()
-    users_response = db.table("saved_context").insert({"type": "figma_users", "body": users_markdown}).execute()
-    projects_response = db.table("saved_context").insert({"type": "figma_projects", "body": projects_markdown}).execute()
-    print(users_response)
-    print(projects_response)
+    
+    users_response = db.table("saved_context").insert({
+        "type": "figma_users", 
+        "body": users_markdown
+    }).execute()
+    
+    projects_response = db.table("saved_context").insert({
+        "type": "figma_projects", 
+        "body": projects_markdown
+    }).execute()
+    
+    logger.info(f"Saved {len(users_response.data)} Figma users record to Supabase")
+    logger.info(f"Saved {len(projects_response.data)} Figma projects record to Supabase")
+
+def refresh_figma_context():
+    """Force refresh the Figma context in Supabase."""
+    logger.info("Deleting existing Figma context data...")
+    
+    delete_projects = db.table("saved_context").delete().eq("type", "figma_projects").execute()
+    delete_users = db.table("saved_context").delete().eq("type", "figma_users").execute()
+    
+    logger.info(f"Deleted {len(delete_projects.data)} project records")
+    logger.info(f"Deleted {len(delete_users.data)} user records")
+    
+    logger.info("Saving fresh Figma context...")
+    save_figma_context()
+    logger.info("Done! Figma context has been refreshed in Supabase.")
 
 if __name__ == "__main__":
-    # Try all accounts first
-    if figma_account_manager.get_all_account_ids():
-        save_figma_context()
+    parser = argparse.ArgumentParser(description='Save or refresh Figma context in Supabase')
+    parser.add_argument('--refresh', action='store_true', help='Delete existing records before saving new ones')
+    args = parser.parse_args()
+    
+    if args.refresh:
+        refresh_figma_context()
     else:
-        # Try FIGMA_PERSONAL_ACCESS_TOKEN from .env
-        token = os.getenv("FIGMA_PERSONAL_ACCESS_TOKEN")
-        if token:
-            info = get_figma_user_info(token)
-            print("FIGMA_PERSONAL_ACCESS_TOKEN user info:", info)
-        else:
-            print("No Figma account or FIGMA_PERSONAL_ACCESS_TOKEN found.") 
+        save_figma_context() 
