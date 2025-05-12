@@ -361,6 +361,24 @@ def add_new_calendar_account() -> CalendarAccountResponse:
              data=None
          )
 
+    # Check if standard OAuth ports are available before attempting authentication
+    ports_to_check = [8080, 8085]  # Default OAuth redirect ports
+    busy_ports = []
+    
+    for port in ports_to_check:
+        if is_port_in_use(port):
+            busy_ports.append(port)
+    
+    if len(busy_ports) == len(ports_to_check):
+        # All standard ports are busy, show a warning but proceed anyway
+        warning_msg = f"All standard OAuth ports {ports_to_check} are in use. Will attempt to find an alternative port."
+        logger.warning(warning_msg)
+        print(f"\n⚠️ {warning_msg}")
+        print("If authentication fails, try these commands to free up the ports:")
+        for port in busy_ports:
+            print(f"lsof -i :{port} | grep LISTEN")
+            print(f"kill -9 <PID>  # Replace <PID> with the process ID from the previous command")
+
     # Call the internal function that handles the flow and storage
     success, email_added, error_msg = _authenticate_and_store_new_account(account_manager)
 
@@ -372,12 +390,30 @@ def add_new_calendar_account() -> CalendarAccountResponse:
             data={"account_id": email_added}
         )
     else:
-        return CalendarAccountResponse(
-            status="error",
-            message=f"Failed to add new Calendar account. Reason: {error_msg or 'Unknown error during authentication/storage.'}",
-            error_message=error_msg or "Authentication or storage failed.",
-            data=None
-        )
+        if "address already in use" in error_msg.lower():
+            recovery_steps = (
+                "To resolve the 'Address already in use' error:\n"
+                "1. Close any other applications that might be using Google authentication\n"
+                "2. Restart your browser\n"
+                "3. Check and terminate processes using these ports:\n"
+                f"   - For port 8080: lsof -i :8080 | grep LISTEN\n"
+                f"   - For port 8085: lsof -i :8085 | grep LISTEN\n"
+                "4. Kill the processes: kill -9 <PID>\n"
+                "5. If all else fails, restart your computer"
+            )
+            return CalendarAccountResponse(
+                status="error",
+                message=f"Failed to add new Calendar account due to port conflict. {error_msg}",
+                error_message=f"{error_msg}\n\n{recovery_steps}",
+                data=None
+            )
+        else:
+            return CalendarAccountResponse(
+                status="error",
+                message=f"Failed to add new Calendar account. Reason: {error_msg or 'Unknown error during authentication/storage.'}",
+                error_message=error_msg or "Authentication or storage failed.",
+                data=None
+            )
 
 def _authenticate_and_store_new_account(manager: CalendarSupabaseManager) -> Tuple[bool, Optional[str], Optional[str]]:
     """Runs the OAuth flow, gets email, and stores credentials in Supabase."""
@@ -390,19 +426,50 @@ def _authenticate_and_store_new_account(manager: CalendarSupabaseManager) -> Tup
         try:
             auth_port = find_free_port()
             logger.info(f"Port 8080 is in use, using alternative port: {auth_port}")
-            # Check if this port is in the allowed redirect URIs
+            
+            # Look for a matching port in the redirect URIs
+            redirect_uris = GOOGLE_CREDENTIALS['web']['redirect_uris']
             valid_port = False
-            for uri in GOOGLE_CREDENTIALS['web']['redirect_uris']:
+            
+            # Check if we have a direct match in the allowed redirect URIs
+            for uri in redirect_uris:
                 if f":{auth_port}" in uri:
                     valid_port = True
                     break
             
+            # Try the alternate port 8085 which is also included in default redirect URIs
+            if not valid_port and not is_port_in_use(8085):
+                auth_port = 8085
+                logger.info(f"Using alternate port from redirect URIs: {auth_port}")
+                valid_port = True
+            
+            # If no valid port is found, inform the user and fallback to another option
             if not valid_port:
-                error_msg = f"Port {auth_port} is not in the allowed redirect URIs. Please add http://localhost:{auth_port}/ to your Google Cloud Console."
-                logger.error(error_msg)
-                print(f"\n⚠️ {error_msg}")
-                print("Using port 8080 anyway, but authentication may fail.")
-                auth_port = 8080
+                alt_port_msg = f"Port {auth_port} is not in the allowed redirect URIs. Trying to find another available port from the allowed list."
+                logger.warning(alt_port_msg)
+                print(f"\n⚠️ {alt_port_msg}")
+                
+                # Try each redirect URI port in sequence
+                for uri in redirect_uris:
+                    try:
+                        uri_parts = uri.split(':')
+                        if len(uri_parts) > 2:
+                            port_str = uri_parts[2].strip('/')
+                            port = int(port_str)
+                            if not is_port_in_use(port):
+                                auth_port = port
+                                valid_port = True
+                                logger.info(f"Found available port from redirect URIs: {auth_port}")
+                                break
+                    except (ValueError, IndexError):
+                        continue
+                
+                if not valid_port:
+                    error_msg = "Could not find an available port from the allowed redirect URIs."
+                    logger.error(error_msg)
+                    print(f"\n❌ {error_msg}")
+                    print("Please try again later or restart your computer to free up ports.")
+                    return False, None, "No available ports found for OAuth server"
         except Exception as port_err:
             logger.error(f"Error finding free port: {port_err}")
             auth_port = 8080  # Fallback to default
@@ -497,7 +564,13 @@ def _authenticate_and_store_new_account(manager: CalendarSupabaseManager) -> Tup
         # Provide helpful suggestions based on error type
         if "failed to start" in str(server_err).lower() or "address already in use" in str(server_err).lower():
             print(f"\nThis may be because port {auth_port} is already in use.")
-            print("Try closing other applications that might be using this port or restart your computer.")
+            print("Try these steps to resolve the issue:")
+            print("1. Close any other applications or browser tabs that might be performing Google authentication")
+            print("2. Restart your browser")
+            print("3. Try terminating processes using these ports with the following command in terminal:")
+            print(f"   lsof -i :{auth_port} | grep LISTEN")
+            print(f"   kill -9 <PID>  # Replace <PID> with the process ID from the previous command")
+            print("4. If the issue persists, restart your computer")
         elif "timeout" in str(server_err).lower() or "timed out" in str(server_err).lower():
             print("\nThe authorization process timed out because it wasn't completed in time.")
             print("Please try again and be sure to complete the Google authorization steps.")
