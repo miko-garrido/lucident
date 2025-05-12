@@ -388,6 +388,21 @@ def get_credentials(account_id: str) -> Optional[Credentials]:
         return None
 
 # Gmail functionality
+def create_gmail_message_link(message_id: str, thread_id: Optional[str] = None) -> str:
+    """
+    Creates a direct link to a Gmail message in the Gmail UI.
+    
+    Args:
+        message_id (str): The ID of the message
+        thread_id (str, optional): The ID of the thread. If provided, links to the thread instead.
+        
+    Returns:
+        str: URL to the message in Gmail UI
+    """
+    if thread_id:
+        return f"https://mail.google.com/mail/u/0/#inbox/{thread_id}"
+    return f"https://mail.google.com/mail/u/0/#inbox/{message_id}"
+
 def get_gmail_messages(account_id: Optional[str] = None, max_results: int = 10) -> GmailMessageResponse:
     """Get Gmail messages using batch operations."""
     # Determine target account early
@@ -459,13 +474,18 @@ def get_gmail_messages(account_id: Optional[str] = None, max_results: int = 10) 
                         body_data = response['payload']['body']['data']
                         body = base64.urlsafe_b64decode(body_data).decode('utf-8')
 
+                    # Create link to the message in Gmail UI
+                    thread_id = response.get('threadId')
+                    message_link = create_gmail_message_link(response['id'], thread_id)
+
                     message_details_list.append({
                         'id': response['id'],
                         'subject': headers.get('Subject', 'No subject'),
                         'from_': headers.get('From', 'Unknown sender'),
                         'date': headers.get('Date', 'Unknown date'),
                         'snippet': response.get('snippet', ''),
-                        'body': body[:500] + ('...' if len(body) > 500 else '') # Truncate body
+                        'body': body[:500] + ('...' if len(body) > 500 else ''), # Truncate body
+                        'link': message_link
                     })
                 except Exception as proc_err:
                     error_msg = f"Error processing message {response.get('id', '[unknown ID]')} in batch callback: {proc_err}"
@@ -710,13 +730,18 @@ def _search_gmail_impl(account_id: str, query: str, max_results: int) -> Union[G
                         body_data = response['payload']['body']['data']
                         body = base64.urlsafe_b64decode(body_data).decode('utf-8')
 
+                    # Create link to the message in Gmail UI
+                    thread_id = response.get('threadId')
+                    message_link = create_gmail_message_link(response['id'], thread_id)
+
                     message_details_list.append({
                         'id': response['id'],
                         'subject': headers.get('Subject', 'No subject'),
                         'from_': headers.get('From', 'Unknown sender'),
                         'date': headers.get('Date', 'Unknown date'),
                         'snippet': response.get('snippet', ''),
-                        'body': body[:500] + ('...' if len(body) > 500 else '') # Truncate body
+                        'body': body[:500] + ('...' if len(body) > 500 else ''), # Truncate body
+                        'link': message_link
                     })
                 except Exception as proc_err:
                     error_msg = f"Error processing message {response.get('id', '[unknown ID]')} in search batch callback: {proc_err}"
