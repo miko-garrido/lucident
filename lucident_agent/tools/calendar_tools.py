@@ -21,6 +21,8 @@ from supabase import create_client, Client
 
 # Import Database class
 from lucident_agent.Database import Database
+# Import Config class for TIMEZONE
+from lucident_agent.config import Config
 
 # Load environment variables from .env file
 load_dotenv()
@@ -39,6 +41,7 @@ SCOPES = [
 DEFAULT_ACCOUNT = 'default'
 MAX_RETRIES = 3
 RATE_LIMIT_DELAY = 1  # seconds
+TIMEZONE = Config.TIMEZONE  # Use timezone from Config class
 
 # --- Use Database class for Supabase access ---
 try:
@@ -1369,45 +1372,82 @@ def find_free_slots(account_id: str, date: str, min_duration_minutes: int = 30) 
     logger.info(f"Finding free slots for account {account_id} on {date}")
     
     try:
-        # Parse the date string into datetime
-        try:
-            # Handle different date formats
-            # Try ISO format first (YYYY-MM-DD)
-            if 'T' in date:
-                # Full datetime provided
-                date_obj = datetime.datetime.fromisoformat(date.replace('Z', '+00:00'))
-            else:
-                # Just date provided
-                date_obj = datetime.datetime.strptime(date, '%Y-%m-%d')
-            
-            # Set time to 00:00:00
-            date_obj = date_obj.replace(hour=0, minute=0, second=0, microsecond=0)
-            logger.info(f"Parsed date input '{date}' as {date_obj.isoformat()}")
-        except ValueError:
-            # Try other common formats if ISO format fails
+        # Handle "today" specially
+        if date.lower() == "today":
             try:
-                for fmt in ['%m/%d/%Y', '%d/%m/%Y', '%b %d %Y', '%d %b %Y']:
-                    try:
-                        date_obj = datetime.datetime.strptime(date, fmt)
-                        date_obj = date_obj.replace(hour=0, minute=0, second=0, microsecond=0)
-                        logger.info(f"Parsed date input '{date}' using format {fmt} as {date_obj.isoformat()}")
-                        break
-                    except ValueError:
-                        continue
-                else:  # No break, all formats failed
-                    raise ValueError(f"Could not parse date '{date}' with any known format")
-            except Exception as parse_err:
-                logger.error(f"Failed to parse date: {parse_err}")
+                # Use the user's timezone from config
+                user_tz = ZoneInfo(TIMEZONE)
+                date_obj = datetime.datetime.now(user_tz).replace(hour=0, minute=0, second=0, microsecond=0)
+                logger.info(f"Using today's date in timezone {TIMEZONE}: {date_obj.isoformat()}")
+            except Exception as e:
+                logger.error(f"Error getting today's date with timezone {TIMEZONE}: {e}")
                 return CalendarAccountResponse(
                     status="error",
-                    message="Invalid date format.",
-                    error_message=f"Date must be in ISO format (YYYY-MM-DD) or another common format: {parse_err}",
+                    message="Error determining today's date with your timezone.",
+                    error_message=f"Failed to use timezone {TIMEZONE}: {e}",
                     data=None
                 )
+        else:
+            # Parse the date string into datetime
+            try:
+                # Handle different date formats
+                # Try ISO format first (YYYY-MM-DD)
+                if 'T' in date:
+                    # Full datetime provided
+                    date_obj = datetime.datetime.fromisoformat(date.replace('Z', '+00:00'))
+                else:
+                    # Just date provided
+                    date_obj = datetime.datetime.strptime(date, '%Y-%m-%d')
+                
+                # Set time to 00:00:00 and make timezone-aware
+                try:
+                    user_tz = ZoneInfo(TIMEZONE)
+                    # First make naive by removing tzinfo if present
+                    naive_date = date_obj.replace(tzinfo=None, hour=0, minute=0, second=0, microsecond=0)
+                    # Then add proper timezone
+                    date_obj = naive_date.replace(tzinfo=user_tz)
+                    logger.info(f"Made date timezone-aware with {TIMEZONE}: {date_obj.isoformat()}")
+                except Exception as tz_err:
+                    logger.warning(f"Could not apply timezone {TIMEZONE} to date: {tz_err}. Using UTC.")
+                    date_obj = date_obj.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=datetime.timezone.utc)
+                
+                logger.info(f"Parsed date input '{date}' as {date_obj.isoformat()}")
+            except ValueError:
+                # Try other common formats if ISO format fails
+                try:
+                    for fmt in ['%m/%d/%Y', '%d/%m/%Y', '%b %d %Y', '%d %b %Y']:
+                        try:
+                            date_obj = datetime.datetime.strptime(date, fmt)
+                            # Make timezone-aware
+                            try:
+                                user_tz = ZoneInfo(TIMEZONE)
+                                date_obj = date_obj.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=user_tz)
+                            except Exception:
+                                date_obj = date_obj.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=datetime.timezone.utc)
+                                
+                            logger.info(f"Parsed date input '{date}' using format {fmt} as {date_obj.isoformat()}")
+                            break
+                        except ValueError:
+                            continue
+                    else:  # No break, all formats failed
+                        raise ValueError(f"Could not parse date '{date}' with any known format")
+                except Exception as parse_err:
+                    logger.error(f"Failed to parse date: {parse_err}")
+                    return CalendarAccountResponse(
+                        status="error",
+                        message="Invalid date format.",
+                        error_message=f"Date must be in ISO format (YYYY-MM-DD) or another common format: {parse_err}",
+                        data=None
+                    )
         
         # Set time range for the given date (from 00:00 to 23:59)
-        time_min = date_obj.isoformat() + 'Z'
-        time_max = (date_obj + datetime.timedelta(days=1, seconds=-1)).isoformat() + 'Z'
+        # Ensure UTC format with Z suffix for the Google Calendar API
+        # First convert to UTC for the API
+        utc_date_obj = date_obj.astimezone(datetime.timezone.utc)
+        time_min = utc_date_obj.isoformat().replace('+00:00', 'Z')
+        time_max = (utc_date_obj + datetime.timedelta(days=1, seconds=-1)).isoformat().replace('+00:00', 'Z')
+        
+        logger.info(f"Using time range: {time_min} to {time_max}")
         
         # Get the free/busy information
         free_busy_result = check_free_busy(account_id, time_min, time_max)
@@ -1449,7 +1489,7 @@ def find_free_slots(account_id: str, date: str, min_duration_minutes: int = 30) 
                 data={"raw_response": free_busy_result}
             )
         
-        # Define working hours (9 AM to 5 PM by default)
+        # Define working hours (9 AM to 5 PM by default) in user's timezone
         working_hours_start = date_obj.replace(hour=9, minute=0, second=0)
         working_hours_end = date_obj.replace(hour=17, minute=0, second=0)
         
@@ -1463,19 +1503,29 @@ def find_free_slots(account_id: str, date: str, min_duration_minutes: int = 30) 
         # Iterate through busy periods to find gaps
         for busy in busy_periods:
             try:
+                # Parse the UTC times from API and convert to user's timezone for proper merging
                 busy_start = datetime.datetime.fromisoformat(busy['start'].replace('Z', '+00:00'))
                 busy_end = datetime.datetime.fromisoformat(busy['end'].replace('Z', '+00:00'))
+                
+                # Convert to the user's timezone for proper display and calculations
+                try:
+                    user_tz = ZoneInfo(TIMEZONE)
+                    busy_start = busy_start.astimezone(user_tz)
+                    busy_end = busy_end.astimezone(user_tz)
+                except Exception as tz_err:
+                    logger.warning(f"Could not convert time to timezone {TIMEZONE}: {tz_err}. Using UTC.")
                 
                 # Check if there's a free slot before this busy period
                 if current_time < busy_start:
                     duration = int((busy_start - current_time).total_seconds() / 60)
                     if duration >= min_duration_minutes:
                         free_slots.append({
-                            'start': current_time.isoformat() + 'Z',
-                            'end': busy_start.isoformat() + 'Z',
+                            'start': current_time.isoformat(),
+                            'end': busy_start.isoformat(),
                             'formatted_start': current_time.strftime('%H:%M'),
                             'formatted_end': busy_start.strftime('%H:%M'),
-                            'duration_minutes': duration
+                            'duration_minutes': duration,
+                            'timezone': TIMEZONE
                         })
                 
                 # Move current time to the end of this busy period
@@ -1489,17 +1539,20 @@ def find_free_slots(account_id: str, date: str, min_duration_minutes: int = 30) 
             duration = int((working_hours_end - current_time).total_seconds() / 60)
             if duration >= min_duration_minutes:
                 free_slots.append({
-                    'start': current_time.isoformat() + 'Z',
-                    'end': working_hours_end.isoformat() + 'Z',
+                    'start': current_time.isoformat(),
+                    'end': working_hours_end.isoformat(),
                     'formatted_start': current_time.strftime('%H:%M'),
                     'formatted_end': working_hours_end.strftime('%H:%M'),
-                    'duration_minutes': duration
+                    'duration_minutes': duration,
+                    'timezone': TIMEZONE
                 })
         
         # Add formatted date to each slot for clearer output
         date_str = date_obj.strftime('%Y-%m-%d')
         for slot in free_slots:
             slot['date'] = date_str
+            # Add a user-friendly description
+            slot['description'] = f"{date_str} from {slot['formatted_start']} to {slot['formatted_end']} ({slot['duration_minutes']} minutes) {TIMEZONE}"
         
         return CalendarAccountResponse(
             status="success",
@@ -1512,15 +1565,23 @@ def find_free_slots(account_id: str, date: str, min_duration_minutes: int = 30) 
                 "working_hours": {
                     "start": working_hours_start.strftime('%H:%M'),
                     "end": working_hours_end.strftime('%H:%M')
-                }
+                },
+                "timezone": TIMEZONE
             }
         )
     except Exception as e:
-        logger.error(f"Unexpected error finding free slots for {account_id}: {e}", exc_info=True)
+        # Improved error handling
+        import traceback
+        tb_str = traceback.format_exc()
+        logger.error(f"Unexpected error finding free slots for {account_id}: {e}\n{tb_str}")
+        
+        # Create a more descriptive error message
+        error_details = f"Time zone issue: {e}" if "zone" in str(e).lower() else f"Error: {e}"
+        
         return CalendarAccountResponse(
             status="error",
             message=f"Unexpected error finding free slots for account {account_id}.",
-            error_message=str(e),
+            error_message=error_details,
             data=None
         )
 
@@ -1624,5 +1685,300 @@ def create_event_with_attendees(account_id: str, summary: str, attendee_emails: 
             status="error",
             message=f"Unexpected error creating Calendar event with attendees for account {account_id}.",
             error_message=str(e),
+            data=None
+        )
+
+def find_mutual_free_slots(primary_account_id: str, other_account_ids: List[str], 
+                          date: str, min_duration_minutes: int = 120,
+                          max_slots: int = 3) -> CalendarAccountResponse:
+    """Find mutually free time slots across multiple users' calendars.
+    
+    Args:
+        primary_account_id: The account ID of the primary user
+        other_account_ids: List of other users' account IDs to compare with
+        date: The date to check in YYYY-MM-DD format
+        min_duration_minutes: Minimum duration required for free slots (default: 120 minutes/2 hours)
+        max_slots: Maximum number of slot options to return (default: 3)
+        
+    Returns:
+        CalendarAccountResponse with mutual free slots
+    """
+    logger.info(f"Finding mutual free slots for {primary_account_id} and {other_account_ids} on {date}")
+    
+    try:
+        # Handle "today" specially
+        if date.lower() == "today":
+            try:
+                # Use the user's timezone from config
+                user_tz = ZoneInfo(TIMEZONE)
+                date_obj = datetime.datetime.now(user_tz).replace(hour=0, minute=0, second=0, microsecond=0)
+                logger.info(f"Using today's date in timezone {TIMEZONE}: {date_obj.isoformat()}")
+            except Exception as e:
+                logger.error(f"Error getting today's date with timezone {TIMEZONE}: {e}")
+                return CalendarAccountResponse(
+                    status="error",
+                    message="Error determining today's date with your timezone.",
+                    error_message=f"Failed to use timezone {TIMEZONE}: {e}",
+                    data=None
+                )
+        else:
+            # Parse the date string into datetime
+            try:
+                # Handle different date formats
+                if 'T' in date:
+                    # Full datetime provided
+                    date_obj = datetime.datetime.fromisoformat(date.replace('Z', '+00:00'))
+                else:
+                    # Just date provided
+                    date_obj = datetime.datetime.strptime(date, '%Y-%m-%d')
+                
+                # Set time to 00:00:00 and make timezone-aware
+                try:
+                    user_tz = ZoneInfo(TIMEZONE)
+                    # First make naive by removing tzinfo if present
+                    naive_date = date_obj.replace(tzinfo=None, hour=0, minute=0, second=0, microsecond=0)
+                    # Then add proper timezone
+                    date_obj = naive_date.replace(tzinfo=user_tz)
+                    logger.info(f"Made date timezone-aware with {TIMEZONE}: {date_obj.isoformat()}")
+                except Exception as tz_err:
+                    logger.warning(f"Could not apply timezone {TIMEZONE} to date: {tz_err}. Using UTC.")
+                    date_obj = date_obj.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=datetime.timezone.utc)
+                
+                logger.info(f"Parsed date input '{date}' as {date_obj.isoformat()}")
+            except ValueError:
+                # Try other common formats if ISO format fails
+                try:
+                    for fmt in ['%m/%d/%Y', '%d/%m/%Y', '%b %d %Y', '%d %b %Y']:
+                        try:
+                            date_obj = datetime.datetime.strptime(date, fmt)
+                            # Make timezone-aware
+                            try:
+                                user_tz = ZoneInfo(TIMEZONE)
+                                date_obj = date_obj.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=user_tz)
+                            except Exception:
+                                date_obj = date_obj.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=datetime.timezone.utc)
+                                
+                            logger.info(f"Parsed date input '{date}' using format {fmt} as {date_obj.isoformat()}")
+                            break
+                        except ValueError:
+                            continue
+                    else:  # No break, all formats failed
+                        raise ValueError(f"Could not parse date '{date}' with any known format")
+                except Exception as parse_err:
+                    logger.error(f"Failed to parse date: {parse_err}")
+                    return CalendarAccountResponse(
+                        status="error",
+                        message="Invalid date format.",
+                        error_message=f"Date must be in ISO format (YYYY-MM-DD) or another common format: {parse_err}",
+                        data=None
+                    )
+        
+        # Set time range for the given date (from 00:00 to 23:59)
+        # Ensure UTC format with Z suffix for the Google Calendar API
+        # First convert to UTC for the API
+        utc_date_obj = date_obj.astimezone(datetime.timezone.utc)
+        time_min = utc_date_obj.isoformat().replace('+00:00', 'Z')
+        time_max = (utc_date_obj + datetime.timedelta(days=1, seconds=-1)).isoformat().replace('+00:00', 'Z')
+        
+        logger.info(f"Using time range: {time_min} to {time_max}")
+        
+        # Get all account IDs to check
+        all_account_ids = [primary_account_id] + other_account_ids
+        
+        # Define working hours (9 AM to 5 PM by default) in user's timezone
+        working_hours_start = date_obj.replace(hour=9, minute=0, second=0)
+        working_hours_end = date_obj.replace(hour=17, minute=0, second=0)
+        
+        # Collect busy periods for all accounts
+        all_busy_periods = {}
+        
+        for account_id in all_account_ids:
+            # Get the free/busy information
+            free_busy_result = check_free_busy(account_id, time_min, time_max)
+            if free_busy_result['status'] != 'success':
+                logger.error(f"Failed to get free/busy information for {account_id}: {free_busy_result.get('error_message')}")
+                return CalendarAccountResponse(
+                    status="error",
+                    message=f"Couldn't retrieve calendar data for {account_id}",
+                    error_message=free_busy_result.get('error_message'),
+                    data=None
+                )
+            
+            # Extract the busy periods
+            try:
+                free_busy = free_busy_result['data']['free_busy']
+                calendars = free_busy.get('calendars', {})
+                primary_calendar = calendars.get('primary', {})
+                
+                if not primary_calendar:
+                    logger.warning(f"Primary calendar data not found for {account_id}")
+                    return CalendarAccountResponse(
+                        status="error",
+                        message=f"Could not find calendar data for {account_id}",
+                        error_message="The API response did not contain calendar information",
+                        data=None
+                    )
+                
+                busy_periods = []
+                for period in primary_calendar.get('busy_periods', []):
+                    if 'start' in period and 'end' in period:
+                        busy_periods.append({
+                            'start': period['start'],
+                            'end': period['end']
+                        })
+                
+                all_busy_periods[account_id] = busy_periods
+                logger.info(f"Found {len(busy_periods)} busy periods for {account_id} on {date}")
+            except (KeyError, TypeError) as e:
+                logger.error(f"Error processing free/busy result for {account_id}: {e}", exc_info=True)
+                return CalendarAccountResponse(
+                    status="error",
+                    message=f"Error processing calendar data for {account_id}",
+                    error_message=str(e),
+                    data=None
+                )
+        
+        # Create a combined list of all busy periods
+        combined_busy_periods = []
+        
+        for account_id, busy_periods in all_busy_periods.items():
+            for period in busy_periods:
+                try:
+                    # Parse the UTC times from API and convert to user's timezone for proper merging
+                    start_dt = datetime.datetime.fromisoformat(period['start'].replace('Z', '+00:00'))
+                    end_dt = datetime.datetime.fromisoformat(period['end'].replace('Z', '+00:00'))
+                    
+                    # Convert to the user's timezone for proper display and calculations
+                    try:
+                        user_tz = ZoneInfo(TIMEZONE)
+                        start_dt = start_dt.astimezone(user_tz)
+                        end_dt = end_dt.astimezone(user_tz)
+                    except Exception as tz_err:
+                        logger.warning(f"Could not convert time to timezone {TIMEZONE}: {tz_err}. Using UTC.")
+                    
+                    combined_busy_periods.append((start_dt, end_dt))
+                except ValueError as e:
+                    logger.warning(f"Error parsing busy period dates for {account_id}: {e}")
+                    continue
+        
+        # Sort combined busy periods by start time
+        combined_busy_periods.sort(key=lambda x: x[0])
+        
+        # Merge overlapping busy periods
+        if combined_busy_periods:
+            merged_busy_periods = [combined_busy_periods[0]]
+            
+            for current_start, current_end in combined_busy_periods[1:]:
+                prev_start, prev_end = merged_busy_periods[-1]
+                
+                # If current period overlaps with previous period
+                if current_start <= prev_end:
+                    # Merge by updating end time of previous period if needed
+                    merged_busy_periods[-1] = (prev_start, max(prev_end, current_end))
+                else:
+                    # No overlap, add as a new period
+                    merged_busy_periods.append((current_start, current_end))
+        else:
+            merged_busy_periods = []
+        
+        # Find free slots between busy periods, within working hours
+        free_slots = []
+        current_time = working_hours_start
+        
+        # Add working_hours_start as current_time
+        for busy_start, busy_end in merged_busy_periods:
+            # Only consider busy periods that overlap with working hours
+            if busy_end > working_hours_start and busy_start < working_hours_end:
+                # Adjust busy_start and busy_end to be within working hours
+                busy_start = max(busy_start, working_hours_start)
+                busy_end = min(busy_end, working_hours_end)
+                
+                # Check if there's a free slot before this busy period
+                if current_time < busy_start:
+                    duration_minutes = int((busy_start - current_time).total_seconds() / 60)
+                    
+                    if duration_minutes >= min_duration_minutes:
+                        # Use user's timezone for display
+                        free_slots.append({
+                            'start': current_time.isoformat(),
+                            'end': busy_start.isoformat(),
+                            'formatted_start': current_time.strftime('%H:%M'),
+                            'formatted_end': busy_start.strftime('%H:%M'),
+                            'duration_minutes': duration_minutes,
+                            'date': date_obj.strftime('%Y-%m-%d'),
+                            'timezone': TIMEZONE
+                        })
+                
+                # Move current time to the end of this busy period
+                current_time = max(current_time, busy_end)
+        
+        # Check for a final free slot after the last busy period
+        if current_time < working_hours_end:
+            duration_minutes = int((working_hours_end - current_time).total_seconds() / 60)
+            
+            if duration_minutes >= min_duration_minutes:
+                free_slots.append({
+                    'start': current_time.isoformat(),
+                    'end': working_hours_end.isoformat(),
+                    'formatted_start': current_time.strftime('%H:%M'),
+                    'formatted_end': working_hours_end.strftime('%H:%M'),
+                    'duration_minutes': duration_minutes,
+                    'date': date_obj.strftime('%Y-%m-%d'),
+                    'timezone': TIMEZONE
+                })
+        
+        # If no merged busy periods within working hours, the entire working day is free
+        if not merged_busy_periods:
+            duration_minutes = int((working_hours_end - working_hours_start).total_seconds() / 60)
+            if duration_minutes >= min_duration_minutes:
+                free_slots.append({
+                    'start': working_hours_start.isoformat(),
+                    'end': working_hours_end.isoformat(),
+                    'formatted_start': working_hours_start.strftime('%H:%M'),
+                    'formatted_end': working_hours_end.strftime('%H:%M'),
+                    'duration_minutes': duration_minutes,
+                    'date': date_obj.strftime('%Y-%m-%d'),
+                    'timezone': TIMEZONE
+                })
+        
+        # Sort free slots by start time and limit to requested number
+        free_slots.sort(key=lambda x: x['start'])
+        limited_slots = free_slots[:max_slots]
+        
+        # Create user-friendly description of each slot
+        for slot in limited_slots:
+            start_time = slot['formatted_start']
+            end_time = slot['formatted_end']
+            slot['description'] = f"{slot['date']} from {start_time} to {end_time} ({slot['duration_minutes']} minutes) {TIMEZONE}"
+        
+        return CalendarAccountResponse(
+            status="success",
+            message=f"Found {len(limited_slots)} mutual free slots of at least {min_duration_minutes} minutes on {date}.",
+            error_message=None,
+            data={
+                "date": date_obj.strftime('%Y-%m-%d'),
+                "mutual_free_slots": limited_slots,
+                "min_duration_minutes": min_duration_minutes,
+                "accounts_checked": all_account_ids,
+                "working_hours": {
+                    "start": working_hours_start.strftime('%H:%M'),
+                    "end": working_hours_end.strftime('%H:%M')
+                },
+                "timezone": TIMEZONE
+            }
+        )
+    except Exception as e:
+        # Improved error handling
+        import traceback
+        tb_str = traceback.format_exc()
+        logger.error(f"Unexpected error finding mutual free slots: {e}\n{tb_str}")
+        
+        # Create a more descriptive error message
+        error_details = f"Time zone issue: {e}" if "zone" in str(e).lower() else f"Error: {e}"
+        
+        return CalendarAccountResponse(
+            status="error",
+            message=f"Unexpected error finding mutual free slots.",
+            error_message=error_details,
             data=None
         )

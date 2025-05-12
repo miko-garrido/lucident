@@ -19,7 +19,8 @@ from ..tools.calendar_tools import (
     find_free_slots,
     create_and_send_calendar_event,
     send_calendar_invite,
-    create_event_with_attendees
+    create_event_with_attendees,
+    find_mutual_free_slots
 )
 from ..tools.basic_tools import (
     get_current_time,
@@ -78,6 +79,8 @@ calendar_agent = Agent(
         "1. For creating events with attendees: ALWAYS use create_event_with_attendees(account_id, summary, attendee_emails, start_time, end_time)"
         "   Note that attendee_emails must be a LIST of email strings, e.g. ['user@example.com']"
         "2. For sending invites: use send_calendar_invite(account_id, event_id)"
+        "3. For finding mutually available time slots across multiple calendars: use find_mutual_free_slots(primary_account_id, other_account_ids, date, min_duration_minutes)"
+        "   This is very useful for scheduling meetings between multiple people"
     ),
     tools=[
         # Calendar tools
@@ -96,6 +99,7 @@ calendar_agent = Agent(
         add_event_with_reminders,
         check_free_busy,
         find_free_slots,
+        find_mutual_free_slots,
         
         # Basic tools
         get_current_time,
