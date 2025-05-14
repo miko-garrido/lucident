@@ -20,7 +20,7 @@ app: FastAPI = get_fast_api_app(
     web=SERVE_WEB_INTERFACE,
 )
 
-app.post("/name_session")
+@app.post("/name_session")
 async def name_session(first_message: str = Body(...)) -> str:
     prompt = f"""
         You are a helpful assistant that can help with naming sessions.
