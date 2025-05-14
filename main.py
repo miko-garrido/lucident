@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Body
 from google.adk.cli.fast_api import get_fast_api_app
 from lucident_agent.config import Config # Triggers context loading, not sure why it does that
 
