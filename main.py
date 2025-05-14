@@ -1,36 +1,12 @@
 import os
 from dotenv import load_dotenv
 import uvicorn
-from fastapi import FastAPI
+from litellm import completion
+from fastapi import FastAPI, Body
 from google.adk.cli.fast_api import get_fast_api_app
-from lucident_agent.config import Config
-from google.adk.events.event import Event, EventActions
-from google.genai import types
-import time
-import uuid
-
-from google.adk.sessions import DatabaseSessionService
-
-from sqlalchemy.engine import create_engine
-
 load_dotenv()
 
-APP_NAME = os.getenv("APP_NAME")
-
-USER_ID = Config.USER_ID
-SESSION_ID = Config.SESSION_ID
-TIMEZONE = Config.TIMEZONE
-
 db_url = os.getenv("SUPABASE_DB_URL")
-
-# generated_session_id = str(uuid.uuid4())
-
-# session_service = DatabaseSessionService(db_url=db_url)
-# session = session_service.create_session(
-#     app_name=APP_NAME,
-#     user_id=USER_ID,
-#     session_id=generated_session_id
-# )
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 SESSION_DB_URL = db_url
@@ -44,6 +20,27 @@ app: FastAPI = get_fast_api_app(
     web=SERVE_WEB_INTERFACE,
 )
 
+app.post("/name_session")
+async def name_session(first_message: str = Body(...)) -> str:
+    prompt = f"""
+        You are a helpful assistant that can help with naming sessions.
+        Return ONLY the name of the session.
+        Session names should be concise and descriptive.
+        Session names should be no more than 4 words.
+        Session names should include ONLY alphanumeric characters.
+        Examples:
+        - Project progress questions
+        - Common calendar availability
+        - Client email summaries
+        - Slack channel history
+        """
+    user_message = f"First message: {first_message}"
+    messages = [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": user_message},
+    ]
+    response = completion(model="gpt-4.1-mini", messages=messages)
+    return response.choices[0].message.content.strip()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
