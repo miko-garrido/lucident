@@ -22,6 +22,8 @@ from supabase import create_client, Client
 
 # Import Database class
 from lucident_agent.Database import Database
+# Import consolidated GmailAccountManager
+from lucident_agent.tools.gmail_account_manager import GmailAccountManager
 
 # Load environment variables from .env file
 load_dotenv()
@@ -69,154 +71,8 @@ GOOGLE_CREDENTIALS = {
   }
 }
 
-# --- Refactored GmailAccountManager into a class using Supabase ---
-class GmailSupabaseManager:
-    """Manages Gmail account credentials using Supabase."""
-    def __init__(self, supabase_client: Optional[Client]):
-        if supabase_client is None:
-            logger.error("Supabase client not provided to GmailSupabaseManager.")
-            # Depending on requirements, could raise error or operate in a disabled state
-        self.supabase = supabase_client
-        self.default_account_id = None # Track default account in memory
-
-    def _check_supabase(self) -> bool:
-        """Check if Supabase client is available."""
-        if self.supabase is None:
-            logger.warning("Supabase client is not initialized. Cannot perform operation.")
-            return False
-        return True
-
-    def add_account(self, email: str, credentials_obj: Credentials) -> bool:
-        """Adds or updates account credentials in Supabase."""
-        if not self._check_supabase(): return False
-        if not email or not credentials_obj:
-            logger.error("Email and credentials object are required to add account.")
-            return False
-
-        try:
-            token_json = credentials_obj.to_json()
-            # Use email as the user_id (primary key combined with token_type)
-            data, count = self.supabase.table('tokens').upsert({
-                'user_id': email,
-                'token_type': 'google',
-                'token_data': token_json
-            }, on_conflict='user_id, token_type').execute() # Specify conflict target if composite key
-
-            logger.info(f"Successfully upserted credentials for {email} in Supabase.")
-            # Set as default if it's the first account added in this session
-            if self.default_account_id is None:
-                self.default_account_id = email
-                logger.info(f"Set {email} as the default account for this session.")
-            return True
-        except Exception as e:
-            # Log the specific Supabase-related error message if possible, or just the general error
-            logger.error(f"Error adding account {email} to Supabase: {e}", exc_info=True) # Use exc_info for full traceback
-            return False
-
-    def get_account_credentials(self, account_id: str) -> Optional[Dict[str, Any]]:
-        """Retrieves account credentials dictionary from Supabase."""
-        if not self._check_supabase(): return None
-        if not account_id:
-            logger.warning("No account_id provided to get_account_credentials.")
-            return None
-        try:
-            response = self.supabase.table('tokens').select('token_data').eq('user_id', account_id).eq('token_type', 'google').limit(1).execute()
-            if response.data:
-                token_json = response.data[0]['token_data']
-                credentials_dict = json.loads(token_json)
-                # Ensure necessary keys for refresh are present (they should be from to_json)
-                if 'client_id' not in credentials_dict or 'client_secret' not in credentials_dict:
-                     logger.warning(f"Credentials for {account_id} missing client_id or client_secret. Refresh may fail.")
-                     # Augment with config if missing, though they *should* be in the stored JSON
-                     credentials_dict.setdefault('client_id', GOOGLE_CREDENTIALS['web']['client_id'])
-                     credentials_dict.setdefault('client_secret', GOOGLE_CREDENTIALS['web']['client_secret'])
-                     credentials_dict.setdefault('token_uri', GOOGLE_CREDENTIALS['web']['token_uri'])
-
-                return credentials_dict
-            else:
-                logger.warning(f"No credentials found in Supabase for account {account_id}.")
-                return None
-        except Exception as e:
-            logger.error(f"Error getting credentials for {account_id} from Supabase: {e}", exc_info=True)
-            return None
-
-    def remove_account(self, account_id: str) -> bool:
-        """Removes an account from Supabase."""
-        if not self._check_supabase(): return False
-        if not account_id:
-            logger.warning("No account_id provided to remove_account.")
-            return False
-        try:
-            data, count = self.supabase.table('tokens').delete().eq('user_id', account_id).eq('token_type', 'google').execute()
-            if count > 0: # Check if deletion happened
-                 logger.info(f"Successfully removed account {account_id} from Supabase.")
-                 # If removing the default, reset default
-                 if self.default_account_id == account_id:
-                     self.default_account_id = None
-                     logger.info("Removed default account assignment.")
-                 return True
-            else:
-                 logger.warning(f"Account {account_id} not found in Supabase for removal or delete failed.")
-                 return False # Account might not have existed
-        except Exception as e:
-            logger.error(f"Error removing account {account_id} from Supabase: {e}", exc_info=True)
-            return False
-
-    def get_accounts(self) -> Dict[str, Dict[str, Any]]:
-        """Lists all configured Gmail accounts from Supabase."""
-        accounts_details = {}
-        if not self._check_supabase(): return accounts_details
-        try:
-            response = self.supabase.table('tokens').select('user_id, token_data').eq('token_type', 'google').execute()
-            if response.data:
-                for record in response.data:
-                    account_id = record['user_id']
-                    try:
-                        token_data = json.loads(record['token_data'])
-                        # Extract expiry and scopes safely
-                        expiry_str = token_data.get("expiry") # Google creds use 'expiry' key from `to_json`
-                        scopes = token_data.get("scopes", [])
-
-                        serializable_expiry = None
-                        if expiry_str and isinstance(expiry_str, str):
-                             try:
-                                 # Validate format but keep the string
-                                 datetime.datetime.fromisoformat(expiry_str.replace('Z', '+00:00'))
-                                 serializable_expiry = expiry_str
-                             except ValueError:
-                                 logger.warning(f"Invalid expiry format for {account_id}: {expiry_str}. Setting expiry to None.")
-                                 serializable_expiry = None
-
-                        accounts_details[account_id] = {
-                            "scopes": scopes,
-                            "expiry": serializable_expiry
-                        }
-                    except json.JSONDecodeError:
-                        logger.error(f"Could not parse token data for account {account_id}. Skipping.")
-                    except Exception as parse_err:
-                         logger.error(f"Error processing account details for {account_id}: {parse_err}")
-
-            # Set default if not already set and accounts exist
-            if self.default_account_id is None and accounts_details:
-                 self.default_account_id = next(iter(accounts_details))
-                 logger.info(f"Set {self.default_account_id} as the default account for this session.")
-
-            return accounts_details
-
-        except Exception as e:
-            logger.error(f"Unexpected error listing accounts from Supabase: {e}", exc_info=True)
-            return {}
-
-    def get_default_account(self) -> Optional[str]:
-        """Gets the default account ID determined during the session."""
-        # Ensure accounts are loaded if default isn't set yet
-        if self.default_account_id is None:
-             self.get_accounts() # Attempt to load accounts and set default
-        return self.default_account_id
-
-# Initialize the account manager with the Supabase client
-account_manager = GmailSupabaseManager(supabase)
-# --- End Refactored Manager ---
+# Initialize the account manager
+account_manager = GmailAccountManager()
 
 # Type definitions
 class GmailMessage(TypedDict):
@@ -238,7 +94,7 @@ class GmailErrorResponse(TypedDict):
     error_message: str
 
 class GmailMessageResponse(TypedDict):
-    status: Literal['success', 'error']
+    status: Literal['success', 'error', 'partial_success']
     account: str
     messages: List[GmailMessage]
     report: Optional[str]
@@ -345,47 +201,8 @@ def execute_with_retry(request):
         return None
 
 def get_credentials(account_id: str) -> Optional[Credentials]:
-    """Get valid credentials for Gmail API from Supabase. Handles refresh."""
-    logger.debug(f"Attempting to get credentials for account_id: {account_id}")
-    try:
-        # Get credentials dictionary from Supabase via manager
-        credentials_dict = account_manager.get_account_credentials(account_id)
-        if not credentials_dict:
-            logger.error(f"Account {account_id} credentials not found in Supabase.")
-            return None
-
-        # Create credentials object from dictionary
-        # This dictionary should contain token, refresh_token, token_uri, client_id, client_secret, scopes
-        creds = Credentials.from_authorized_user_info(credentials_dict)
-
-        # Check if credentials need refresh
-        if not creds.valid:
-            if creds.expired and creds.refresh_token:
-                logger.info(f"Credentials for {account_id} expired. Attempting refresh.")
-                try:
-                    # The required info (client_id, client_secret, token_uri) should be in 'creds'
-                    # derived from credentials_dict loaded by from_authorized_user_info
-                    creds.refresh(Request())
-                    logger.info(f"Credentials for {account_id} refreshed successfully.")
-                    # Update token in Supabase
-                    account_manager.add_account(account_id, creds) # Use add_account which upserts
-                except Exception as e:
-                    logger.error(f"Failed to refresh credentials for {account_id}: {e}", exc_info=True)
-                    # Optionally: remove broken credentials?
-                    # account_manager.remove_account(account_id)
-                    return None
-            else:
-                logger.error(f"Credentials for {account_id} are invalid or expired, and no refresh token is available.")
-                # Optionally remove invalid creds
-                # account_manager.remove_account(account_id)
-                return None
-
-        logger.debug(f"Valid credentials obtained for {account_id}.")
-        return creds
-
-    except Exception as e:
-        logger.error(f"Error getting or refreshing credentials for {account_id}: {e}", exc_info=True)
-        return None
+    """Get valid credentials for Gmail API. Delegates to account_manager."""
+    return account_manager.get_credentials(account_id)
 
 # Gmail functionality
 def create_gmail_message_link(message_id: str, thread_id: Optional[str] = None) -> str:
@@ -454,10 +271,18 @@ def get_gmail_messages(account_id: Optional[str] = None, max_results: int = 10) 
         def callback(request_id, response, exception):
             nonlocal batch_errors # Allow modifying outer scope variable
             if exception:
-                error_msg = f"Error fetching message {request_id}: {exception}"
-                logger.error(error_msg)
-                batch_errors.append(error_msg)
-                # Optionally check if exception is retryable HttpError and handle if needed
+                # Check if this is a 404 error specifically
+                if isinstance(exception, HttpError) and exception.resp.status == 404:
+                    error_msg = f"Message {request_id} not found (404): The email may have been moved or deleted"
+                    logger.warning(error_msg)
+                    batch_errors.append(error_msg)
+                    # Don't treat 404 as fatal, just skip this message
+                    return
+                else:
+                    error_msg = f"Error fetching message {request_id}: {exception}"
+                    logger.error(error_msg)
+                    batch_errors.append(error_msg)
+                    # Optionally check if exception is retryable HttpError and handle if needed
                 return
             if response:
                 try:
@@ -514,20 +339,44 @@ def get_gmail_messages(account_id: Optional[str] = None, max_results: int = 10) 
                  execute_with_retry(batch)
             except Exception as batch_exec_err:
                 logger.error(f"Batch execution failed for account {actual_account_id}: {batch_exec_err}", exc_info=True)
-                # Decide if this is a fatal error for the whole function
-                return GmailMessageResponse(
-                    status="error",
-                    account=actual_account_id,
-                    messages=[],
-                    report="Failed to retrieve message details due to batch execution error.",
-                    error_message=f"Batch execution failed: {str(batch_exec_err)}"
-                )
+                # Don't treat batch errors as fatal if we have some results
+                if message_details_list:
+                    logger.info(f"Returning {len(message_details_list)} messages despite batch errors")
+                    return GmailMessageResponse(
+                        status="partial_success",
+                        account=actual_account_id,
+                        messages=message_details_list,
+                        report=f"Retrieved {len(message_details_list)} messages with some errors",
+                        error_message=f"Batch execution error: {str(batch_exec_err)}"
+                    )
+                else:
+                    # Return error for the impl function if no results at all
+                    return GmailErrorResponse(
+                        status="error",
+                        error_message=f"Batch execution failed while fetching details: {str(batch_exec_err)}"
+                    )
 
-        # Report results and errors
+        # Categorize errors by type for better reporting
+        error_summary = ""
+        if batch_errors:
+            error_types = {}
+            for err in batch_errors:
+                if "404" in err:
+                    error_types.setdefault("not_found", 0)
+                    error_types["not_found"] += 1
+                elif "403" in err:
+                    error_types.setdefault("permission", 0)
+                    error_types["permission"] += 1
+                else:
+                    error_types.setdefault("other", 0)
+                    error_types["other"] += 1
+            
+            error_summary = ", ".join([f"{count} {err_type}" for err_type, count in error_types.items()])
+            logger.warning(f"Batch errors for account {actual_account_id}: {batch_errors[:5]}")
+
         report_message = f"Retrieved {len(message_details_list)} messages for account {actual_account_id}."
         if batch_errors:
-            report_message += f" Encountered {len(batch_errors)} errors during fetch: {'; '.join(batch_errors[:3])}{'...' if len(batch_errors) > 3 else ''}"
-            logger.warning(f"Batch errors for account {actual_account_id}: {batch_errors}")
+            report_message += f" Encountered {len(batch_errors)} errors during fetch ({error_summary})."
 
         # Sort messages by date (optional, requires parsing date strings)
         try:
@@ -711,9 +560,18 @@ def _search_gmail_impl(account_id: str, query: str, max_results: int) -> Union[G
         def callback(request_id, response, exception):
             nonlocal batch_errors
             if exception:
-                error_msg = f"Error fetching message {request_id} during search: {exception}"
-                logger.error(error_msg)
-                batch_errors.append(error_msg)
+                # Check if this is a 404 error specifically
+                if isinstance(exception, HttpError) and exception.resp.status == 404:
+                    error_msg = f"Message {request_id} not found (404): The email may have been moved or deleted"
+                    logger.warning(error_msg)
+                    batch_errors.append(error_msg)
+                    # Don't treat 404 as fatal, just skip this message
+                    return
+                else:
+                    error_msg = f"Error fetching message {request_id}: {exception}"
+                    logger.error(error_msg)
+                    batch_errors.append(error_msg)
+                    # Optionally check if exception is retryable HttpError and handle if needed
                 return
             if response:
                 try:
@@ -764,16 +622,44 @@ def _search_gmail_impl(account_id: str, query: str, max_results: int) -> Union[G
                  execute_with_retry(batch)
              except Exception as batch_exec_err:
                 logger.error(f"Batch execution failed during search for account {account_id}: {batch_exec_err}", exc_info=True)
-                # Return partial results or error? Let's return error for the impl function.
-                return GmailErrorResponse(
-                    status="error",
-                    error_message=f"Batch execution failed while fetching details: {str(batch_exec_err)}"
-                )
+                # Don't treat batch errors as fatal if we have some results
+                if message_details_list:
+                    logger.info(f"Returning {len(message_details_list)} messages despite batch errors")
+                    return GmailMessageResponse(
+                        status="partial_success",
+                        account=account_id,
+                        messages=message_details_list,
+                        report=f"Retrieved {len(message_details_list)} messages with some errors",
+                        error_message=f"Batch execution error: {str(batch_exec_err)}"
+                    )
+                else:
+                    # Return error for the impl function if no results at all
+                    return GmailErrorResponse(
+                        status="error",
+                        error_message=f"Batch execution failed while fetching details: {str(batch_exec_err)}"
+                    )
+
+        # Categorize errors by type for better reporting
+        error_summary = ""
+        if batch_errors:
+            error_types = {}
+            for err in batch_errors:
+                if "404" in err:
+                    error_types.setdefault("not_found", 0)
+                    error_types["not_found"] += 1
+                elif "403" in err:
+                    error_types.setdefault("permission", 0)
+                    error_types["permission"] += 1
+                else:
+                    error_types.setdefault("other", 0)
+                    error_types["other"] += 1
+            
+            error_summary = ", ".join([f"{count} {err_type}" for err_type, count in error_types.items()])
+            logger.warning(f"Search batch errors for account {account_id}: {batch_errors[:5]}")
 
         report_message = f"Successfully searched account {account_id}. Fetched details for {len(message_details_list)}/{len(messages_ids)} messages."
         if batch_errors:
-            report_message += f" Encountered {len(batch_errors)} errors during detail fetch."
-            logger.warning(f"Search batch errors for account {account_id}: {batch_errors}")
+            report_message += f" Encountered {len(batch_errors)} errors during detail fetch ({error_summary})."
 
         # Return results matching GmailMessageResponse format
         return GmailMessageResponse(
@@ -1361,16 +1247,9 @@ def check_upcoming_deadlines() -> GmailDeadlineResponse:
         )
 
 def add_new_gmail_account() -> GmailAccountResponse:
-    """Add a new Gmail account. Triggers OAuth login flow via browser. Stores credentials in Supabase, identified by the email address obtained during auth."""
+    """Add a new Gmail account. Triggers OAuth login flow via browser. Stores credentials in backend, identified by the email address obtained during auth."""
     logger.info("Initiating add new Gmail account process.")
-    if supabase is None:
-         logger.error("Supabase client is not available. Cannot add new account.")
-         return GmailAccountResponse(
-             status="error",
-             message="Backend storage (Supabase) is not configured or available.",
-             error_message="Supabase client not initialized."
-         )
-
+    
     # Call the internal function that handles the flow and storage
     success, email_added, error_msg = _authenticate_and_store_new_account(account_manager)
 
@@ -1389,7 +1268,7 @@ def add_new_gmail_account() -> GmailAccountResponse:
         )
 
 def remove_gmail_account(account_id: str) -> GmailAccountResponse:
-    """Remove a Gmail account by email (account_id) from Supabase."""
+    """Remove a Gmail account by email (account_id) from storage."""
     if not account_id:
         return GmailAccountResponse(
             status="error",
@@ -1412,7 +1291,7 @@ def remove_gmail_account(account_id: str) -> GmailAccountResponse:
     )
 
 def list_gmail_accounts() -> GmailAccountListResponse:
-    """List all configured Gmail accounts stored in Supabase"""
+    """List all configured Gmail accounts"""
     try:
         # Use the manager method
         accounts = account_manager.get_accounts()
@@ -1430,8 +1309,8 @@ def list_gmail_accounts() -> GmailAccountListResponse:
         )
 
 # --- New Authentication Flow Function ---
-def _authenticate_and_store_new_account(manager: GmailSupabaseManager) -> Tuple[bool, Optional[str], Optional[str]]:
-    """Runs the OAuth flow, gets email, and stores credentials in Supabase."""
+def _authenticate_and_store_new_account(manager: GmailAccountManager) -> Tuple[bool, Optional[str], Optional[str]]:
+    """Runs the OAuth flow, gets email, and stores credentials."""
     logger.info("Starting new account authentication flow using client config.")
     credentials = None
     
@@ -1559,11 +1438,11 @@ def _authenticate_and_store_new_account(manager: GmailSupabaseManager) -> Tuple[
         success = manager.add_account(email, credentials)
 
         if success:
-            logger.info(f"Credentials for {email} stored successfully in Supabase.")
+            logger.info(f"Credentials for {email} stored successfully.")
             print(f"\n✅ Successfully authenticated {email} and stored credentials!")
             return True, email, None
         else:
-            logger.error(f"Failed to store credentials for {email} in Supabase.")
+            logger.error(f"Failed to store credentials for {email}.")
             print(f"\n⚠️ Authentication succeeded for {email}, but failed to store credentials.")
             return False, email, "Failed to store credentials in backend."
 
@@ -1578,33 +1457,22 @@ def _authenticate_and_store_new_account(manager: GmailSupabaseManager) -> Tuple[
 
 # Gmail functionality (modified get_gmail_service)
 def get_gmail_service(account_id: Optional[str] = None) -> GmailServiceResponse:
-    """Get Gmail service for specified account using credentials from Supabase."""
+    """Get Gmail service for specified account using credentials from account manager."""
     try:
         # Determine the target account ID
         target_account_id = account_id or account_manager.get_default_account()
         if not target_account_id:
-            # Try loading accounts again if default is None
-            if account_id is None:
-                 all_accounts = account_manager.get_accounts()
-                 if all_accounts:
-                     target_account_id = next(iter(all_accounts)) # Get first available
-                     logger.info(f"No default account set, using first available: {target_account_id}")
-                 else:
-                     logger.error("No account ID provided and no accounts found in Supabase.")
-                     return GmailServiceResponse(
-                         status="error",
-                         error_message="No account ID specified and no accounts configured.",
-                         service=None,
-                         account=None
-                     )
-            else: # account_id was specified but not found previously as default
-                 # We'll let get_credentials handle the "not found" case for a specific ID
-                 target_account_id = account_id
-
+            logger.error("No account ID provided and no default account found.")
+            return GmailServiceResponse(
+                status="error",
+                error_message="No account ID specified and no accounts configured.",
+                service=None,
+                account=None
+            )
 
         logger.info(f"Getting Gmail service for account: {target_account_id}")
-        # Get credentials using the refreshed function
-        credentials = get_credentials(target_account_id)
+        # Get credentials using the account manager
+        credentials = account_manager.get_credentials(target_account_id)
 
         if not credentials:
             # get_credentials logs the specific error
