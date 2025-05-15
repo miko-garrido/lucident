@@ -8,7 +8,7 @@ replacing user IDs with names and cleaning up Slack-specific formatting.
 import re
 import logging
 from slack_sdk.errors import SlackApiError
-from .client import get_slack_client
+from .client import get_slack_client, SlackClient
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -24,8 +24,6 @@ def replace_user_ids_with_names(message_text: str) -> str:
     Returns:
         The message text with user IDs replaced by user names
     """
-    client = get_slack_client()
-    
     # Find all user mentions in the format <@USER_ID>
     user_mentions = re.findall(r'<@([A-Z0-9]+)>', message_text)
     
@@ -34,19 +32,15 @@ def replace_user_ids_with_names(message_text: str) -> str:
     
     # Get user info for each mentioned user
     for user_id in user_mentions:
-        try:
-            user_info = client.users_info(user=user_id)
-            user_name = user_info["user"].get("real_name") or user_info["user"].get("name", "Unknown User")
-            
-            # For system messages like "<@USER_ID> has joined the group"
-            if f"<@{user_id}>" in message_text and not message_text.startswith("from ") and not message_text.startswith("(display"):
-                message_text = message_text.replace(f"<@{user_id}>", user_name)
-            else:
-                # For regular mentions within messages
-                message_text = message_text.replace(f"<@{user_id}>", user_name)
-        except SlackApiError as e:
-            logger.error(f"Error getting user info for {user_id}: {e}")
-            # Keep the original mention if we can't get the user info
+        user_data = SlackClient.get_user_info(user_id)
+        user_name = user_data.get("real_name") or user_data.get("name", "Unknown User")
+        
+        # For system messages like "<@USER_ID> has joined the group"
+        if f"<@{user_id}>" in message_text and not message_text.startswith("from ") and not message_text.startswith("(display"):
+            message_text = message_text.replace(f"<@{user_id}>", user_name)
+        else:
+            # For regular mentions within messages
+            message_text = message_text.replace(f"<@{user_id}>", user_name)
     
     return message_text
 

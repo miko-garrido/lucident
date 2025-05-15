@@ -8,37 +8,11 @@ import logging
 from typing import Dict, Any, Optional, Tuple
 from slack_sdk.errors import SlackApiError
 from .client import get_slack_client
-from ...Database import Database
+from ...utils.slack_context_saver import get_slack_context_from_supabase
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-def get_slack_context_from_supabase(context_type: str) -> Optional[str]:
-    """
-    Retrieve saved Slack context from Supabase database.
-    
-    Args:
-        context_type: The type of context to retrieve ('slack_users' or 'slack_channels')
-        
-    Returns:
-        The saved context as markdown string if found, None otherwise
-    """
-    try:
-        db = Database().client
-        result = db.table('saved_context') \
-            .select('body') \
-            .eq('type', context_type) \
-            .order('"created_at"', desc=True) \
-            .limit(1) \
-            .execute()
-        
-        if result.data:
-            return result.data[0]['body']
-        return None
-    except Exception as e:
-        logger.error(f"Error retrieving {context_type} from Supabase: {e}")
-        return None
 
 def get_channel_id(channel_name: str) -> Optional[str]:
     """

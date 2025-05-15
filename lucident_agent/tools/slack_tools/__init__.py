@@ -29,6 +29,13 @@ from .formatting import (
     format_slack_system_message
 )
 
+# Import Supabase utilities from slack_context_saver
+from ..utils.slack_context_saver import (
+    get_slack_context_from_supabase,
+    save_slack_context_to_supabase,
+    delete_slack_context_from_supabase
+)
+
 __all__ = [
     # Message operations
     'send_slack_message',
@@ -49,5 +56,10 @@ __all__ = [
     # Formatting utilities
     'format_slack_message',
     'replace_user_ids_with_names',
-    'format_slack_system_message'
+    'format_slack_system_message',
+    
+    # Supabase utilities
+    'get_slack_context_from_supabase',
+    'save_slack_context_to_supabase',
+    'delete_slack_context_from_supabase'
 ] 

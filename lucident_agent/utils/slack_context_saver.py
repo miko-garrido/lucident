@@ -11,12 +11,83 @@ from lucident_agent.tools.slack_tools import (
 from lucident_agent.Database import Database
 import logging
 import argparse
+from typing import Optional
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Database client
 db = Database().client
+
+def get_slack_context_from_supabase(context_type: str) -> Optional[str]:
+    """
+    Retrieve saved Slack context from Supabase database.
+    
+    Args:
+        context_type: The type of context to retrieve ('slack_users' or 'slack_channels')
+        
+    Returns:
+        The saved context as markdown string if found, None otherwise
+    """
+    try:
+        result = db.table('saved_context') \
+            .select('body') \
+            .eq('type', context_type) \
+            .order('"created_at"', desc=True) \
+            .limit(1) \
+            .execute()
+        
+        if result.data:
+            return result.data[0]['body']
+        return None
+    except Exception as e:
+        logger.error(f"Error retrieving {context_type} from Supabase: {e}")
+        return None
+
+def save_slack_context_to_supabase(context_type: str, body: str) -> bool:
+    """
+    Save Slack context to Supabase database.
+    
+    Args:
+        context_type: The type of context to save ('slack_users' or 'slack_channels')
+        body: The context data to save (typically formatted markdown)
+        
+    Returns:
+        True if saved successfully, False otherwise
+    """
+    try:
+        response = db.table("saved_context").insert({
+            "type": context_type, 
+            "body": body
+        }).execute()
+        
+        if response.data:
+            logger.info(f"Saved {context_type} to Supabase")
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error saving {context_type} to Supabase: {e}")
+        return False
+
+def delete_slack_context_from_supabase(context_type: str) -> bool:
+    """
+    Delete Slack context from Supabase database.
+    
+    Args:
+        context_type: The type of context to delete ('slack_users' or 'slack_channels')
+        
+    Returns:
+        True if deleted successfully, False otherwise
+    """
+    try:
+        response = db.table("saved_context").delete().eq("type", context_type).execute()
+        
+        logger.info(f"Deleted {len(response.data)} {context_type} records from Supabase")
+        return True
+    except Exception as e:
+        logger.error(f"Error deleting {context_type} from Supabase: {e}")
+        return False
 
 def format_slack_users_markdown():
     """
@@ -117,18 +188,16 @@ def save_slack_context():
     channels_markdown = format_slack_channels_markdown()
     
     # Save to Supabase
-    users_response = db.table("saved_context").insert({
-        "type": "slack_users", 
-        "body": users_markdown
-    }).execute()
+    users_saved = save_slack_context_to_supabase("slack_users", users_markdown)
+    channels_saved = save_slack_context_to_supabase("slack_channels", channels_markdown)
     
-    channels_response = db.table("saved_context").insert({
-        "type": "slack_channels", 
-        "body": channels_markdown
-    }).execute()
-    
-    logger.info(f"Saved {len(users_response.data)} Slack users record to Supabase")
-    logger.info(f"Saved {len(channels_response.data)} Slack channels record to Supabase")
+    if users_saved and channels_saved:
+        logger.info("Successfully saved Slack users and channels to Supabase")
+    else:
+        if not users_saved:
+            logger.error("Failed to save Slack users to Supabase")
+        if not channels_saved:
+            logger.error("Failed to save Slack channels to Supabase")
 
 def refresh_slack_context():
     """
@@ -137,11 +206,11 @@ def refresh_slack_context():
     logger.info("Deleting existing Slack context data...")
     
     # Delete existing slack context records
-    delete_channels = db.table("saved_context").delete().eq("type", "slack_channels").execute()
-    delete_users = db.table("saved_context").delete().eq("type", "slack_users").execute()
+    users_deleted = delete_slack_context_from_supabase("slack_users")
+    channels_deleted = delete_slack_context_from_supabase("slack_channels")
     
-    logger.info(f"Deleted {len(delete_channels.data)} channel records")
-    logger.info(f"Deleted {len(delete_users.data)} user records")
+    if users_deleted and channels_deleted:
+        logger.info("Successfully deleted existing Slack context")
     
     logger.info("Saving fresh Slack context...")
     save_slack_context()

@@ -7,8 +7,8 @@ This module provides functions for interacting with Slack users.
 import logging
 from typing import Dict, Any
 from slack_sdk.errors import SlackApiError
-from .client import get_slack_client
-from .channel_tools import get_slack_context_from_supabase
+from .client import get_slack_client, SlackClient
+from ...utils.slack_context_saver import get_slack_context_from_supabase
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -109,6 +109,16 @@ def list_slack_users() -> Dict[str, Any]:
     try:
         response = client.users_list()
         users = response["members"]
+        
+        # Store all users in the cache for future use
+        for user in users:
+            # Skip deleted and slackbot users
+            if user.get("deleted", False) and not user.get("is_bot", False):
+                continue
+                
+            user_id = user["id"]
+            # Add to the shared cache
+            SlackClient._user_cache[user_id] = user
         
         # Format as markdown for consistent response format with Supabase
         users_markdown = "# Slack Users\n\n"

@@ -8,7 +8,7 @@ import logging
 import re
 from typing import Dict, Any, List, Set
 from slack_sdk.errors import SlackApiError
-from .client import get_slack_client
+from .client import get_slack_client, SlackClient
 from .channel_tools import resolve_channel_id
 from .formatting import format_slack_message, create_slack_message_link
 
@@ -18,67 +18,6 @@ logger = logging.getLogger(__name__)
 
 # Default workspace ID - this should be set to your actual workspace ID
 DEFAULT_WORKSPACE_ID = "T0123456789"  # Update this with your actual workspace ID
-
-# In-memory user cache for optimizing API calls
-_user_cache = {}
-
-def _get_user_info(user_id: str) -> Dict[str, Any]:
-    """
-    Get user information with caching to reduce API calls.
-    
-    Args:
-        user_id: The ID of the user to get information for
-        
-    Returns:
-        Dictionary with user information or empty dict if not found
-    """
-    if not user_id or user_id == "UNKNOWN":
-        return {"name": "Unknown User", "real_name": "Unknown User"}
-        
-    # Check cache first
-    if user_id in _user_cache:
-        return _user_cache[user_id]
-    
-    # Fetch from API
-    client = get_slack_client()
-    try:
-        user_info = client.users_info(user=user_id)
-        user_data = user_info["user"]
-        _user_cache[user_id] = user_data
-        return user_data
-    except SlackApiError as e:
-        logger.error(f"Error getting user info for {user_id}: {e}")
-        # Store failed lookups to avoid repeated failures
-        _user_cache[user_id] = {"name": "Unknown User", "real_name": "Unknown User"}
-        return _user_cache[user_id]
-
-def _batch_get_users(user_ids: Set[str]) -> None:
-    """
-    Pre-fetch user information for multiple users at once.
-    This doesn't actually batch the API calls (Slack API limitation)
-    but prevents redundant logging and handles all the fetching in one place.
-    
-    Args:
-        user_ids: Set of user IDs to fetch information for
-    """
-    client = get_slack_client()
-    
-    # Filter out already cached users
-    users_to_fetch = [uid for uid in user_ids if uid not in _user_cache and uid != "UNKNOWN"]
-    
-    if not users_to_fetch:
-        return
-        
-    logger.info(f"Prefetching information for {len(users_to_fetch)} users")
-    
-    # Fetch each user (Slack doesn't support batched user fetching)
-    for user_id in users_to_fetch:
-        try:
-            user_info = client.users_info(user=user_id)
-            _user_cache[user_id] = user_info["user"]
-        except SlackApiError as e:
-            logger.error(f"Error batch fetching user {user_id}: {e}")
-            _user_cache[user_id] = {"name": "Unknown User", "real_name": "Unknown User"}
 
 def send_slack_message(channel: str, message: str) -> Dict[str, Any]:
     """
@@ -243,57 +182,47 @@ def get_slack_channel_history(channel: str, limit: int = 100, workspace_id: str 
                 user_ids.update(user_mentions)
         
         # Prefetch all users at once
-        _batch_get_users(user_ids)
+        SlackClient.batch_prefetch_users(user_ids)
         
         # Format the messages
         formatted_messages = []
         raw_messages_with_links = []
         
         for msg in messages:
-            # Format the message text
-            user_id = msg.get("user", "UNKNOWN")
+            # Format timestamp
+            ts = msg.get("ts", "")
             
-            # Get user info for the message sender
-            if user_id != "UNKNOWN":
-                user_info = _get_user_info(user_id)
-                user_name = user_info.get("real_name") or user_info.get("name", "Unknown User")
+            # Format the message
+            raw_text = msg.get("text", "")
+            
+            # Handle message formatting
+            if msg.get("subtype") == "bot_message":
+                # Bot messages
+                bot_name = msg.get("username", "Bot")
+                formatted_text = f"{bot_name}: {raw_text}"
+            elif msg.get("subtype") == "channel_join" or msg.get("subtype") == "channel_leave":
+                # System messages
+                formatted_text = raw_text
             else:
-                user_name = "Unknown User"
+                # Regular user messages
+                user_id = msg.get("user", "UNKNOWN")
+                user_data = SlackClient.get_user_info(user_id)
+                name = user_data.get("real_name") or user_data.get("name", "Unknown User")
+                formatted_text = f"{name}: {raw_text}"
             
-            # Create message link
-            message_ts = msg.get("ts", "")
-            thread_ts = msg.get("thread_ts", None)
-            message_link = create_slack_message_link(workspace_id, channel_id, message_ts, thread_ts)
+            # Format the complete message
+            formatted_messages.append(format_slack_message(formatted_text))
             
-            # Add the message to our results
-            if "text" in msg:
-                # Format the text
-                raw_text = msg["text"]
-                formatted_text = format_slack_message(raw_text)
-                
-                # System messages don't need sender prefix
-                if raw_text.startswith("<@") and any(action in raw_text for action in 
-                                             ["has joined", "has left", "added", "removed", "set the topic"]):
-                    formatted_messages.append({
-                        "text": formatted_text,
-                        "ts": msg["ts"],
-                        "link": message_link
-                    })
-                else:
-                    # Regular messages
-                    formatted_messages.append({
-                        "user": user_name,
-                        "text": formatted_text,
-                        "ts": msg["ts"],
-                        "thread_ts": msg.get("thread_ts"),
-                        "link": message_link
-                    })
-                
-            # Add raw message with metadata and link
-            raw_message = msg.copy()
-            raw_message["user_name"] = user_name
-            raw_message["link"] = message_link
-            raw_messages_with_links.append(raw_message)
+            # Add message link for raw messages
+            msg_with_link = msg.copy()
+            thread_ts = msg.get("thread_ts")
+            msg_with_link["link"] = create_slack_message_link(
+                workspace_id,
+                channel_id,
+                ts,
+                thread_ts
+            )
+            raw_messages_with_links.append(msg_with_link)
         
         return {
             "success": True,
@@ -311,21 +240,21 @@ def get_slack_channel_history(channel: str, limit: int = 100, workspace_id: str 
 
 def get_slack_thread_replies(channel: str, thread_ts: str, limit: int = 100, workspace_id: str = DEFAULT_WORKSPACE_ID) -> Dict[str, Any]:
     """
-    Get replies to a thread in a Slack channel.
+    Get replies from a Slack thread.
     
     Args:
         channel: The channel name or ID where the thread exists
-        thread_ts: The timestamp of the parent message of the thread
+        thread_ts: The timestamp of the parent message
         limit: The maximum number of replies to retrieve (default: 100)
         workspace_id: The Slack workspace/team ID (default: DEFAULT_WORKSPACE_ID)
         
     Returns:
         A dictionary containing:
         - 'success': Boolean indicating if the operation succeeded
-        - 'channel': The channel ID the thread is in
+        - 'channel': The channel ID the thread was retrieved from
         - 'thread_ts': The timestamp of the parent message
-        - 'messages': List of formatted thread messages including the parent
-        - 'raw_messages': List of unformatted messages with metadata
+        - 'replies': List of formatted reply messages
+        - 'raw_replies': List of unformatted replies with metadata
         - 'error': Error message if unsuccessful
     """
     client = get_slack_client()
@@ -339,7 +268,7 @@ def get_slack_thread_replies(channel: str, thread_ts: str, limit: int = 100, wor
         }
     
     try:
-        # Get replies in the thread
+        # Get replies to the thread
         response = client.conversations_replies(
             channel=channel_id,
             ts=thread_ts,
@@ -359,8 +288,8 @@ def get_slack_thread_replies(channel: str, thread_ts: str, limit: int = 100, wor
                 "success": True,
                 "channel": channel_id,
                 "thread_ts": thread_ts,
-                "messages": [],
-                "raw_messages": []
+                "replies": [],
+                "raw_replies": []
             }
         
         # Extract all user IDs from messages to batch prefetch
@@ -375,53 +304,51 @@ def get_slack_thread_replies(channel: str, thread_ts: str, limit: int = 100, wor
                 user_ids.update(user_mentions)
         
         # Prefetch all users at once
-        _batch_get_users(user_ids)
+        SlackClient.batch_prefetch_users(user_ids)
         
         # Format the messages
-        formatted_messages = []
-        raw_messages_with_links = []
+        formatted_replies = []
+        raw_replies_with_links = []
         
-        for msg in messages:
-            # Format the message text
-            user_id = msg.get("user", "UNKNOWN")
+        # Skip the first message which is the parent message
+        for msg in messages[1:]:
+            # Format timestamp
+            ts = msg.get("ts", "")
             
-            # Get user info for the message sender
-            if user_id != "UNKNOWN":
-                user_info = _get_user_info(user_id)
-                user_name = user_info.get("real_name") or user_info.get("name", "Unknown User")
+            # Format the message
+            raw_text = msg.get("text", "")
+            
+            # Handle message formatting
+            if msg.get("subtype") == "bot_message":
+                # Bot messages
+                bot_name = msg.get("username", "Bot")
+                formatted_text = f"{bot_name}: {raw_text}"
             else:
-                user_name = "Unknown User"
+                # Regular user messages
+                user_id = msg.get("user", "UNKNOWN")
+                user_data = SlackClient.get_user_info(user_id)
+                name = user_data.get("real_name") or user_data.get("name", "Unknown User")
+                formatted_text = f"{name}: {raw_text}"
             
-            # Create message link
-            message_ts = msg.get("ts", "")
-            message_link = create_slack_message_link(workspace_id, channel_id, message_ts, thread_ts)
+            # Format the complete message
+            formatted_replies.append(format_slack_message(formatted_text))
             
-            if "text" in msg:
-                # Format the text
-                raw_text = msg["text"]
-                formatted_text = format_slack_message(raw_text)
-                
-                # Add to our formatted results
-                formatted_messages.append({
-                    "user": user_name,
-                    "text": formatted_text,
-                    "ts": msg["ts"],
-                    "is_parent": msg["ts"] == thread_ts,
-                    "link": message_link
-                })
-            
-            # Add raw message with metadata and link
-            raw_message = msg.copy()
-            raw_message["user_name"] = user_name
-            raw_message["link"] = message_link
-            raw_messages_with_links.append(raw_message)
+            # Add message link for raw messages
+            msg_with_link = msg.copy()
+            msg_with_link["link"] = create_slack_message_link(
+                workspace_id,
+                channel_id,
+                ts,
+                thread_ts
+            )
+            raw_replies_with_links.append(msg_with_link)
         
         return {
             "success": True,
             "channel": channel_id,
             "thread_ts": thread_ts,
-            "messages": formatted_messages,
-            "raw_messages": raw_messages_with_links
+            "replies": formatted_replies,
+            "raw_replies": raw_replies_with_links
         }
     except SlackApiError as e:
         logger.error(f"Error getting thread replies: {e}")
