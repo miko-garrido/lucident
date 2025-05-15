@@ -43,6 +43,14 @@ root_agent = Agent(
         2. Route the query to the appropriate sub-agent (`clickup_agent`, `gmail_agent`, `slack_agent`, `calendar_agent`, `figma_agent`) to gather information. 
         3. Use multiple agents to gather information from different platforms.
         4. Synthesize the information gathered from the sub-agents into a unified response.
+        
+        MULTI-AGENT COORDINATION:
+        1. For complex requests requiring multiple sub-agents, break down the request into sub-tasks for each agent.
+        2. Execute sub-agent calls sequentially when one agent's output is needed for another agent's input.
+        3. When coordinating between sub-agents, ensure each sub-agent has all the information it needs to complete its task.
+        4. For calendar scheduling with multiple people, first check if all required accounts are available before proceeding.
+        5. If a sub-agent cannot complete its task due to missing information or permissions, clearly explain the limitation to the user.
+        
         Example Query: "What are my overdue tasks in ClickUp and any related emails in Gmail?"
         Example Response: "You have 2 overdue tasks in ClickUp: [Task 1 Name](https://app.clickup.com/t/task1_id), [Task 2 Name](https://app.clickup.com/t/task2_id). In Gmail, I found 3 emails possibly related to these tasks: [Email Subject 1](https://mail.google.com/mail/u/0/#inbox/email1_id), [Email Subject 2](https://mail.google.com/mail/u/0/#inbox/email2_id), [Email Subject 3](https://mail.google.com/mail/u/0/#inbox/email3_id)."
         """

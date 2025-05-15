@@ -81,6 +81,13 @@ calendar_agent = Agent(
         "2. For sending invites: use send_calendar_invite(account_id, event_id)"
         "3. For finding mutually available time slots across multiple calendars: use find_mutual_free_slots(primary_account_id, other_account_ids, date, min_duration_minutes)"
         "   This is very useful for scheduling meetings between multiple people"
+        "\n\nHANDLING MISSING ACCOUNTS:"
+        "1. If a user asks to schedule with people whose accounts aren't found in list_calendar_accounts(), clearly explain that you can only schedule with accounts that are connected to the system"
+        "2. For multi-person scheduling when not all accounts are available, suggest the user to:"
+        "   - Connect the missing accounts first using add_new_calendar_account()"
+        "   - Or provide available slots from the accounts you do have access to"
+        "3. When asked to find mutual free slots between people and some accounts aren't available, don't attempt to use find_mutual_free_slots() - instead explain the limitation"
+        "4. Always be transparent about which accounts you have access to and which ones you don't"
     ),
     tools=[
         # Calendar tools

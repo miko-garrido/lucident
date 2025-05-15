@@ -208,10 +208,12 @@ def _get_content(
   """
 
   content_objects = []
+  text_parts = []
   for part in parts:
     if part.text:
       if len(parts) == 1:
         return part.text
+      text_parts.append(part.text)
       content_objects.append(
           ChatCompletionTextObject(
               type="text",
@@ -242,6 +244,11 @@ def _get_content(
         )
       else:
         raise ValueError("LiteLlm(BaseLlm) does not support this content part.")
+  
+  # If we have multiple text parts, join them for better context
+  if text_parts and len(text_parts) > 1:
+    combined_text = " ".join(text_parts)
+    return combined_text
 
   return content_objects
 
