@@ -2,16 +2,11 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-from lucident_agent.tools.slack_tools import (
-    list_slack_users, 
-    list_slack_channels, 
-    get_bot_user_id, 
-    get_slack_bot_info
-)
+# Remove direct imports from slack_tools to break circular dependency
 from lucident_agent.Database import Database
 import logging
 import argparse
-from typing import Optional
+from typing import Optional, Dict, Any, List
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -89,33 +84,40 @@ def delete_slack_context_from_supabase(context_type: str) -> bool:
         logger.error(f"Error deleting {context_type} from Supabase: {e}")
         return False
 
-def format_slack_users_markdown():
+# Modified to accept data from outside instead of importing slack tools
+def format_slack_users_markdown(users_data: Dict[str, Any] = None, get_bot_user_id_fn=None):
     """
     Format Slack users data in markdown
     Note: This requires 'users:read' scope which may not be available.
     If not available, we'll just save the bot's user ID from auth.test.
-    """
-    users_data = list_slack_users()
     
-    if not users_data.get("success", False):
+    Args:
+        users_data: Dictionary containing user data from slack API
+        get_bot_user_id_fn: Function to get bot user ID if users_data not available
+    """
+    if not users_data or not users_data.get("success", False):
         # If we don't have permission to list all users, just get basic bot ID
         logger.info("Cannot list all users. Saving basic bot info only.")
         
         try:
-            # auth_test doesn't require users:read permission
-            bot_id = get_bot_user_id()
-            
-            if bot_id:
-                lines = [
-                    "**Slack Bot Info Only**",
-                    f"*Bot*",
-                    f"- id: {bot_id}",
-                    f"- Note: Limited permissions available. Bot token needs 'users:read' scope to list users.",
-                    ""
-                ]
-                return "\n".join(lines)
+            # Use the function passed in instead of importing directly
+            if get_bot_user_id_fn:
+                bot_info = get_bot_user_id_fn()
+                bot_id = bot_info.get("bot_id") if bot_info.get("success", False) else None
+                
+                if bot_id:
+                    lines = [
+                        "**Slack Bot Info Only**",
+                        f"*Bot*",
+                        f"- id: {bot_id}",
+                        f"- Note: Limited permissions available. Bot token needs 'users:read' scope to list users.",
+                        ""
+                    ]
+                    return "\n".join(lines)
+                else:
+                    return "Error: Could not retrieve bot user ID."
             else:
-                return "Error: Could not retrieve bot user ID."
+                return "Error: No function provided to get bot user ID."
         except Exception as e:
             logger.error(f"Error getting bot user ID: {e}")
             return f"Error fetching Slack bot ID: {str(e)}"
@@ -138,13 +140,15 @@ def format_slack_users_markdown():
         ])
     return "\n".join(lines)
 
-def format_slack_channels_markdown():
+# Modified to accept data from outside instead of importing slack tools
+def format_slack_channels_markdown(channels_data: Dict[str, Any] = None):
     """
     Format Slack channels data in markdown
-    """
-    channels_data = list_slack_channels()
     
-    if not channels_data.get("success", False):
+    Args:
+        channels_data: Dictionary containing channel data from slack API
+    """
+    if not channels_data or not channels_data.get("success", False):
         return f"Error fetching Slack channels: {channels_data.get('error', 'Unknown error')}"
     
     # Check if we got data from Supabase
@@ -179,13 +183,23 @@ def format_slack_channels_markdown():
     
     return "\n".join(lines)
 
-def save_slack_context():
+# These functions need to be modified to accept the necessary functions as parameters
+def save_slack_context(list_users_fn=None, list_channels_fn=None, get_bot_id_fn=None):
     """
     Save Slack context to Supabase (without deleting previous records)
+    
+    Args:
+        list_users_fn: Function to list Slack users
+        list_channels_fn: Function to list Slack channels
+        get_bot_id_fn: Function to get bot user ID
     """
+    # Get data using passed functions
+    users_data = list_users_fn() if list_users_fn else {"success": False}
+    channels_data = list_channels_fn() if list_channels_fn else {"success": False}
+    
     # Format the data
-    users_markdown = format_slack_users_markdown()
-    channels_markdown = format_slack_channels_markdown()
+    users_markdown = format_slack_users_markdown(users_data, get_bot_id_fn)
+    channels_markdown = format_slack_channels_markdown(channels_data)
     
     # Save to Supabase
     users_saved = save_slack_context_to_supabase("slack_users", users_markdown)
@@ -199,9 +213,14 @@ def save_slack_context():
         if not channels_saved:
             logger.error("Failed to save Slack channels to Supabase")
 
-def refresh_slack_context():
+def refresh_slack_context(list_users_fn=None, list_channels_fn=None, get_bot_id_fn=None):
     """
     Force refresh the Slack context in Supabase by deleting existing records first
+    
+    Args:
+        list_users_fn: Function to list Slack users
+        list_channels_fn: Function to list Slack channels
+        get_bot_id_fn: Function to get bot user ID
     """
     logger.info("Deleting existing Slack context data...")
     
@@ -213,21 +232,19 @@ def refresh_slack_context():
         logger.info("Successfully deleted existing Slack context")
     
     logger.info("Saving fresh Slack context...")
-    save_slack_context()
+    save_slack_context(list_users_fn, list_channels_fn, get_bot_id_fn)
     logger.info("Done! Slack context has been refreshed in Supabase.")
 
 def main():
     """
     Main function to save Slack context to Supabase
+    Note: This will fail if run directly since we've removed direct imports
     """
-    save_slack_context()
+    logger.error("This module should not be run directly anymore. Import the functions and provide the necessary parameters.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Save or refresh Slack context in Supabase')
     parser.add_argument('--refresh', action='store_true', help='Delete existing records before saving new ones')
     args = parser.parse_args()
     
-    if args.refresh:
-        refresh_slack_context()
-    else:
-        main() 
+    logger.error("This module should not be run directly anymore. Import the functions and provide the necessary parameters.") 

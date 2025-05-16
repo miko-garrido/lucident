@@ -18,7 +18,14 @@ from lucident_agent.tools.slack_tools import (
     get_slack_thread_replies,
     list_slack_channels,
     list_slack_users,
-    update_slack_message
+    update_slack_message,
+    extract_promises_from_text,
+    extract_promises_from_slack_history,
+    get_file_info,
+    list_files_in_channel,
+    list_files_in_thread,
+    get_document_text,
+    download_file_content
 )
 from lucident_agent.tools.basic_tools import (
     get_current_time,
@@ -64,10 +71,30 @@ slack_agent = Agent(
     - List available channels (using cached data from Supabase when available)
     - List workspace users (using cached data from Supabase when available)
     - Update existing messages
+    - Extract promises or commitments from messages
+    - Detect and process documents shared in Slack conversations
     
     When listing channels or users, I'll first check Supabase for cached information.
     If available, I'll return the cached markdown-formatted data.
     Otherwise, I'll fetch the data directly from the Slack API.
+    
+    I can identify and extract commitments or promises from messages. A promise is any statement 
+    where someone commits to a future action, such as "I'll send you the report tomorrow" or 
+    "Let me get back to you next week."
+    
+    I can also detect, list, and read documents/files shared in Slack conversations. This includes:
+    - Detecting when documents are shared in a channel or thread
+    - Getting information about a specific file
+    - Listing all files in a channel or thread
+    - Reading and extracting the text content from documents (when possible)
+    - Processing PDF documents, including scanned PDFs with OCR capabilities
+    - Reading text from images using OCR technology
+    - Downloading file content for processing
+    
+    For PDFs, I can extract text both from regular machine-readable PDFs and from scanned documents 
+    using Optical Character Recognition (OCR). For scanned documents or images of text, I'll attempt 
+    to recognize and extract the text using OCR. However, the quality of OCR results depends on the 
+    document quality and clarity.
     
     I also have general utility tools for time, date calculations, and basic arithmetic.
     
@@ -90,6 +117,15 @@ slack_agent = Agent(
         list_slack_channels,
         list_slack_users,
         update_slack_message,
+        extract_promises_from_text,
+        extract_promises_from_slack_history,
+        
+        # Document handling tools
+        get_file_info,
+        list_files_in_channel,
+        list_files_in_thread,
+        get_document_text,
+        download_file_content,
         
         # Basic tools
         get_current_time,

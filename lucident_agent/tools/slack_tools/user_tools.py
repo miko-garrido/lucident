@@ -5,14 +5,37 @@ This module provides functions for interacting with Slack users.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from slack_sdk.errors import SlackApiError
 from .client import get_slack_client, SlackClient
-from ...utils.slack_context_saver import get_slack_context_from_supabase
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Add a function to get context from Supabase directly
+def _get_slack_users_from_supabase() -> Optional[str]:
+    """
+    Helper function to get slack users context from Supabase.
+    This avoids circular imports.
+    """
+    try:
+        from lucident_agent.Database import Database
+        db = Database().client
+        
+        result = db.table('saved_context') \
+            .select('body') \
+            .eq('type', 'slack_users') \
+            .order('"created_at"', desc=True) \
+            .limit(1) \
+            .execute()
+        
+        if result.data:
+            return result.data[0]['body']
+        return None
+    except Exception as e:
+        logger.error(f"Error retrieving slack_users from Supabase: {e}")
+        return None
 
 def get_bot_user_id() -> Dict[str, Any]:
     """
@@ -96,8 +119,8 @@ def list_slack_users() -> Dict[str, Any]:
     """
     client = get_slack_client()
     
-    # First try to get from Supabase
-    users_markdown = get_slack_context_from_supabase('slack_users')
+    # First try to get from Supabase using direct function instead of import
+    users_markdown = _get_slack_users_from_supabase()
     if users_markdown:
         return {
             "success": True, 

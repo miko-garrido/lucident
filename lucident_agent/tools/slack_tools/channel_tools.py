@@ -8,11 +8,36 @@ import logging
 from typing import Dict, Any, Optional, Tuple
 from slack_sdk.errors import SlackApiError
 from .client import get_slack_client
-from ...utils.slack_context_saver import get_slack_context_from_supabase
+# Remove the circular import
+# from ...utils.slack_context_saver import get_slack_context_from_supabase
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Add a function to get context from Supabase directly
+def _get_slack_channels_from_supabase() -> Optional[str]:
+    """
+    Helper function to get slack channels context from Supabase.
+    This avoids circular imports.
+    """
+    try:
+        from lucident_agent.Database import Database
+        db = Database().client
+        
+        result = db.table('saved_context') \
+            .select('body') \
+            .eq('type', 'slack_channels') \
+            .order('"created_at"', desc=True) \
+            .limit(1) \
+            .execute()
+        
+        if result.data:
+            return result.data[0]['body']
+        return None
+    except Exception as e:
+        logger.error(f"Error retrieving slack_channels from Supabase: {e}")
+        return None
 
 def get_channel_id(channel_name: str) -> Optional[str]:
     """
@@ -92,8 +117,8 @@ def list_slack_channels() -> Dict[str, Any]:
     """
     client = get_slack_client()
     
-    # First try to get from Supabase
-    channels_markdown = get_slack_context_from_supabase('slack_channels')
+    # First try to get from Supabase using direct function instead of import
+    channels_markdown = _get_slack_channels_from_supabase()
     if channels_markdown:
         return {
             "success": True, 

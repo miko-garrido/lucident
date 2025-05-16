@@ -29,12 +29,21 @@ from .formatting import (
     format_slack_system_message
 )
 
-# Import Supabase utilities from slack_context_saver
-from ..utils.slack_context_saver import (
-    get_slack_context_from_supabase,
-    save_slack_context_to_supabase,
-    delete_slack_context_from_supabase
+from .extract_promises import (
+    extract_promises_from_text,
+    extract_promises_from_slack_history
 )
+
+from .document_tools import (
+    get_file_info,
+    list_files_in_channel,
+    list_files_in_thread,
+    get_document_text,
+    download_file_content
+)
+
+# Remove the import from slack_context_saver to break circular dependency
+# Instead, we'll use direct DB access in the respective modules
 
 __all__ = [
     # Message operations
@@ -58,8 +67,16 @@ __all__ = [
     'replace_user_ids_with_names',
     'format_slack_system_message',
     
-    # Supabase utilities
-    'get_slack_context_from_supabase',
-    'save_slack_context_to_supabase',
-    'delete_slack_context_from_supabase'
+    # Promise extraction utilities
+    'extract_promises_from_text',
+    'extract_promises_from_slack_history',
+    
+    # Document handling operations
+    'get_file_info',
+    'list_files_in_channel',
+    'list_files_in_thread',
+    'get_document_text',
+    'download_file_content',
+    
+    # Remove Supabase utilities from exports since they create circular imports
 ] 
