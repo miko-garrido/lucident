@@ -123,26 +123,16 @@ def get_file_info(file_id: str) -> Dict[str, Any]:
         - 'error': Error message if unsuccessful
     """
     client = get_slack_client()
-    
-    try:
-        response = client.files_info(file=file_id)
-        
-        if not response["ok"]:
-            return {
-                "success": False,
-                "error": f"API error: {response.get('error', 'Unknown error')}"
-            }
-        
-        return {
-            "success": True,
-            "file": response["file"]
-        }
-    except SlackApiError as e:
-        logger.error(f"Error getting file info: {e}")
+    response = client.files_info(file=file_id)
+    if not response["ok"]:
         return {
             "success": False,
-            "error": f"Error getting file info: {str(e)}"
+            "error": f"API error: {response.get('error', 'Unknown error')}"
         }
+    return {
+        "success": True,
+        "file": response["file"]
+    }
 
 def download_file_content(file_url: str, file_name: Optional[str] = None) -> Dict[str, Any]:
     """
@@ -161,54 +151,40 @@ def download_file_content(file_url: str, file_name: Optional[str] = None) -> Dic
     """
     client = get_slack_client()
     headers = {"Authorization": f"Bearer {client.token}"}
-    
-    try:
-        # Download the file with authentication
-        response = requests.get(file_url, headers=headers)
-        
-        if response.status_code != 200:
-            return {
-                "success": False,
-                "error": f"Failed to download file: HTTP {response.status_code}"
-            }
-        
-        # Determine if this is likely a text file based on content
-        is_text = True
-        content = None
-        
-        try:
-            content = response.text
-            # Check if this might be binary data by looking for null bytes
-            if "\x00" in content or len(content) > 1000000:  # Don't try to return huge text files
-                is_text = False
-                content = None
-        except UnicodeDecodeError:
-            is_text = False
-            content = None
-        
-        # Save the file
-        if file_name:
-            file_path = file_name
-        else:
-            temp_dir = tempfile.gettempdir()
-            file_path = os.path.join(temp_dir, f"slack_file_{os.urandom(4).hex()}")
-        
-        with open(file_path, 'wb') as f:
-            f.write(response.content)
-        
-        return {
-            "success": True,
-            "file_path": file_path,
-            "content": content if is_text else "Binary content (not displayed)",
-            "is_text": is_text,
-            "raw_content": response.content  # Include raw content for further processing
-        }
-    except Exception as e:
-        logger.error(f"Error downloading file: {e}")
+    # Download the file with authentication
+    response = requests.get(file_url, headers=headers)
+    if response.status_code != 200:
         return {
             "success": False,
-            "error": f"Error downloading file: {str(e)}"
+            "error": f"Failed to download file: HTTP {response.status_code}"
         }
+    # Determine if this is likely a text file based on content
+    is_text = True
+    content = None
+    try:
+        content = response.text
+        # Check if this might be binary data by looking for null bytes
+        if "\x00" in content or len(content) > 1000000:  # Don't try to return huge text files
+            is_text = False
+            content = None
+    except UnicodeDecodeError:
+        is_text = False
+        content = None
+    # Save the file
+    if file_name:
+        file_path = file_name
+    else:
+        temp_dir = tempfile.gettempdir()
+        file_path = os.path.join(temp_dir, f"slack_file_{os.urandom(4).hex()}")
+    with open(file_path, 'wb') as f:
+        f.write(response.content)
+    return {
+        "success": True,
+        "file_path": file_path,
+        "content": content if is_text else "Binary content (not displayed)",
+        "is_text": is_text,
+        "raw_content": response.content  # Include raw content for further processing
+    }
 
 def extract_pdf_text(pdf_content) -> str:
     """
@@ -220,29 +196,22 @@ def extract_pdf_text(pdf_content) -> str:
     Returns:
         Extracted text as string
     """
-    try:
-        text = []
-        # Create a PDF file reader object
-        pdf_file = io.BytesIO(pdf_content)
-        pdf_reader = PyPDF2.PdfReader(pdf_file)
-        
-        # Extract text from each page
-        for page_num in range(len(pdf_reader.pages)):
-            page = pdf_reader.pages[page_num]
-            page_text = page.extract_text()
-            if page_text:
-                text.append(f"--- Page {page_num + 1} ---\n{page_text}")
-            else:
-                text.append(f"--- Page {page_num + 1} ---\n[No extractable text on this page]")
-        
-        # If no text was extracted, PDF might be scanned or image-based
-        if not any(text) or all("[No extractable text on this page]" in page for page in text):
-            return "This PDF appears to contain scanned images or non-extractable text. OCR processing would be required to extract text."
-        
-        return "\n\n".join(text)
-    except Exception as e:
-        logger.error(f"Error extracting PDF text: {e}")
-        return f"Error processing PDF: {str(e)}"
+    text = []
+    # Create a PDF file reader object
+    pdf_file = io.BytesIO(pdf_content)
+    pdf_reader = PyPDF2.PdfReader(pdf_file)
+    # Extract text from each page
+    for page_num in range(len(pdf_reader.pages)):
+        page = pdf_reader.pages[page_num]
+        page_text = page.extract_text()
+        if page_text:
+            text.append(f"--- Page {page_num + 1} ---\n{page_text}")
+        else:
+            text.append(f"--- Page {page_num + 1} ---\n[No extractable text on this page]")
+    # If no text was extracted, PDF might be scanned or image-based
+    if not any(text) or all("[No extractable text on this page]" in page for page in text):
+        return "This PDF appears to contain scanned images or non-extractable text. OCR processing would be required to extract text."
+    return "\n\n".join(text)
 
 def perform_ocr_on_pdf(pdf_content) -> str:
     """
@@ -254,26 +223,19 @@ def perform_ocr_on_pdf(pdf_content) -> str:
     Returns:
         Extracted text as string
     """
-    try:
-        # Convert PDF to images
-        images = convert_from_bytes(pdf_content)
-        
-        # Perform OCR on each page
-        text = []
-        for i, image in enumerate(images):
-            page_text = pytesseract.image_to_string(image)
-            if page_text.strip():
-                text.append(f"--- Page {i + 1} (OCR) ---\n{page_text}")
-            else:
-                text.append(f"--- Page {i + 1} (OCR) ---\n[No text detected via OCR]")
-        
-        if not any(text) or all("[No text detected via OCR]" in page for page in text):
-            return "OCR processing was unable to extract text from this document. The document may be complex or low quality."
-        
-        return "\n\n".join(text)
-    except Exception as e:
-        logger.error(f"Error performing OCR: {e}")
-        return f"Error during OCR processing: {str(e)}"
+    # Convert PDF to images
+    images = convert_from_bytes(pdf_content)
+    # Perform OCR on each page
+    text = []
+    for i, image in enumerate(images):
+        page_text = pytesseract.image_to_string(image)
+        if page_text.strip():
+            text.append(f"--- Page {i + 1} (OCR) ---\n{page_text}")
+        else:
+            text.append(f"--- Page {i + 1} (OCR) ---\n[No text detected via OCR]")
+    if not any(text) or all("[No text detected via OCR]" in page for page in text):
+        return "OCR processing was unable to extract text from this document. The document may be complex or low quality."
+    return "\n\n".join(text)
 
 def extract_image_text(image_content) -> str:
     """
@@ -285,17 +247,11 @@ def extract_image_text(image_content) -> str:
     Returns:
         Extracted text as string
     """
-    try:
-        image = Image.open(io.BytesIO(image_content))
-        text = pytesseract.image_to_string(image)
-        
-        if not text.strip():
-            return "No text detected in this image via OCR. The image may not contain text or the text is not recognizable."
-        
-        return text
-    except Exception as e:
-        logger.error(f"Error performing OCR on image: {e}")
-        return f"Error during image OCR processing: {str(e)}"
+    image = Image.open(io.BytesIO(image_content))
+    text = pytesseract.image_to_string(image)
+    if not text.strip():
+        return "No text detected in this image via OCR. The image may not contain text or the text is not recognizable."
+    return text
 
 def list_files_in_channel(channel: str, limit: int = 100) -> Dict[str, Any]:
     """

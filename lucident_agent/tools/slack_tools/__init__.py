@@ -42,9 +42,6 @@ from .document_tools import (
     download_file_content
 )
 
-# Remove the import from slack_context_saver to break circular dependency
-# Instead, we'll use direct DB access in the respective modules
-
 __all__ = [
     # Message operations
     'send_slack_message',
@@ -77,6 +74,4 @@ __all__ = [
     'list_files_in_thread',
     'get_document_text',
     'download_file_content',
-    
-    # Remove Supabase utilities from exports since they create circular imports
 ] 
