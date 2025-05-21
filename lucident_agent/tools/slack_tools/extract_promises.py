@@ -19,13 +19,9 @@ def extract_date_from_text(text: str) -> tuple:
     """
     Extract date information from text.
     
-    Args:
-        text: The text to analyze for date references
-        
-    Returns:
-        A tuple containing (due_date, due_date_text) where:
-        - due_date is the parsed date in ISO format or None
-        - due_date_text is the original date text found
+    Returns a tuple containing (due_date, due_date_text) where:
+    - due_date is the parsed date in ISO format or None
+    - due_date_text is the original date text found
     """
     text_lower = text.lower()
     

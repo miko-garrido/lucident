@@ -16,22 +16,12 @@ from .client import get_slack_client
 from .message_tools import get_slack_channel_history, get_slack_thread_replies
 
 # Import PDF processing library
-try:
-    import PyPDF2
-    PYPDF2_AVAILABLE = True
-except ImportError:
-    PYPDF2_AVAILABLE = False
-    logging.warning("PyPDF2 not available. PDF text extraction will be limited.")
+import PyPDF2
 
 # Import OCR libraries
-try:
-    import pytesseract
-    from PIL import Image
-    from pdf2image import convert_from_bytes
-    OCR_AVAILABLE = True
-except ImportError:
-    OCR_AVAILABLE = False
-    logging.warning("OCR libraries not available. Text extraction from scanned documents will be limited.")
+import pytesseract
+from PIL import Image
+from pdf2image import convert_from_bytes
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -41,15 +31,10 @@ def check_extraction_capability(file_type: str, mime_type: str) -> Tuple[bool, s
     """
     Check if we have capability to extract text from a file based on its type.
     
-    Args:
-        file_type: The file type extension (e.g., 'pdf', 'txt')
-        mime_type: The MIME type of the file
-        
-    Returns:
-        Tuple containing:
-        - is_supported: Boolean indicating if we support extraction
-        - method: The method of extraction ('standard', 'ocr', 'none')
-        - needs_ocr: Boolean indicating if OCR might be needed
+    Returns a tuple containing:
+    - is_supported: Boolean indicating if we support extraction
+    - method: The method of extraction ('standard', 'ocr', 'none')
+    - needs_ocr: Boolean indicating if OCR might be needed
     """
     file_type = file_type.lower() if file_type else ""
     mime_type = mime_type.lower() if mime_type else ""
@@ -85,10 +70,7 @@ def check_extraction_capability(file_type: str, mime_type: str) -> Tuple[bool, s
     
     # Check PDF
     if file_type in pdf_formats or "application/pdf" in mime_type:
-        if PYPDF2_AVAILABLE:
-            return True, "pdf", True  # PDFs may need OCR if scanned
-        else:
-            return False, "none", False
+        return True, "pdf", True  # PDFs may need OCR if scanned
     
     # Check Office documents
     if file_type in doc_formats or "document" in mime_type:
@@ -100,10 +82,7 @@ def check_extraction_capability(file_type: str, mime_type: str) -> Tuple[bool, s
     
     # Check images
     if file_type in image_formats or "image/" in mime_type:
-        if OCR_AVAILABLE:
-            return True, "ocr", True
-        else:
-            return False, "none", False
+        return True, "ocr", True
     
     # Default case - unknown or unsupported type
     return False, "none", False
@@ -111,12 +90,12 @@ def check_extraction_capability(file_type: str, mime_type: str) -> Tuple[bool, s
 def detect_files_in_messages(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Detect files in a list of Slack messages.
-    
+
     Args:
-        messages: List of raw Slack messages
-        
+        messages (List[Dict[str, Any]]): List of raw Slack message objects (each message is a dict as returned by the Slack API)
+
     Returns:
-        List of files found in the messages
+        List[Dict[str, Any]]: List of file objects found in the messages
     """
     files = []
     
@@ -241,9 +220,6 @@ def extract_pdf_text(pdf_content) -> str:
     Returns:
         Extracted text as string
     """
-    if not PYPDF2_AVAILABLE:
-        return "PDF text extraction unavailable. Please install PyPDF2."
-    
     try:
         text = []
         # Create a PDF file reader object
@@ -278,9 +254,6 @@ def perform_ocr_on_pdf(pdf_content) -> str:
     Returns:
         Extracted text as string
     """
-    if not OCR_AVAILABLE:
-        return "OCR processing unavailable. Please install pytesseract, Pillow, and pdf2image."
-    
     try:
         # Convert PDF to images
         images = convert_from_bytes(pdf_content)
@@ -312,9 +285,6 @@ def extract_image_text(image_content) -> str:
     Returns:
         Extracted text as string
     """
-    if not OCR_AVAILABLE:
-        return "OCR processing unavailable. Please install pytesseract and Pillow."
-    
     try:
         image = Image.open(io.BytesIO(image_content))
         text = pytesseract.image_to_string(image)
@@ -449,11 +419,7 @@ def get_document_text(file_id: str, use_ocr: bool = True) -> Dict[str, Any]:
             "success": False,
             "error": f"Unsupported file type for text extraction: {file_type}",
             "file_info": file_info,
-            "available_methods": "None",
-            "support_status": {
-                "pdf_support": PYPDF2_AVAILABLE,
-                "ocr_support": OCR_AVAILABLE
-            }
+            "available_methods": "None"
         }
     
     # If OCR is needed but not enabled, inform the user
@@ -497,19 +463,11 @@ def get_document_text(file_id: str, use_ocr: bool = True) -> Dict[str, Any]:
     # Handle different file types according to their extraction method
     if method == "pdf":
         # Handle PDF files specifically
-        if not PYPDF2_AVAILABLE:
-            return {
-                "success": False,
-                "error": "PDF processing library (PyPDF2) not available. Please install it to process PDF files.",
-                "file_info": file_info,
-                "file_path": download_response.get("file_path")
-            }
-        
         # Try normal PDF text extraction first
         pdf_text = extract_pdf_text(raw_content)
         
-        # If the PDF appears to be scanned and OCR is available and enabled, try OCR
-        if "scanned images or non-extractable text" in pdf_text and use_ocr and OCR_AVAILABLE:
+        # If the PDF appears to be scanned and OCR is enabled, try OCR
+        if "scanned images or non-extractable text" in pdf_text and use_ocr:
             logger.info(f"Attempting OCR on PDF file: {file_name}")
             ocr_text = perform_ocr_on_pdf(raw_content)
             
@@ -533,14 +491,6 @@ def get_document_text(file_id: str, use_ocr: bool = True) -> Dict[str, Any]:
     
     elif method == "ocr":
         # Handle image files with OCR
-        if not OCR_AVAILABLE:
-            return {
-                "success": False,
-                "error": "OCR libraries not available. Please install pytesseract and Pillow.",
-                "file_info": file_info,
-                "file_path": download_response.get("file_path")
-            }
-        
         logger.info(f"Attempting OCR on image file: {file_name}")
         ocr_text = extract_image_text(raw_content)
         

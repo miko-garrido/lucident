@@ -54,11 +54,7 @@ class SlackClient:
         """
         Get user information with centralized caching to reduce API calls.
         
-        Args:
-            user_id: The ID of the user to get information for
-            
-        Returns:
-            Dictionary with user information or default dict if not found
+        Returns user information dictionary or default dict if not found.
         """
         if not user_id or user_id == "UNKNOWN":
             return {"name": "Unknown User", "real_name": "Unknown User"}
@@ -83,9 +79,6 @@ class SlackClient:
     def batch_prefetch_users(cls, user_ids):
         """
         Pre-fetch user information for multiple users at once.
-        
-        Args:
-            user_ids: Set of user IDs to fetch information for
         """
         # Filter out already cached users
         users_to_fetch = [uid for uid in user_ids if uid not in cls._user_cache and uid != "UNKNOWN"]
