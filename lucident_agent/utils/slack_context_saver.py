@@ -235,16 +235,29 @@ def refresh_slack_context(list_users_fn=None, list_channels_fn=None, get_bot_id_
     save_slack_context(list_users_fn, list_channels_fn, get_bot_id_fn)
     logger.info("Done! Slack context has been refreshed in Supabase.")
 
-def main():
-    """
-    Main function to save Slack context to Supabase
-    Note: This will fail if run directly since we've removed direct imports
-    """
-    logger.error("This module should not be run directly anymore. Import the functions and provide the necessary parameters.")
-
 if __name__ == "__main__":
+    import sys
     parser = argparse.ArgumentParser(description='Save or refresh Slack context in Supabase')
     parser.add_argument('--refresh', action='store_true', help='Delete existing records before saving new ones')
     args = parser.parse_args()
-    
-    logger.error("This module should not be run directly anymore. Import the functions and provide the necessary parameters.") 
+
+    # Import Slack functions only when running as script to avoid circular imports
+    try:
+        from lucident_agent.tools.slack_tools.user_tools import list_slack_users, get_bot_user_id
+        from lucident_agent.tools.slack_tools.channel_tools import list_slack_channels
+    except ImportError as e:
+        logger.error(f"Failed to import Slack tools: {e}")
+        sys.exit(1)
+
+    if args.refresh:
+        refresh_slack_context(
+            list_users_fn=list_slack_users,
+            list_channels_fn=list_slack_channels,
+            get_bot_id_fn=get_bot_user_id
+        )
+    else:
+        save_slack_context(
+            list_users_fn=list_slack_users,
+            list_channels_fn=list_slack_channels,
+            get_bot_id_fn=get_bot_user_id
+        ) 
