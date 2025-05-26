@@ -194,3 +194,75 @@ def resolve_comment(access_token: str, file_id: str, comment_id: str):
 def compare_versions(access_token: str, file_id: str, version_a: str, version_b: str):
     """Compare two versions of a file and log differences."""
     pass
+
+def create_figma_project_link(project_id: str) -> str:
+    """
+    Create a URL to a Figma project.
+    Args:
+        project_id (str): The Figma project ID
+    Returns:
+        str: URL to the Figma project
+    """
+    return f"https://www.figma.com/projects/{project_id}"
+
+
+def fetch_project_details(project_id: str):
+    """
+    Fetch details about a Figma project and provide a project link.
+    Args:
+        project_id (str): The Figma project ID
+    Returns:
+        dict: Project details with a 'link' field
+    """
+    access_token = get_access_token()
+    url = f'https://api.figma.com/v1/projects/{project_id}'
+    headers = get_headers(access_token)
+    response = requests.get(url, headers=headers).json()
+    # Add link to the project
+    if 'err' not in response:
+        response['link'] = create_figma_project_link(project_id)
+    return response
+
+def fetch_project_comments(project_id: str, limit: int = 5):
+    """
+    Fetch comments for all files in a project, sorted by creation time.
+
+    Args:
+        project_id (str): The Figma project ID.
+        limit (int): The maximum number of comments to return.
+
+    Returns:
+        list: A list of the latest comments from all files in the project.
+    """
+    files_response = list_files(project_id)
+    if 'err' in files_response or 'files' not in files_response:
+        return {'error': 'Could not list files for the project.', 'details': files_response.get('err')}
+
+    all_comments = []
+    for file_info in files_response['files']:
+        file_id = file_info.get('key')
+        if not file_id:
+            continue
+        
+        comments_response = fetch_comments(file_id)
+        if 'err' in comments_response or 'comments' not in comments_response:
+            # Log or handle error for individual file comments fetching if necessary
+            continue 
+        
+        # Add file_id and file_name to each comment for context
+        file_name = file_info.get('name', 'Unknown File')
+        for comment in comments_response['comments']:
+            comment['file_id'] = file_id
+            comment['file_name'] = file_name
+            all_comments.append(comment)
+
+    # Sort comments by creation time (descending) and take the top 'limit'
+    # Assuming 'created_at' is a string in ISO 8601 format
+    try:
+        all_comments.sort(key=lambda c: c.get('created_at', ''), reverse=True)
+    except Exception as e:
+        # Handle cases where created_at might be missing or not a string
+        # For now, just return unsorted if there's an issue with sorting key
+        pass # Or log the error: print(f"Error sorting comments: {e}")
+        
+    return all_comments[:limit]

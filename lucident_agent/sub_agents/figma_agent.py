@@ -55,6 +55,12 @@ def resolve_comment_wrapper(file_id: str, comment_id: str):
 def compare_versions_wrapper(file_id: str, version_a: str, version_b: str):
     return figma_tools.compare_versions(file_id, version_a, version_b)
 
+def fetch_project_details_wrapper(project_id: str):
+    return figma_tools.fetch_project_details(project_id)
+
+def fetch_project_comments_wrapper(project_id: str, limit: int = 5):
+    return figma_tools.fetch_project_comments(project_id, limit)
+
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "openai/gpt-4.1")
 
 figma_agent = Agent(
@@ -76,11 +82,13 @@ figma_agent = Agent(
         fetch_file_wrapper,
         list_projects_wrapper,
         list_files_wrapper,
+        fetch_project_details_wrapper,
         traverse_nodes_wrapper,
         extract_metadata_wrapper,
         extract_text_and_styles_wrapper,
         export_asset_wrapper,
         fetch_comments_wrapper,
+        fetch_project_comments_wrapper,
         post_comment_wrapper,
         resolve_comment_wrapper,
         compare_versions_wrapper,
